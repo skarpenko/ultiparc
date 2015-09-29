@@ -1,0 +1,35 @@
+    The Ultiparc Project (https://github.com/skarpenko/ultiparc)
+
+
+Ultiparc is a small 32-bit RISC microprocessor that implements subset of
+MIPS-I (TM) instructions. The major goals of the project are primarily
+educational.
+
+
+PREREQUISITES
+
+  Here is the list of prerequisites required to play with current sources:
+
+  * SystemC v2.3.1 (http://accelera.org/). Hardware simulation language
+    based on C++. Ultiparc system model is developed using this tool.
+    SystemC must be properly installed in the system and SYSTEMC_HOME
+    environment variable should be set to SystemC installation path.
+
+  * GTK Wave (http://gtkwave.sourceforge.net/). GTK+ based wave viewer
+    which could be used for waveforms visusalization.
+
+
+DIRECTORY STRUCTURE:
+
+  /
+  |- slm        - system level modelling related sources.
+  |- rtl        - Verilog sources.
+  |- verif      - Verification firmware.
+  -- setenv.sh  - environment configuration script.
+
+
+CONTACTS
+
+  Stepan Karpenko
+  e-mail (1): carp@mail.ru
+  e-mail (2): stepan.karpenko@gmail.com

@@ -1,0 +1,14 @@
+# Normal rules
+*.o
+*.a
+*.so
+*.elf
+*.vcd
+
+# Backup files
+*.orig
+*~
+\#*#
+
+# Netbeans projects
+nbproject
