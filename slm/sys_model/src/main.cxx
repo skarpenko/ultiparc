@@ -105,6 +105,15 @@ int sc_main(int argc, char *argv[])
 		sc_trace_x(sys_trace, top.uart.o_SData);
 		sc_trace_x(sys_trace, top.uart.o_SResp);
 
+		// Simulation control device interface
+		sc_trace_x(sys_trace, top.ctrl.i_MAddr);
+		sc_trace_x(sys_trace, top.ctrl.i_MCmd);
+		sc_trace_x(sys_trace, top.ctrl.i_MData);
+		sc_trace_x(sys_trace, top.ctrl.i_MByteEn);
+		sc_trace_x(sys_trace, top.ctrl.o_SCmdAccept);
+		sc_trace_x(sys_trace, top.ctrl.o_SData);
+		sc_trace_x(sys_trace, top.ctrl.o_SResp);
+
 		// CPU instructions fabric port
 		sc_trace_x(sys_trace, top.fab.i_cpuI_MAddr);
 		sc_trace_x(sys_trace, top.fab.i_cpuI_MCmd);
@@ -141,6 +150,15 @@ int sc_main(int argc, char *argv[])
 		sc_trace_x(sys_trace, top.fab.i_px_SData[1]);
 		sc_trace_x(sys_trace, top.fab.i_px_SResp[1]);
 
+		// Fabric port 2
+		sc_trace_x(sys_trace, top.fab.o_px_MAddr[2]);
+		sc_trace_x(sys_trace, top.fab.o_px_MCmd[2]);
+		sc_trace_x(sys_trace, top.fab.o_px_MData[2]);
+		sc_trace_x(sys_trace, top.fab.o_px_MByteEn[2]);
+		sc_trace_x(sys_trace, top.fab.i_px_SCmdAccept[2]);
+		sc_trace_x(sys_trace, top.fab.i_px_SData[2]);
+		sc_trace_x(sys_trace, top.fab.i_px_SResp[2]);
+
 		// CPU instruction bus
 		sc_trace_x(sys_trace, top.cpu.ib_addr_o);
 		sc_trace_x(sys_trace, top.cpu.ib_rdc_o);
@@ -164,7 +182,7 @@ int sc_main(int argc, char *argv[])
 	nrst = 0;
 	sc_start(100, SC_NS);
 	nrst = 1;
-	sc_start(1000, SC_NS);
+	sc_start();
 
 	// Close trace file
 	if(sys_trace)

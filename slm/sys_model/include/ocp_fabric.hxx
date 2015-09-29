@@ -55,7 +55,7 @@ SC_MODULE(fabric) {
 	sc_out<sc_uint<32> > o_cpuD_SData;
 	sc_out<sc_uint<2> >  o_cpuD_SResp;
 
-	static const int NPORTS = 2; // Total master ports number
+	static const int NPORTS = 3; // Total master ports number
 
 	// Master ports
 	sc_out<sc_uint<32> > o_px_MAddr[NPORTS];
@@ -227,5 +227,5 @@ private:
 	}
 };
 
-const unsigned fabric::PX_BASE_ADDR[] = { 0x00000000, 0x80000000 };
-const unsigned fabric::PX_LAST_ADDR[] = { 0x0fffffff, 0x800fffff };
+const unsigned fabric::PX_BASE_ADDR[] = { 0x00000000, 0x80000000, 0x80100000 };
+const unsigned fabric::PX_LAST_ADDR[] = { 0x0fffffff, 0x800fffff, 0x801fffff };

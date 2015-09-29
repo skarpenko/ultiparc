@@ -24,7 +24,7 @@
  */
 
 /*
- * Micro UART module
+ * Simulation control device
  */
 
 #include <systemc.h>
@@ -34,13 +34,13 @@
 #pragma once
 
 
-// Micro UART
+// Simulation control
 //  Registers:
-//    0x00  -  character register;
+//    0x00  -  control register;
 //             Bits:
-//              [31:8] - ignored;
-//              [7:0]  - character value to print.
-SC_MODULE(muart) {
+//              [31:1] - ignored;
+//              [0]    - stop simulation.
+SC_MODULE(sim_ctrl) {
 	sc_in<bool>          clk;
 	sc_in<bool>          nrst;
 
@@ -54,15 +54,19 @@ SC_MODULE(muart) {
 	sc_out<sc_uint<2> >  o_SResp;
 
 
-	SC_CTOR(muart) {
-		SC_THREAD(uart_proc);
+	SC_CTOR(sim_ctrl) {
+		SC_THREAD(sim_ctrl_proc);
 			sensitive << clk.pos() << i_MCmd;
 		o_SCmdAccept.initialize(true);
+		last_value = 0;
 	}
+
+public:
+	unsigned int last_value;  // last value written to control register
 
 private:
 	// main thread
-	void uart_proc(void)
+	void sim_ctrl_proc(void)
 	{
 		wait(nrst.posedge_event());
 
@@ -87,27 +91,31 @@ private:
 				o_SResp = OCP_RESP_NULL;
 				continue;
 			}
-///////////
-#if 1
-			o_SCmdAccept.write(false);
-				wait(clk.posedge_event());
-				wait(clk.posedge_event());
-				wait(clk.posedge_event());
-				wait(clk.posedge_event());
-			o_SCmdAccept.write(true);
-#endif
-//////
+
 			if(cmd == OCP_CMD_READ) {
-	                        // Always return zero on read
+	                        // Return last written value
 				wait(clk.posedge_event());
-				o_SData = 0;
+				o_SData = last_value;
 				o_SResp = OCP_RESP_DVA;
 				wait(clk.posedge_event());
 				o_SResp = OCP_RESP_NULL;
 			} else if(cmd == OCP_CMD_WRITE) {
-				// Print character to stdout
-				if(ben&0x1)
-					std::cout << static_cast<char>(data & 0xff);
+				// Store value
+				unsigned mask = 0;
+				if(ben&0x1) mask |= 0x000000ff;
+				if(ben&0x2) mask |= 0x0000ff00;
+				if(ben&0x4) mask |= 0x00ff0000;
+				if(ben&0x8) mask |= 0xff000000;
+				data &= mask;
+				last_value &= ~mask;
+				last_value |= data;
+
+				// If simulation termination requested
+				if(last_value & 0x1) {
+					std::cout << std::endl;
+					sc_stop();
+				}
+
 				o_SResp = OCP_RESP_DVA;
 				wait(clk.posedge_event());
 				o_SResp = OCP_RESP_NULL;

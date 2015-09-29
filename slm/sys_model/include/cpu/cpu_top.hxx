@@ -102,6 +102,21 @@ private:
 			} while(db_rdy_i.read() != true && db_err_i.read() != true);
 			db_cmd_o.write(false);
 			wait();
+
+			if(ia>0x1040) {
+				unsigned d = 256;
+				if(ia>0x1048) d|=1;
+				db_addr_o.write(0x80100000);
+				db_data_o.write(d);
+				db_ben_o.write(0xf);
+				db_rnw_o.write(false);
+				db_cmd_o.write(true);
+				do {
+					wait(clk.posedge_event() | db_rdy_i.value_changed_event() | db_err_i.value_changed_event());
+				} while(db_rdy_i.read() != true && db_err_i.read() != true);
+				db_cmd_o.write(false);
+				wait();
+			}
 		}
 	}
 };

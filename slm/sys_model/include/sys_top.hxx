@@ -30,6 +30,7 @@
 #include <systemc.h>
 #include "ocp_memory.hxx"
 #include "ocp_muart.hxx"
+#include "ocp_ctrl.hxx"
 #include "ocp_fabric.hxx"
 #include "ibus_adapt.hxx"
 #include "dbus_adapt.hxx"
@@ -51,6 +52,7 @@ SC_MODULE(sys_top) {
 	memory     ram;
 	fabric     fab;
 	muart      uart;
+	sim_ctrl   ctrl;
 	cpu_top    cpu;
 	ibus_adapt ibusa;
 	dbus_adapt dbusa;
@@ -58,12 +60,13 @@ SC_MODULE(sys_top) {
 
 	SC_CTOR(sys_top)
 		: clk("clk"), nrst("nrst"), ram("ram", RAM_SIZE), fab("fab"), uart("uart"),
-		  cpu("cpu"), ibusa("ibusa"), dbusa("dbusa")
+		  ctrl("ctrl"), cpu("cpu"), ibusa("ibusa"), dbusa("dbusa")
 	{
 		// connect clock
 		fab.clk(clk);
 		ram.clk(clk);
 		uart.clk(clk);
+		ctrl.clk(clk);
 		cpu.clk(clk);
 		ibusa.clk(clk);
 		dbusa.clk(clk);
@@ -72,6 +75,7 @@ SC_MODULE(sys_top) {
 		fab.nrst(nrst);
 		ram.nrst(nrst);
 		uart.nrst(nrst);
+		ctrl.nrst(nrst);
 		cpu.nrst(nrst);
 		ibusa.nrst(nrst);
 		dbusa.nrst(nrst);
@@ -107,6 +111,22 @@ SC_MODULE(sys_top) {
 		fab.i_px_SData[1](sig_p1_SData);
 		uart.o_SResp(sig_p1_SResp);
 		fab.i_px_SResp[1](sig_p1_SResp);
+
+		// Simulation control device
+		ctrl.i_MAddr(sig_p2_MAddr);
+		fab.o_px_MAddr[2](sig_p2_MAddr);
+		ctrl.i_MCmd(sig_p2_MCmd);
+		fab.o_px_MCmd[2](sig_p2_MCmd);
+		ctrl.i_MData(sig_p2_MData);
+		fab.o_px_MData[2](sig_p2_MData);
+		ctrl.i_MByteEn(sig_p2_MByteEn);
+		fab.o_px_MByteEn[2](sig_p2_MByteEn);
+		ctrl.o_SCmdAccept(sig_p2_SCmdAccept);
+		fab.i_px_SCmdAccept[2](sig_p2_SCmdAccept);
+		ctrl.o_SData(sig_p2_SData);
+		fab.i_px_SData[2](sig_p2_SData);
+		ctrl.o_SResp(sig_p2_SResp);
+		fab.i_px_SResp[2](sig_p2_SResp);
 
 		// I-Bus adapter
 		fab.i_cpuI_MAddr(sig_cpuI_MAddr);
@@ -172,58 +192,6 @@ SC_MODULE(sys_top) {
 	}
 
 private:
-#if 0
-	void mem_test(void)
-	{
-		unsigned ia = 0x1000;
-		unsigned da = 0x2000;
-
-		wait(nrst.posedge_event());
-
-		while(true) {
-			wait();
-//cout << sig_p0_MAddr.name() << endl;
-			sig_cpuI_MAddr.write(ia);
-			sig_cpuI_MByteEn.write(0xf);
-			sig_cpuI_MCmd.write(OCP_CMD_READ);
-//			sig_cpuI_MCmd.write(OCP_CMD_WRITE);
-			ia += 4;
-			wait(clk.posedge_event() | sig_cpuI_SCmdAccept.value_changed_event());
-			if(!sig_cpuI_SCmdAccept.read())
-				wait(clk.posedge_event() & sig_cpuI_SCmdAccept.value_changed_event());
-			sig_cpuI_MCmd.write(OCP_CMD_IDLE);
-			wait(clk.posedge_event() & sig_cpuI_SResp.value_changed_event());
-			wait();
-
-			sig_cpuD_MAddr.write(da);
-			sig_cpuD_MByteEn.write(0xf);
-			sig_cpuD_MCmd.write(OCP_CMD_READ);
-//			sig_cpuD_MCmd.write(OCP_CMD_WRITE);
-			da += 4;
-			wait(clk.posedge_event() | sig_cpuD_SCmdAccept.value_changed_event());
-			if(!sig_cpuD_SCmdAccept.read())
-				wait(clk.posedge_event() & sig_cpuD_SCmdAccept.value_changed_event());
-			sig_cpuD_MCmd.write(OCP_CMD_IDLE);
-			wait(clk.posedge_event() & sig_cpuD_SResp.value_changed_event());
-			wait();
-
-			sig_cpuD_MAddr.write(0x80000000);
-			sig_cpuD_MData.write('H');
-			sig_cpuD_MByteEn.write(0xf);
-//			sig_cpuD_MCmd.write(OCP_CMD_READ);
-			sig_cpuD_MCmd.write(OCP_CMD_WRITE);
-			wait(clk.posedge_event() | sig_cpuD_SCmdAccept.value_changed_event());
-			if(!sig_cpuD_SCmdAccept.read())
-				wait(clk.posedge_event() & sig_cpuD_SCmdAccept.value_changed_event());
-			sig_cpuD_MCmd.write(OCP_CMD_IDLE);
-			wait(clk.posedge_event() & sig_cpuD_SResp.value_changed_event());
-			wait();
-
-		}
-	}
-#endif
-
-private:
 	// Port 0 signals (fabric)
 	sc_signal<sc_uint<32> > sig_p0_MAddr;
 	sc_signal<sc_uint<3> >  sig_p0_MCmd;
@@ -241,6 +209,15 @@ private:
 	sc_signal<bool>         sig_p1_SCmdAccept;
 	sc_signal<sc_uint<32> > sig_p1_SData;
 	sc_signal<sc_uint<2> >  sig_p1_SResp;
+
+	// Port 2 signals (fabric)
+	sc_signal<sc_uint<32> > sig_p2_MAddr;
+	sc_signal<sc_uint<3> >  sig_p2_MCmd;
+	sc_signal<sc_uint<32> > sig_p2_MData;
+	sc_signal<sc_uint<4> >  sig_p2_MByteEn;
+	sc_signal<bool>         sig_p2_SCmdAccept;
+	sc_signal<sc_uint<32> > sig_p2_SData;
+	sc_signal<sc_uint<2> >  sig_p2_SResp;
 
 	// CPU instruction port signals (fabric)
 	sc_signal<sc_uint<32> >  sig_cpuI_MAddr;

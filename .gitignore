@@ -1,6 +1,7 @@
 # Normal rules
 *.o
 *.a
+*.d
 *.so
 *.elf
 *.vcd
