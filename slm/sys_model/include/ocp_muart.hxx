@@ -28,6 +28,7 @@
  */
 
 #include <systemc.h>
+#include <stdint.h>
 #include <iostream>
 #include <string>
 #include "ocp_defs.hxx"
@@ -69,10 +70,10 @@ private:
 		while(true) {
 			wait();
 
-			unsigned addr = i_MAddr.read();
-			unsigned data = i_MData.read();
-			unsigned cmd  = i_MCmd.read();
-			unsigned ben  = i_MByteEn.read();
+			uint32_t addr = i_MAddr.read();
+			uint32_t data = i_MData.read();
+			uint32_t cmd  = i_MCmd.read();
+			uint32_t ben  = i_MByteEn.read();
 
 			if(cmd == OCP_CMD_IDLE)
 				continue;

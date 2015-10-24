@@ -28,6 +28,7 @@
  */
 
 #include <systemc.h>
+#include <stdint.h>
 #include <iostream>
 #include <string>
 #include "ocp_defs.hxx"
@@ -73,10 +74,10 @@ private:
 		while(true) {
 			wait();
 
-			unsigned addr = i_MAddr.read();
-			unsigned data = i_MData.read();
-			unsigned cmd  = i_MCmd.read();
-			unsigned ben  = i_MByteEn.read();
+			uint32_t addr = i_MAddr.read();
+			uint32_t data = i_MData.read();
+			uint32_t cmd  = i_MCmd.read();
+			uint32_t ben  = i_MByteEn.read();
 
 			if(cmd == OCP_CMD_IDLE)
 				continue;
@@ -101,7 +102,7 @@ private:
 				o_SResp = OCP_RESP_NULL;
 			} else if(cmd == OCP_CMD_WRITE) {
 				// Store value
-				unsigned mask = 0;
+				uint32_t mask = 0;
 				if(ben&0x1) mask |= 0x000000ff;
 				if(ben&0x2) mask |= 0x0000ff00;
 				if(ben&0x4) mask |= 0x00ff0000;

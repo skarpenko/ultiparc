@@ -28,6 +28,7 @@
  */
 
 #include <systemc.h>
+#include <stdint.h>
 #include <iostream>
 #include <string>
 #include "ocp_defs.hxx"
@@ -79,10 +80,10 @@ private:
 			if(cmd_i.read() != true)
 				continue;
 
-			unsigned addr = addr_i.read();
-			unsigned wr_data = data_i.read();
+			uint32_t addr = addr_i.read();
+			uint32_t wr_data = data_i.read();
 			bool rnw = rnw_i.read();
-			unsigned ben = ben_i.read();
+			uint32_t ben = ben_i.read();
 
 			// Initiate transaction to fabric
 			o_MAddr.write(addr);

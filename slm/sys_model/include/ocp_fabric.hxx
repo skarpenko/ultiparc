@@ -28,6 +28,7 @@
  */
 
 #include <systemc.h>
+#include <stdint.h>
 #include "ocp_defs.hxx"
 #pragma once
 
@@ -66,11 +67,6 @@ SC_MODULE(fabric) {
 	sc_in<sc_uint<32> >  i_px_SData[NPORTS];
 	sc_in<sc_uint<2> >   i_px_SResp[NPORTS];
 
-	// Per port address ranges for address decoding
-	static const unsigned PX_BASE_ADDR[NPORTS];
-	static const unsigned PX_LAST_ADDR[NPORTS];
-
-
 	SC_CTOR(fabric) {
 		SC_THREAD(fab_cpu_ports_thread);
 			sensitive << clk.pos()
@@ -80,6 +76,15 @@ SC_MODULE(fabric) {
 		o_cpuI_SCmdAccept.initialize(true);
 		o_cpuD_SCmdAccept.initialize(true);
 	}
+
+private:
+	struct port_addr {
+		uint32_t base;  // Base address of a port address range
+		uint32_t last;  // Last address of a port address range
+	};
+
+	// Per port address ranges for address decoding
+	static const port_addr PX_ADDR[NPORTS];
 
 private:
 	// main thread
@@ -103,8 +108,8 @@ private:
 	// Handle instructions fetch
 	void fab_cpuI_proc(void)
 	{
-		unsigned cmd  = i_cpuI_MCmd.read();
-		unsigned addr = i_cpuI_MAddr.read();
+		uint32_t cmd  = i_cpuI_MCmd.read();
+		uint32_t addr = i_cpuI_MAddr.read();
 
 		if(cmd == OCP_CMD_IDLE)
 			return;
@@ -112,7 +117,7 @@ private:
 		// Select destination master port
 		int pi = -1;
 		for(int i=0; i<NPORTS; ++i) {
-			if(addr >= PX_BASE_ADDR[i] && addr <= PX_LAST_ADDR[i]) {
+			if(addr >= PX_ADDR[i].base && addr <= PX_ADDR[i].last) {
 				pi = i;
 				break;
 			}
@@ -125,7 +130,7 @@ private:
 			return;
 		}
 
-		addr -= PX_BASE_ADDR[pi];
+		addr -= PX_ADDR[pi].base;
 
 		// Initiate new transaction
 		o_px_MAddr[pi] = addr;
@@ -166,8 +171,8 @@ private:
 	// Handle data fetch
 	void fab_cpuD_proc(void)
 	{
-		unsigned cmd  = i_cpuD_MCmd.read();
-		unsigned addr = i_cpuD_MAddr.read();
+		uint32_t cmd  = i_cpuD_MCmd.read();
+		uint32_t addr = i_cpuD_MAddr.read();
 
 		if(cmd == OCP_CMD_IDLE)
 			return;
@@ -175,7 +180,7 @@ private:
 		// Select destination master port
 		int pi = -1;
 		for(int i=0; i<NPORTS; ++i) {
-			if(addr >= PX_BASE_ADDR[i] && addr <= PX_LAST_ADDR[i]) {
+			if(addr >= PX_ADDR[i].base && addr <= PX_ADDR[i].last) {
 				pi = i;
 				break;
 			}
@@ -188,7 +193,7 @@ private:
 			return;
 		}
 
-		addr -= PX_BASE_ADDR[pi];
+		addr -= PX_ADDR[pi].base;
 
 		// Start new transaction
 		o_px_MAddr[pi] = addr;
@@ -227,5 +232,11 @@ private:
 	}
 };
 
-const unsigned fabric::PX_BASE_ADDR[] = { 0x00000000, 0x80000000, 0x80100000 };
-const unsigned fabric::PX_LAST_ADDR[] = { 0x0fffffff, 0x800fffff, 0x801fffff };
+const fabric::port_addr fabric::PX_ADDR[] = {
+	// Port 0
+	{ .base = 0x00000000, .last = 0x0fffffff },
+	// Port 1
+	{ .base = 0x80000000, .last = 0x800fffff },
+	// Port 2
+	{ .base = 0x80100000, .last = 0x801fffff }
+};

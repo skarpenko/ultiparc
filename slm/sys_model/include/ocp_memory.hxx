@@ -28,6 +28,7 @@
  */
 
 #include <systemc.h>
+#include <stdint.h>
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -102,10 +103,10 @@ private:
 		while(true) {
 			wait();
 
-			unsigned addr = i_MAddr.read();
-			unsigned data = i_MData.read();
-			unsigned cmd  = i_MCmd.read();
-			unsigned ben  = i_MByteEn.read();
+			uint32_t addr = i_MAddr.read();
+			uint32_t data = i_MData.read();
+			uint32_t cmd  = i_MCmd.read();
+			uint32_t ben  = i_MByteEn.read();
 
 			if(cmd == OCP_CMD_IDLE)
 				continue;
@@ -114,7 +115,7 @@ private:
 
 			// Check address range
 			if(addr > (m_size - 4) && addr < m_size) {
-				unsigned n = m_size - addr;
+				uint32_t n = m_size - addr;
 				if(ben & ~((1<<n)-1))
 					addr_err = true;
 			} else if(addr >= m_size) {
@@ -133,14 +134,14 @@ private:
 			if(cmd == OCP_CMD_READ) {
 				// Read from RAM
 				wait(clk.posedge_event());
-				o_SData = *reinterpret_cast<unsigned*>(&m_ram[addr]);
+				o_SData = *reinterpret_cast<uint32_t*>(&m_ram[addr]);
 				o_SResp = OCP_RESP_DVA;
 				wait(clk.posedge_event());
 				o_SResp = OCP_RESP_NULL;
 			} else if(cmd == OCP_CMD_WRITE) {
 				// Write data to RAM according to byte enables mask
-				unsigned d = *reinterpret_cast<unsigned*>(&m_ram[addr]);
-				unsigned mask = 0;
+				uint32_t d = *reinterpret_cast<uint32_t*>(&m_ram[addr]);
+				uint32_t mask = 0;
 				if(ben&0x1) mask |= 0x000000ff;
 				if(ben&0x2) mask |= 0x0000ff00;
 				if(ben&0x4) mask |= 0x00ff0000;
@@ -148,7 +149,7 @@ private:
 				data &= mask;
 				d &= ~mask;
 				d |= data;
-				*reinterpret_cast<unsigned*>(&m_ram[addr]) = d;
+				*reinterpret_cast<uint32_t*>(&m_ram[addr]) = d;
 				o_SResp = OCP_RESP_DVA;
 				wait(clk.posedge_event());
 				o_SResp = OCP_RESP_NULL;

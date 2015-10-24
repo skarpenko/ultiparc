@@ -28,6 +28,7 @@
  */
 
 #include <systemc.h>
+#include <stdint.h>
 #include "ocp_memory.hxx"
 #include "ocp_muart.hxx"
 #include "ocp_ctrl.hxx"
@@ -35,6 +36,7 @@
 #include "ibus_adapt.hxx"
 #include "dbus_adapt.hxx"
 #include "cpu/cpu_top.hxx"
+//#include "cpu_ltm/cpu_top.hxx"
 #pragma once
 
 
