@@ -79,7 +79,7 @@ SC_MODULE(cpu_top) {
 	}
 
 private:
-	static const unsigned IVT_ENTRY_SZ = 8;
+	static const unsigned IVT_ENTRY_SZ = 8;	// IVT entry size
 
 	enum cpu_exception {
 		EX_NONE = 0,		// No exception
@@ -93,6 +93,14 @@ private:
 		EX_HW_INTR		// Hardware Interrupt
 	};
 
+	//
+	// R-Type instruction (Register)
+	//
+	// 31          26 25       21 20       16 15       11 10        6 5            0
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	// |     op      |    rs     |    rt     |    rd     |   shamt   |    funct    |
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	//
 	struct rtype_instr {
 		uint32_t func  : 6;
 		uint32_t shamt : 5;
@@ -102,6 +110,14 @@ private:
 		uint32_t op    : 6;
 	};
 
+	//
+	// I-Type instruction (Immediate)
+	//
+	// 31          26 25       21 20       16 15                                   0
+	// +-------------+-----------+-----------+-------------------------------------+
+	// |     op      |    rs     |    rt     |              immediate              |
+	// +-------------+-----------+-----------+-------------------------------------+
+	//
 	struct itype_instr {
 		uint32_t imm : 16;
 		uint32_t rt  : 5;
@@ -109,6 +125,14 @@ private:
 		uint32_t op  : 6;
 	};
 
+	//
+	// J-Type instruction (Jump)
+	//
+	// 31          26 25                                                           0
+	// +-------------+-------------------------------------------------------------+
+	// |     op      |                         target                              |
+	// +-------------+-------------------------------------------------------------+
+	//
 	struct jtype_instr {
 		uint32_t target : 26;
 		uint32_t op     : 6;
@@ -122,99 +146,1478 @@ private:
 	};
 
 private:
-	int32_t sign_extend8(uint32_t imm);
-	int32_t sign_extend16(uint32_t imm);
+	// Sign extension
+	uint32_t sign_extend8(uint32_t imm);
+	uint32_t sign_extend16(uint32_t imm);
 
+	// Zero extension
 	uint32_t zero_extend8(uint32_t imm);
 	uint32_t zero_extend16(uint32_t imm);
 
+	// Read/write general purpose register (GPR)
 	uint32_t rd_gpreg(uint32_t r);
 	void wr_gpreg(uint32_t r, uint32_t v);
 
+	// Bus operation - fetch instruction
 	uint32_t fetch_instr(uint32_t pc);
 
+	// Bus operations - load byte, halfword and word
 	uint32_t load_byte(uint32_t addr);
 	uint32_t load_halfword(uint32_t addr);
 	uint32_t load_word(uint32_t addr);
 
+	// Bus operations - store byte, halfword and word
 	void store_byte(uint32_t addr, uint32_t v);
 	void store_halfword(uint32_t addr, uint32_t v);
 	void store_word(uint32_t addr, uint32_t v);
 
+	// Check exception state
 	bool check_except(void);
+	// Check external interrupt active state
 	bool check_intr(void);
 
-	// TODO: put description here
+	//// INSTRUCTIONS
+
+	//
+	// MFC0  Move From Coprocessor 0
+	//
+	// 31          26 25       21 20       16 15       11 10        6 5            0
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	// |     COP0    |     MF    |           |           |           |             |
+	// | 0 1 0 0 0 0 | 0 0 0 0 0 |    rt     |    rd     | 0 0 0 0 0 | 0 0 0 0 0 0 |
+	// |             |           |           |           |           |             |
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	//         6            5          5           5            5           6
+	//
+	// Format:
+	//	MFC0 rt, rd
+	// Description: rt <- rd
+	//	The contents of coprocessor register rd of coprocessor 0 are loaded
+	//	into general register rt.
+	// Exceptions:
+	//	None
+	//
 	void instr_mfc0(uint32_t instr);
+
+	//
+	// MTC0  Move To Coprocessor 0
+	//
+	// 31          26 25       21 20       16 15       11 10        6 5            0
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	// |     COP0    |     MT    |           |           |           |             |
+	// | 0 1 0 0 0 0 | 0 0 1 0 0 |    rt     |    rd     | 0 0 0 0 0 | 0 0 0 0 0 0 |
+	// |             |           |           |           |           |             |
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	//         6            5          5           5            5           6
+	//
+	// Format:
+	//	MTC0 rt, rd
+	// Description: rd <- rt
+	//	The contents of general register rt are loaded into coprocessor
+	//	register rd of coprocessor 0.
+	// Exceptions:
+	//	None
+	//
 	void instr_mtc0(uint32_t instr);
+
+	//
+	// RFE  Restore From Exception
+	//
+	// 31          26 25       21 20       16 15       11 10        6 5            0
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	// |     COP0    |     CO    |           |           |           |    RFE      |
+	// | 0 1 0 0 0 0 | 1 0 0 0 0 | 0 0 0 0 0 | 0 0 0 0 0 | 0 0 0 0 0 | 0 1 0 0 0 0 |
+	// |             |           |           |           |           |             |
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	//         6            5          5           5            5           6
+	//
+	// Format:
+	//	RFE
+	// Description: sr <- psr
+	//	RFE restores the previous Status Register bits including interrupt
+	//	enable mask bit. The MIPS architecture does not specify the operation
+	//	of memory references associated with load/store instructions immediately
+	//	prior to an RFE instruction. Normally, the RFE instruction follows
+	//	in the delay slot of a JR instruction to restore the PC.
+	// Exceptions:
+	//	None
+	//
 	void instr_rfe(uint32_t instr);
 
+	//
+	// SLL  Shift Word Left Logical
+	//
+	// 31          26 25       21 20       16 15       11 10        6 5            0
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	// |   SPECIAL   |     0     |           |           |           |    SLL      |
+	// | 0 0 0 0 0 0 | 0 0 0 0 0 |    rt     |    rd     |    sa     | 0 0 0 0 0 0 |
+	// |             |           |           |           |           |             |
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	//         6            5          5           5            5           6
+	//
+	// Format:
+	//	SLL rd, rt, sa
+	// Description: rd <- rt << sa  (logical)
+	//	The contents of the low-order word of general register rt are shifted
+	//	left by sa bits, inserting zeros into the low-order bits. The word
+	//	result is placed in register rd.
+	// Exceptions:
+	//	None
+	//
 	void instr_sll(uint32_t instr);
+
+	//
+	// SRL  Shift Word Right Logical
+	//
+	// 31          26 25       21 20       16 15       11 10        6 5            0
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	// |   SPECIAL   |     0     |           |           |           |    SRL      |
+	// | 0 0 0 0 0 0 | 0 0 0 0 0 |    rt     |    rd     |    sa     | 0 0 0 0 1 0 |
+	// |             |           |           |           |           |             |
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	//         6            5          5           5            5           6
+	//
+	// Format:
+	//	SRL rd, rt, sa
+	// Description: rd <- rt >> sa  (logical)
+	//	The contents of the low-order word of general register rt are shifted
+	//	right by sa bits, inserting zeros into the high-order bits. The word
+	//	result is placed in register rd.
+	// Exceptions:
+	//	None
+	//
 	void instr_srl(uint32_t instr);
+
+	//
+	// SRA  Shift Word Right Arithmetic
+	//
+	// 31          26 25       21 20       16 15       11 10        6 5            0
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	// |   SPECIAL   |     0     |           |           |           |    SRA      |
+	// | 0 0 0 0 0 0 | 0 0 0 0 0 |    rt     |    rd     |    sa     | 0 0 0 0 1 1 |
+	// |             |           |           |           |           |             |
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	//         6            5          5           5            5           6
+	//
+	// Format:
+	//	SRA rd, rt, sa
+	// Description: rd <- rt >> sa  (arithmetic)
+	//	The contents of the low-order word of general register rt are shifted
+	//	right by sa bits, sign-extending the high-order bits. The word
+	//	result is placed in register rd.
+	// Exceptions:
+	//	None
+	//
 	void instr_sra(uint32_t instr);
+
+	//
+	// SLLV  Shift Word Left Logical Variable
+	//
+	// 31          26 25       21 20       16 15       11 10        6 5            0
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	// |   SPECIAL   |           |           |           |     0     |    SLLV     |
+	// | 0 0 0 0 0 0 |    rs     |    rt     |    rd     | 0 0 0 0 0 | 0 0 0 1 0 0 |
+	// |             |           |           |           |           |             |
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	//         6            5          5           5            5           6
+	//
+	// Format:
+	//	SLLV rd, rt, rs
+	// Description: rd <- rt << (rs & 0x1f)  (logical)
+	//	The contents of the low-order word of general register rt are shifted
+	//	left the number of bits specified by the low-order five bits contained
+	//	in general register rs, inserting zeros into the low-order bits.
+	//	The word-value result is placed in register rd.
+	// Exceptions:
+	//	None
+	//
 	void instr_sllv(uint32_t instr);
+
+	//
+	// SRLV  Shift Word Right Logical Variable
+	//
+	// 31          26 25       21 20       16 15       11 10        6 5            0
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	// |   SPECIAL   |           |           |           |     0     |    SRLV     |
+	// | 0 0 0 0 0 0 |    rs     |    rt     |    rd     | 0 0 0 0 0 | 0 0 0 1 1 0 |
+	// |             |           |           |           |           |             |
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	//         6            5          5           5            5           6
+	//
+	// Format:
+	//	SRLV rd, rt, rs
+	// Description: rd <- rt >> (rs & 0x1f)  (logical)
+	//	The low-order word of general register rt are shifted right by the number
+	//	of bits specified by the low-order five bits of general register rs,
+	//	inserting zeros into the high-order bits. The result is placed in register rd.
+	// Exceptions:
+	//	None
+	//
 	void instr_srlv(uint32_t instr);
+
+	//
+	// SRAV  Shift Word Right Arithmetic Variable
+	//
+	// 31          26 25       21 20       16 15       11 10        6 5            0
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	// |   SPECIAL   |           |           |           |     0     |    SRAV     |
+	// | 0 0 0 0 0 0 |    rs     |    rt     |    rd     | 0 0 0 0 0 | 0 0 0 1 1 1 |
+	// |             |           |           |           |           |             |
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	//         6            5          5           5            5           6
+	//
+	// Format:
+	//	SRAV rd, rt, rs
+	// Description: rd <- rt >> (rs & 0x1f)  (arithmetic)
+	//	The contents of general register rt are shifted right by the number
+	//	of bits specified by the low-order five bits of general register rs,
+	//	sign-extending the high-order bits. The result is placed in register rd.
+	// Exceptions:
+	//	None
+	//
 	void instr_srav(uint32_t instr);
+
+	//
+	// JR  Jump Register
+	//
+	// 31          26 25       21 20       16 15       11 10        6 5            0
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	// |   SPECIAL   |           |     0     |     0     |     0     |     JR      |
+	// | 0 0 0 0 0 0 |    rs     | 0 0 0 0 0 | 0 0 0 0 0 | 0 0 0 0 0 | 0 0 1 0 0 0 |
+	// |             |           |           |           |           |             |
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	//         6            5          5           5            5           6
+	//
+	// Format:
+	//	JR rs
+	// Description: PC <- rs
+	//	The program unconditionally jumps to the address contained in general
+	//	register rs, with a delay of one instruction. Since instructions must
+	//	be word-aligned, a Jump Register instruction must specify a target
+	//	register rs whose two low-order bits are zero. If these low-order bits
+	//	are not zero, an address exception will occur when the jump target
+	//	instruction is subsequently fetched.
+	// Exceptions:
+	//	Address error exception
+	//
 	void instr_jr(uint32_t instr);
+
+	//
+	// JALR  Jump And Link Register
+	//
+	// 31          26 25       21 20       16 15       11 10        6 5            0
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	// |   SPECIAL   |           |     0     |           |     0     |    JALR     |
+	// | 0 0 0 0 0 0 |    rs     | 0 0 0 0 0 |    rd     | 0 0 0 0 0 | 0 0 1 0 0 1 |
+	// |             |           |           |           |           |             |
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	//         6            5          5           5            5           6
+	//
+	// Format:
+	//	JALR rs    (rd=31 implied)
+	//	JALR rd, rs
+	// Description: rd = PC+8, PC <- rs
+	//	The program unconditionally jumps to the address contained in general
+	//	register rs, with a delay of one instruction. The address of the
+	//	instruction after the delay slot is placed in general register rd. The
+	//	default value of rd, if omitted in the assembly language instruction, is 31.
+	//	Register specifiers rs and rd may not be equal, because such an instruction
+	//	does not have the same effect when re-executed. However, an attempt to
+	//	execute this instruction is not trapped, and the result of executing such
+	//	an instruction is undefined.
+	//	A Jump and Link Register instruction that uses a register whose low-order
+	//	2 bits are non-zero, or specifies an address outside of the accessible
+	//	address space, causes an Address Error Exception when the jump is executed.
+	//	The Exception PC points to the location of the Jump instruction causing
+	//	the error, and the instruction in the delay slot is not executed.
+	//	If desired, system software can emulate the delay instruction and advance
+	//	the PC to the target of the jump before delivering the exception to the
+	//	user program.
+	// Exceptions:
+	//	Address error exception
+	//
 	void instr_jalr(uint32_t instr);
+
+	//
+	// SYSCALL  System Call
+	//
+	// 31          26 25                                            6 5            0
+	// +-------------+-----------------------------------------------+-------------+
+	// |   SPECIAL   |                                               |   SYSCALL   |
+	// | 0 0 0 0 0 0 |                     code                      | 0 0 1 1 0 0 |
+	// |             |                                               |             |
+	// +-------------+-----------------------------------------------+-------------+
+	//         6                            20                              6
+	//
+	// Format:
+	//	SYSCALL
+	// Description:
+	//	A system call exception occurs, immediately and unconditionally
+	//	transferring control to the exception handler.
+	//	The code field is available for use as software parameters,
+	//	but is retrieved by the exception handler only by loading the
+	//	contents of the memory word containing the instruction.
+	// Exceptions:
+	//	System Call exception
+	//
 	void instr_syscall(uint32_t instr);
+
+	//
+	// BREAK  Breakpoint
+	//
+	// 31          26 25                                            6 5            0
+	// +-------------+-----------------------------------------------+-------------+
+	// |   SPECIAL   |                                               |    BREAK    |
+	// | 0 0 0 0 0 0 |                     code                      | 0 0 1 1 0 1 |
+	// |             |                                               |             |
+	// +-------------+-----------------------------------------------+-------------+
+	//         6                            20                              6
+	//
+	// Format:
+	//	BREAK
+	// Description:
+	//	A breakpoint trap occurs, immediately and unconditionally transferring
+	//	control to the exception handler. The code field is available for use
+	//	as software parameters, but is retrieved by the exception handler only
+	//	by loading the contents of the memory word containing the instruction.
+	// Exceptions:
+	//	Breakpoint exception
+	//
 	void instr_break(uint32_t instr);
+
+	//
+	// MFHI  Move From HI
+	//
+	// 31          26 25       21 20       16 15       11 10        6 5            0
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	// |   SPECIAL   |     0     |     0     |           |     0     |    MFHI     |
+	// | 0 0 0 0 0 0 | 0 0 0 0 0 | 0 0 0 0 0 |    rd     | 0 0 0 0 0 | 0 1 0 0 0 0 |
+	// |             |           |           |           |           |             |
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	//         6            5          5           5            5           6
+	//
+	// Format:
+	//	MFHI rd
+	// Description: rd <- HI
+	//	The contents of special register HI are loaded into general register rd.
+	//	To ensure proper operation in the event of interruptions, the two
+	//	instructions which follow a MFHI instruction may not be any of the
+	//	instructions which modify the HI register: MULT, MULTU, DIV,
+	//	DIVU, MTHI.
+	// Exceptions:
+	//	None
+	//
 	void instr_mfhi(uint32_t instr);
+
+	//
+	// MTHI  Move To HI
+	//
+	// 31          26 25       21 20       16 15       11 10        6 5            0
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	// |   SPECIAL   |           |     0     |     0     |     0     |    MTHI     |
+	// | 0 0 0 0 0 0 |    rs     | 0 0 0 0 0 | 0 0 0 0 0 | 0 0 0 0 0 | 0 1 0 0 0 1 |
+	// |             |           |           |           |           |             |
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	//         6            5          5           5            5           6
+	//
+	// Format:
+	//	MTHI rs
+	// Description: HI <- rs
+	//	The contents of general register rs are loaded into special register HI.
+	//	Instructions that write to the HI and LO registers are not interlocked
+	//	and serialized; a result written to the HI/LO pair must be read before
+	//	another result is written. If a MTHI operation is executed following a
+	//	MULT, MULTU, DIV, or DIVU instruction, but before any MFLO, MFHI, MTLO,
+	//	or MTHI instructions, the contents of the companion special register LO
+	//	are undefined.
+	// Exceptions:
+	//	None
+	//
 	void instr_mthi(uint32_t instr);
+
+	//
+	// MFLO  Move From LO
+	//
+	// 31          26 25       21 20       16 15       11 10        6 5            0
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	// |   SPECIAL   |     0     |     0     |           |     0     |    MFLO     |
+	// | 0 0 0 0 0 0 | 0 0 0 0 0 | 0 0 0 0 0 |    rd     | 0 0 0 0 0 | 0 1 0 0 1 0 |
+	// |             |           |           |           |           |             |
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	//         6            5          5           5            5           6
+	//
+	// Format:
+	//	MFLO rd
+	// Description: rd <- LO
+	//	The contents of special register LO are loaded into general register rd.
+	//	To ensure proper operation in the event of interruptions, the two
+	//	instructions which follow a MFLO instruction may not be any of the
+	//	instructions which modify the LO register: MULT, MULTU, DIV, DIVU, MTLO.
+	// Exceptions:
+	//	None
+	//
 	void instr_mflo(uint32_t instr);
+
+	//
+	// MTLO  Move To LO
+	//
+	// 31          26 25       21 20       16 15       11 10        6 5            0
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	// |   SPECIAL   |           |     0     |     0     |     0     |    MTLO     |
+	// | 0 0 0 0 0 0 |    rs     | 0 0 0 0 0 | 0 0 0 0 0 | 0 0 0 0 0 | 0 1 0 0 1 1 |
+	// |             |           |           |           |           |             |
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	//         6            5          5           5            5           6
+	//
+	// Format:
+	//	MTLO rs
+	// Description: LO <- rs
+	//	The contents of general register rs are loaded into special register LO.
+	//	Instructions that write to the HI and LO registers are not interlocked
+	//	and serialized; a result written to the HI/LO pair must be read before
+	//	another result is written. If a MTLO operation is executed following a
+	//	MULT, MULTU, DIV, or DIVU instruction, but before any MFLO, MFHI, MTLO,
+	//	or MTHI instructions, the contents of the companion special register HI
+	//	are undefined.
+	// Exceptions:
+	//	None
+	//
 	void instr_mtlo(uint32_t instr);
+
+	//
+	// MULT  Multiply Word
+	//
+	// 31          26 25       21 20       16 15       11 10        6 5            0
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	// |   SPECIAL   |           |           |     0     |     0     |    MULT     |
+	// | 0 0 0 0 0 0 |    rs     |    rt     | 0 0 0 0 0 | 0 0 0 0 0 | 0 1 1 0 0 0 |
+	// |             |           |           |           |           |             |
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	//         6            5          5           5            5           6
+	//
+	// Format:
+	//	MULT rs, rt
+	// Description: (LO, HI) <- rs * rt  (signed)
+	//	The contents of general registers rs and rt are multiplied, treating
+	//	both operands as 32-bit 2’s complement values. No integer overflow
+	//	exception occurs under any circumstances. When the operation completes,
+	//	the low-order word of the double result is loaded into special register LO,
+	//	and the high-order word of the double result is loaded into special
+	//	register HI. If either of the two preceding instructions is MFHI or MFLO,
+	//	the results of these instructions are undefined. Correct operation
+	//	requires separating reads of HI or LO from writes by a minimum of
+	//	two other instructions.
+	// Exceptions:
+	//	None
+	//
 	void instr_mult(uint32_t instr);
+
+	//
+	// MULTU  Multiply Unsigned Word
+	//
+	// 31          26 25       21 20       16 15       11 10        6 5            0
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	// |   SPECIAL   |           |           |     0     |     0     |    MULTU    |
+	// | 0 0 0 0 0 0 |    rs     |    rt     | 0 0 0 0 0 | 0 0 0 0 0 | 0 1 1 0 0 1 |
+	// |             |           |           |           |           |             |
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	//         6            5          5           5            5           6
+	//
+	// Format:
+	//	MULTU rs, rt
+	// Description: (LO, HI) <- rs * rt  (unsigned)
+	//	The contents of general register rs and the contents of general register rt
+	//	are multiplied, treating both operands as unsigned values. No overflow
+	//	exception occurs under any circumstances. When the operation completes,
+	//	the low-order word of the double result is loaded into special register LO,
+	//	and the high-order word of the double result is loaded into special
+	//	register HI. If either of the two preceding instructions is MFHI or MFLO,
+	//	the results of these instructions are undefined. Correct operation requires
+	//	separating reads of HI or LO from writes by a minimum of two instructions.
+	// Exceptions:
+	//	None
+	//
 	void instr_multu(uint32_t instr);
+
+	//
+	// DIV  Divide Word
+	//
+	// 31          26 25       21 20       16 15       11 10        6 5            0
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	// |   SPECIAL   |           |           |     0     |     0     |     DIV     |
+	// | 0 0 0 0 0 0 |    rs     |    rt     | 0 0 0 0 0 | 0 0 0 0 0 | 0 1 1 0 1 0 |
+	// |             |           |           |           |           |             |
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	//         6            5          5           5            5           6
+	//
+	// Format:
+	//	DIV rs, rt
+	// Description: LO <- rs / rt,  HI <- rs % rt  (signed)
+	//	The contents of general register rs are divided by the contents of
+	//	general register rt, treating both operands as 2’s complement values.
+	//	No overflow exception occurs under any circumstances, and the result
+	//	of this operation is undefined when the divisor is zero. This instruction
+	//	is typically followed by additional instructions to check for a zero
+	//	divisor and for overflow.
+	//	When the operation completes, the quotient word of the double result
+	//	is loaded into special register LO, and the remainder word of the double
+	//	result is loaded into special register HI. If either of the two preceding
+	//	instructions is MFHI or MFLO, the results of those instructions are
+	//	undefined. Correct operation requires separating reads of HI or LO
+	//	from writes by two or more instructions.
+	// Exceptions:
+	//	None
+	//
 	void instr_div(uint32_t instr);
+
+	//
+	// DIVU  Divide Unsigned Word
+	//
+	// 31          26 25       21 20       16 15       11 10        6 5            0
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	// |   SPECIAL   |           |           |     0     |     0     |    DIVU     |
+	// | 0 0 0 0 0 0 |    rs     |    rt     | 0 0 0 0 0 | 0 0 0 0 0 | 0 1 1 0 1 1 |
+	// |             |           |           |           |           |             |
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	//         6            5          5           5            5           6
+	//
+	// Format:
+	//	DIVU rs, rt
+	// Description: LO <- rs / rt,  HI <- rs % rt  (unsigned)
+	//	The contents of general register rs are divided by the contents of
+	//	general register rt, treating both operands as unsigned values. No
+	//	integer overflow exception occurs under any circumstances, and the
+	//	result of this operation is undefined when the divisor is zero.
+	//	This instruction is typically followed by additional instructions to
+	//	check for a zero divisor. When the operation completes, the quotient
+	//	word of the double result is loaded into special register LO, and the
+	//	remainder word of the double result is loaded into special register HI.
+	//	If either of the two preceding instructions is MFHI or MFLO, the results
+	//	of those instructions are undefined. Correct operation requires
+	//	separating reads of HI or LO from writes by two or more
+	//	instructions.
+	// Exceptions:
+	//	None
+	//
 	void instr_divu(uint32_t instr);
+
+	//
+	// ADD  Add Word
+	//
+	// 31          26 25       21 20       16 15       11 10        6 5            0
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	// |   SPECIAL   |           |           |           |     0     |     ADD     |
+	// | 0 0 0 0 0 0 |    rs     |    rt     |    rd     | 0 0 0 0 0 | 1 0 0 0 0 0 |
+	// |             |           |           |           |           |             |
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	//         6            5          5           5            5           6
+	//
+	// Format:
+	//	ADD rd, rs, rt
+	// Description: rd <- rs + rt
+	//	The word value in general register rt is added to the word value in
+	//	general register rs and the result word value is placed into general
+	//	register rd.If the addition results in 32-bit 2’s complement arithmetic
+	//	overflow (carries out of bits 30 and 31 differ) then the destination
+	//	register rd is not modified and an integer overflow exception occurs.
+	// Exceptions:
+	//	Integer overflow exception
+	//
 	void instr_add(uint32_t instr);
+
+	//
+	// ADDU  Add Unsigned Word
+	//
+	// 31          26 25       21 20       16 15       11 10        6 5            0
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	// |   SPECIAL   |           |           |           |     0     |    ADDU     |
+	// | 0 0 0 0 0 0 |    rs     |    rt     |    rd     | 0 0 0 0 0 | 1 0 0 0 0 1 |
+	// |             |           |           |           |           |             |
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	//         6            5          5           5            5           6
+	//
+	// Format:
+	//	ADDU rd, rs, rt
+	// Description: rd <- rs + rt
+	//	Add two 32-bit values and produce a 32-bit result; arithmetic overflow
+	//	is ignored (does not cause an exception). The word value in general
+	//	register rt is added to the word value in general register rs and the
+	//	result word value is placed into general register rd. ADDU differs
+	//	from ADD only when an arithmetic overflow occurs. If the addition
+	//	results in 32-bit 2’s complement overflow (carries out of bits 30 and
+	//	31 differ), the result word value is placed into register rd and no
+	//	exception occurs.
+	// Exceptions:
+	//	None
+	//
 	void instr_addu(uint32_t instr);
+
+	//
+	// SUB  Subtract Word
+	//
+	// 31          26 25       21 20       16 15       11 10        6 5            0
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	// |   SPECIAL   |           |           |           |     0     |     SUB     |
+	// | 0 0 0 0 0 0 |    rs     |    rt     |    rd     | 0 0 0 0 0 | 1 0 0 0 1 0 |
+	// |             |           |           |           |           |             |
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	//         6            5          5           5            5           6
+	//
+	// Format:
+	//	SUB rd, rs, rt
+	// Description: rd <- rs - rt
+	//	The contents of general register rt are subtracted from the contents of
+	//	general register rs to form a result. The result is placed into general
+	//	register rd. The only difference between this instruction and the SUBU
+	//	instruction is that SUBU never traps on overflow. An integer overflow
+	//	exception takes place if the carries out of bits 30 and 31 differ
+	//	(2’s complement overflow). The destination register rd is not modified
+	//	when an integer overflow exception occurs.
+	// Exceptions:
+	//	Integer overflow exception
+	//
 	void instr_sub(uint32_t instr);
+
+	//
+	// SUBU  Subtract Unsigned Word
+	//
+	// 31          26 25       21 20       16 15       11 10        6 5            0
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	// |   SPECIAL   |           |           |           |     0     |    SUBU     |
+	// | 0 0 0 0 0 0 |    rs     |    rt     |    rd     | 0 0 0 0 0 | 1 0 0 0 1 1 |
+	// |             |           |           |           |           |             |
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	//         6            5          5           5            5           6
+	//
+	// Format:
+	//	SUBU rd, rs, rt
+	// Description: rd <- rs - rt
+	//	The contents of general register rt are subtracted from the contents
+	//	of general register rs to form a result. The result is placed into
+	//	general register rd. The only difference between this instruction
+	//	and the SUB instruction is that SUBU never traps on overflow. No
+	//	integer overflow exception occurs under any circumstances.
+	// Exceptions:
+	//	None
+	//
 	void instr_subu(uint32_t instr);
+
+	//
+	// AND  And
+	//
+	// 31          26 25       21 20       16 15       11 10        6 5            0
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	// |   SPECIAL   |           |           |           |     0     |     AND     |
+	// | 0 0 0 0 0 0 |    rs     |    rt     |    rd     | 0 0 0 0 0 | 1 0 0 1 0 0 |
+	// |             |           |           |           |           |             |
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	//         6            5          5           5            5           6
+	//
+	// Format:
+	//	AND rd, rs, rt
+	// Description: rd <- rs & rt
+	//	The contents of general register rs are combined with the contents
+	//	of general register rt in a bit-wise logical AND operation. The
+	//	result is placed into general register rd.
+	// Exceptions:
+	//	None
+	//
 	void instr_and(uint32_t instr);
+
+	//
+	// OR  Or
+	//
+	// 31          26 25       21 20       16 15       11 10        6 5            0
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	// |   SPECIAL   |           |           |           |     0     |     OR      |
+	// | 0 0 0 0 0 0 |    rs     |    rt     |    rd     | 0 0 0 0 0 | 1 0 0 1 0 1 |
+	// |             |           |           |           |           |             |
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	//         6            5          5           5            5           6
+	//
+	// Format:
+	//	OR rd, rs, rt
+	// Description: rd <- rs | rt
+	//	The contents of general register rs are combined with the contents
+	//	of general register rt in a bit-wise logical OR operation. The result
+	//	is placed into general register rd.
+	// Exceptions:
+	//	None
+	//
 	void instr_or(uint32_t instr);
+
+	//
+	// XOR  Exclusive Or
+	//
+	// 31          26 25       21 20       16 15       11 10        6 5            0
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	// |   SPECIAL   |           |           |           |     0     |     XOR     |
+	// | 0 0 0 0 0 0 |    rs     |    rt     |    rd     | 0 0 0 0 0 | 1 0 0 1 1 0 |
+	// |             |           |           |           |           |             |
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	//         6            5          5           5            5           6
+	//
+	// Format:
+	//	XOR rd, rs, rt
+	// Description: rd <- rs ^ rt
+	//	The contents of general register rs are combined with the contents
+	//	of general register rt in a bit-wise logical exclusive OR operation.
+	//	The result is placed into general register rd.
+	// Exceptions:
+	//	None
+	//
 	void instr_xor(uint32_t instr);
+
+	//
+	// NOR  Not Or
+	//
+	// 31          26 25       21 20       16 15       11 10        6 5            0
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	// |   SPECIAL   |           |           |           |     0     |     NOR     |
+	// | 0 0 0 0 0 0 |    rs     |    rt     |    rd     | 0 0 0 0 0 | 1 0 0 1 1 1 |
+	// |             |           |           |           |           |             |
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	//         6            5          5           5            5           6
+	//
+	// Format:
+	//	NOR rd, rs, rt
+	// Description: rd <- !(rs | rt)
+	//	The contents of general register rs are combined with the contents
+	//	of general register rt in a bit-wise logical NOR operation. The result
+	//	is placed into general register rd.
+	// Exceptions:
+	//	None
+	//
 	void instr_nor(uint32_t instr);
+
+	//
+	// SLT  Set On Less Than
+	//
+	// 31          26 25       21 20       16 15       11 10        6 5            0
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	// |   SPECIAL   |           |           |           |     0     |     SLT     |
+	// | 0 0 0 0 0 0 |    rs     |    rt     |    rd     | 0 0 0 0 0 | 1 0 1 0 1 0 |
+	// |             |           |           |           |           |             |
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	//         6            5          5           5            5           6
+	//
+	// Format:
+	//	SLT rd, rs, rt
+	// Description: rd <- (rs < rt)   (signed)
+	//	The contents of general register rt are subtracted from the contents
+	//	of general register rs. Considering both quantities as signed integers,
+	//	if the contents of general register rs are less than the contents of
+	//	general register rt, the result is set to one; otherwise the result
+	//	is set to zero. The result is placed into general register rd.
+	//	No integer overflow exception occurs under any circumstances. The
+	//	comparison is valid even if the subtraction used during the comparison
+	//	overflows.
+	// Exceptions:
+	//	None
+	//
 	void instr_slt(uint32_t instr);
+
+	//
+	// SLTU  Set On Less Than Unsigned
+	//
+	// 31          26 25       21 20       16 15       11 10        6 5            0
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	// |   SPECIAL   |           |           |           |     0     |     SLTU    |
+	// | 0 0 0 0 0 0 |    rs     |    rt     |    rd     | 0 0 0 0 0 | 1 0 1 0 1 1 |
+	// |             |           |           |           |           |             |
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	//         6            5          5           5            5           6
+	//
+	// Format:
+	//	SLTU rd, rs, rt
+	// Description: rd <- (rs < rt)   (unsigned)
+	//	The contents of general register rt are subtracted from the contents
+	//	of general register rs. Considering both quantities as unsigned
+	//	integers, if the contents of general register rs are less than the
+	//	contents of general register rt, the result is set to one; otherwise
+	//	the result is set to zero. The result is placed into general register rd.
+	//	No integer overflow exception occurs under any circumstances. The
+	//	comparison is valid even if the subtraction used during the
+	//	comparison overflows.
+	// Exceptions:
+	//	None
+	//
 	void instr_sltu(uint32_t instr);
 
+	//
+	// BLTZ  Branch On Less Than Zero
+	//
+	// 31          26 25       21 20       16 15                                   0
+	// +-------------+-----------+-----------+-------------------------------------+
+	// |    REGIMM   |           |   BLTZ    |                                     |
+	// | 0 0 0 0 0 1 |    rs     | 0 0 0 0 0 |              offset                 |
+	// |             |           |           |                                     |
+	// +-------------+-----------+-----------+-------------------------------------+
+	//         6            5          5                         16
+	//
+	// Format:
+	//	BLTZ rs, offset
+	// Description: if (rs<0) then branch
+	//	A branch target address is computed from the sum of the address of the
+	//	instruction in the delay slot and the 16-bit offset, shifted left two
+	//	bits and sign-extended. If the contents of general register rs have the
+	//	sign bit set, then the program branches to the target address, with a
+	//	delay of one instruction.
+	// Exceptions:
+	//	None
+	//
 	void instr_bltz(uint32_t instr);
+
+	//
+	// BGEZ  Branch On Greater Than Or Equal To Zero
+	//
+	// 31          26 25       21 20       16 15                                   0
+	// +-------------+-----------+-----------+-------------------------------------+
+	// |    REGIMM   |           |   BGEZ    |                                     |
+	// | 0 0 0 0 0 1 |    rs     | 0 0 0 0 1 |              offset                 |
+	// |             |           |           |                                     |
+	// +-------------+-----------+-----------+-------------------------------------+
+	//         6            5          5                         16
+	//
+	// Format:
+	//	BGEZ rs, offset
+	// Description: if (rs>=0) then branch
+	//	A branch target address is computed from the sum of the address
+	//	of the instruction in the delay slot and the 16-bit offset, shifted
+	//	left two bits and sign-extended. If the contents of general register rs
+	//	have the sign bit cleared, then the program branches to the target
+	//	address, with a delay of one instruction.
+	// Exceptions:
+	//	None
+	//
 	void instr_bgez(uint32_t instr);
+
+	//
+	// BLTZAL  Branch On Less Than Zero And Link
+	//
+	// 31          26 25       21 20       16 15                                   0
+	// +-------------+-----------+-----------+-------------------------------------+
+	// |    REGIMM   |           |  BLTZAL   |                                     |
+	// | 0 0 0 0 0 1 |    rs     | 1 0 0 0 0 |              offset                 |
+	// |             |           |           |                                     |
+	// +-------------+-----------+-----------+-------------------------------------+
+	//         6            5          5                         16
+	//
+	// Format:
+	//	BLTZAL rs, offset
+	// Description: r31 <- PC + 8, if (rs<0) then branch
+	//	A branch target address is computed from the sum of the address of
+	//	the instruction in the delay slot and the 16-bit offset, shifted
+	//	left two bits and sign-extended. Unconditionally, the address of the
+	//	instruction after the delay slot is placed in the link register, r31.
+	//	If the contents of general register rs have the sign bit set, then
+	//	the program branches to the target address, with a delay of one
+	//	instruction. General register rs may not be general register 31,
+	//	because such an instruction is not restartable. An attempt to execute
+	//	this instruction with register 31 specified as rs is not trapped,
+	//	however.
+	// Exceptions:
+	//	None
+	//
 	void instr_bltzal(uint32_t instr);
+
+	//
+	// BGEZAL  Branch On Greater Than Or Equal To Zero And Link
+	//
+	// 31          26 25       21 20       16 15                                   0
+	// +-------------+-----------+-----------+-------------------------------------+
+	// |    REGIMM   |           |  BGEZAL   |                                     |
+	// | 0 0 0 0 0 1 |    rs     | 1 0 0 0 1 |              offset                 |
+	// |             |           |           |                                     |
+	// +-------------+-----------+-----------+-------------------------------------+
+	//         6            5          5                         16
+	//
+	// Format:
+	//	BGEZAL rs, offset
+	// Description: r31 <- PC + 8, if (rs>=0) then branch
+	//	A branch target address is computed from the sum of the address of
+	//	the instruction in the delay slot and the 16-bit offset, shifted
+	//	left two bits and sign-extended. Unconditionally, the address of the
+	//	instruction after the delay slot is placed in the link register, r31.
+	//	If the contents of general register rs have the sign bit cleared,
+	//	then the program branches to the target address, with a delay of one
+	//	instruction. General register rs may not be general register 31,
+	//	because such an instruction is not restartable. An attempt to execute
+	//	this instruction is not trapped, however.
+	// Exceptions:
+	//	None
+	//
 	void instr_bgezal(uint32_t instr);
 
+	//
+	// J  Jump
+	//
+	// 31          26 25                                                           0
+	// +-------------+-------------------------------------------------------------+
+	// |      J      |                                                             |
+	// | 0 0 0 0 1 0 |                       target                                |
+	// |             |                                                             |
+	// +-------------+-------------------------------------------------------------+
+	//         6                                   26
+	//
+	// Format:
+	//	J target
+	// Description:
+	//	The 26-bit target address is shifted left two bits and combined
+	//	with the high-order bits of the address of the delay slot. The
+	//	program unconditionally jumps to this calculated address with a
+	//	delay of one instruction.
+	// Exceptions:
+	//	None
+	//
 	void instr_j(uint32_t instr);
+
+	//
+	// JAL  Jump And Link
+	//
+	// 31          26 25                                                           0
+	// +-------------+-------------------------------------------------------------+
+	// |     JAL     |                                                             |
+	// | 0 0 0 0 1 1 |                       target                                |
+	// |             |                                                             |
+	// +-------------+-------------------------------------------------------------+
+	//         6                                   26
+	//
+	// Format:
+	//	JAL target
+	// Description:
+	//	The 26-bit target address is shifted left two bits and combined
+	//	with the high-order bits of the address of the delay slot. The
+	//	program unconditionally jumps to this calculated address with a
+	//	delay of one instruction. The address of the instruction after the
+	//	delay slot is placed in the link register, r31.
+	// Exceptions:
+	//	None
+	//
 	void instr_jal(uint32_t instr);
+
+	//
+	// BEQ  Branch On Equal
+	//
+	// 31          26 25       21 20       16 15                                   0
+	// +-------------+-----------+-----------+-------------------------------------+
+	// |     BEQ     |           |           |                                     |
+	// | 0 0 0 1 0 0 |    rs     |    rt     |              offset                 |
+	// |             |           |           |                                     |
+	// +-------------+-----------+-----------+-------------------------------------+
+	//         6            5          5                         16
+	//
+	// Format:
+	//	BEQ rs, rt, offset
+	// Description: if (rs==rt) then branch
+	//	A branch target address is computed from the sum of the address of
+	//	the instruction in the delay slot and the 16-bit offset, shifted
+	//	left two bits and sign-extended. The contents of general register rs
+	//	and the contents of general register rt are compared. If the two
+	//	registers are equal, then the program branches to the target address,
+	//	with a delay of one instruction.
+	// Exceptions:
+	//	None
+	//
 	void instr_beq(uint32_t instr);
+
+	//
+	// BNE  Branch On Not Equal
+	//
+	// 31          26 25       21 20       16 15                                   0
+	// +-------------+-----------+-----------+-------------------------------------+
+	// |     BNE     |           |           |                                     |
+	// | 0 0 0 1 0 1 |    rs     |    rt     |              offset                 |
+	// |             |           |           |                                     |
+	// +-------------+-----------+-----------+-------------------------------------+
+	//         6            5          5                         16
+	//
+	// Format:
+	//	BNE rs, rt, offset
+	// Description: if (rs!=rt) then branch
+	//	A branch target address is computed from the sum of the address of
+	//	the instruction in the delay slot and the 16-bit offset, shifted left
+	//	two bits and sign-extended. The contents of general register rs and
+	//	the contents of general register rt are compared. If the two registers
+	//	are not equal, then the program branches to the target address, with
+	//	a delay of one instruction.
+	// Exceptions:
+	//	None
+	//
 	void instr_bne(uint32_t instr);
+
+	//
+	// BLEZ  Branch on Less Than Or Equal To Zero
+	//
+	// 31          26 25       21 20       16 15                                   0
+	// +-------------+-----------+-----------+-------------------------------------+
+	// |     BLEZ    |           |     0     |                                     |
+	// | 0 0 0 1 1 0 |    rs     | 0 0 0 0 0 |              offset                 |
+	// |             |           |           |                                     |
+	// +-------------+-----------+-----------+-------------------------------------+
+	//         6            5          5                         16
+	//
+	// Format:
+	//	BLEZ rs, offset
+	// Description: if (rs<=0) then branch
+	//	A branch target address is computed from the sum of the address of
+	//	the instruction in the delay slot and the 16-bit offset, shifted left
+	//	two bits and sign-extended. The contents of general register rs are
+	//	compared to zero. If the contents of general register rs have the sign
+	//	bit set, or are equal to zero, then the program branches to the target
+	//	address, with a delay of one instruction.
+	// Exceptions:
+	//	None
+	//
 	void instr_blez(uint32_t instr);
+
+	//
+	// BGTZ  Branch On Greater Than Zero
+	//
+	// 31          26 25       21 20       16 15                                   0
+	// +-------------+-----------+-----------+-------------------------------------+
+	// |     BGTZ    |           |     0     |                                     |
+	// | 0 0 0 1 1 1 |    rs     | 0 0 0 0 0 |              offset                 |
+	// |             |           |           |                                     |
+	// +-------------+-----------+-----------+-------------------------------------+
+	//         6            5          5                         16
+	//
+	// Format:
+	//	BGTZ rs, offset
+	// Description: if (rs>0) then branch
+	//	A branch target address is computed from the sum of the address of
+	//	the instruction in the delay slot and the 16-bit offset, shifted left
+	//	two bits and sign-extended. The contents of general register rs are
+	//	compared to zero. If the contents of general register rs have the sign
+	//	bit cleared and are not equal to zero, then the program branches to
+	//	the target address, with a delay of one instruction.
+	// Exceptions:
+	//	None
+	//
 	void instr_bgtz(uint32_t instr);
+
+	//
+	// ADDI  Add Immediate Word
+	//
+	// 31          26 25       21 20       16 15                                   0
+	// +-------------+-----------+-----------+-------------------------------------+
+	// |     ADDI    |           |           |                                     |
+	// | 0 0 1 0 0 0 |    rs     |    rt     |              immediate              |
+	// |             |           |           |                                     |
+	// +-------------+-----------+-----------+-------------------------------------+
+	//         6            5          5                         16
+	//
+	// Format:
+	//	ADDI rt, rs, immediate
+	// Description: rt <- rs + immediate
+	//	The 16-bit immediate is sign-extended and added to the contents
+	//	of general register rs to form the result. The result is placed
+	//	into general register rt. An overflow exception occurs if carries
+	//	out of bits 30 and 31 differ (2’s complement overflow). The
+	//	destination register rt is not modified when an integer overflow
+	//	exception occurs.
+	// Exceptions:
+	//	Integer overflow exception
+	//
 	void instr_addi(uint32_t instr);
+
+	//
+	// ADDIU  Add Immediate Unsigned Word
+	//
+	// 31          26 25       21 20       16 15                                   0
+	// +-------------+-----------+-----------+-------------------------------------+
+	// |    ADDIU    |           |           |                                     |
+	// | 0 0 1 0 0 1 |    rs     |    rt     |              immediate              |
+	// |             |           |           |                                     |
+	// +-------------+-----------+-----------+-------------------------------------+
+	//         6            5          5                         16
+	//
+	// Format:
+	//	ADDIU rt, rs, immediate
+	// Description: rt <- rs + immediate
+	//	The 16-bit immediate is sign-extended and added to the contents of
+	//	general register rs to form the result. The result is placed into
+	//	general register rt. No integer overflow exception occurs under any
+	//	circumstances. The only difference between this instruction and the
+	//	ADDI instruction is that ADDIU never causes an overflow exception.
+	// Exceptions:
+	//	None
+	//
 	void instr_addiu(uint32_t instr);
+
+	//
+	// SLTI  Set On Less Than Immediate
+	//
+	// 31          26 25       21 20       16 15                                   0
+	// +-------------+-----------+-----------+-------------------------------------+
+	// |     SLTI    |           |           |                                     |
+	// | 0 0 1 0 1 0 |    rs     |    rt     |              immediate              |
+	// |             |           |           |                                     |
+	// +-------------+-----------+-----------+-------------------------------------+
+	//         6            5          5                         16
+	//
+	// Format:
+	//	SLTI rt, rs, immediate
+	// Description: rt <- (rs < immediate)  (signed)
+	//	The 16-bit immediate is sign-extended and subtracted from the contents
+	//	of general register rs. Considering both quantities as signed integers,
+	//	if rs is less than the sign-extended immediate, the result is set to
+	//	one; otherwise the result is set to zero. The result is placed into
+	//	general register rt. No integer overflow exception occurs under any
+	//	circumstances. The comparison is valid even if the subtraction used
+	//	during the comparison overflows.
+	// Exceptions:
+	//	None
+	//
 	void instr_slti(uint32_t instr);
+
+	//
+	// SLTIU  Set On Less Than Immediate Unsigned
+	//
+	// 31          26 25       21 20       16 15                                   0
+	// +-------------+-----------+-----------+-------------------------------------+
+	// |    SLTIU    |           |           |                                     |
+	// | 0 0 1 0 1 1 |    rs     |    rt     |              immediate              |
+	// |             |           |           |                                     |
+	// +-------------+-----------+-----------+-------------------------------------+
+	//         6            5          5                         16
+	//
+	// Format:
+	//	SLTIU rt, rs, immediate
+	// Description: rt <- (rs < immediate)  (unsigned)
+	//	The 16-bit immediate is sign-extended and subtracted from the contents
+	//	of general register rs. Considering both quantities as unsigned integers,
+	//	if rs is less than the sign-extended immediate, the result is set to one;
+	//	otherwise the result is set to zero. The result is placed into general
+	//	register rt. No integer overflow exception occurs under any circumstances.
+	//	The comparison is valid even if the subtraction used during the comparison
+	//	overflows.
+	// Exceptions:
+	//	None
+	//
 	void instr_sltiu(uint32_t instr);
+
+	//
+	// ANDI  And Immediate
+	//
+	// 31          26 25       21 20       16 15                                   0
+	// +-------------+-----------+-----------+-------------------------------------+
+	// |     ANDI    |           |           |                                     |
+	// | 0 0 1 1 0 0 |    rs     |    rt     |              immediate              |
+	// |             |           |           |                                     |
+	// +-------------+-----------+-----------+-------------------------------------+
+	//         6            5          5                         16
+	//
+	// Format:
+	//	ANDI rt, rs, immediate
+	// Description: rt <- rs & immediate
+	//	The 16-bit immediate is zero-extended and combined with the contents
+	//	of general register rs in a bit-wise logical AND operation. The result
+	//	is placed into general register rt.
+	// Exceptions:
+	//	None
+	//
 	void instr_andi(uint32_t instr);
+
+	//
+	// ORI  Or Immediate
+	//
+	// 31          26 25       21 20       16 15                                   0
+	// +-------------+-----------+-----------+-------------------------------------+
+	// |      ORI    |           |           |                                     |
+	// | 0 0 1 1 0 1 |    rs     |    rt     |              immediate              |
+	// |             |           |           |                                     |
+	// +-------------+-----------+-----------+-------------------------------------+
+	//         6            5          5                         16
+	//
+	// Format:
+	//	ORI rt, rs, immediate
+	// Description: rt <- rs | immediate
+	//	The 16-bit immediate is zero-extended and combined with the contents of
+	//	general register rs in a bit-wise logical OR operation. The result is
+	//	placed into general register rt.
+	// Exceptions:
+	//	None
+	//
 	void instr_ori(uint32_t instr);
+
+	//
+	// XORI  Exclusive Or Immediate
+	//
+	// 31          26 25       21 20       16 15                                   0
+	// +-------------+-----------+-----------+-------------------------------------+
+	// |     XORI    |           |           |                                     |
+	// | 0 0 1 1 1 0 |    rs     |    rt     |              immediate              |
+	// |             |           |           |                                     |
+	// +-------------+-----------+-----------+-------------------------------------+
+	//         6            5          5                         16
+	//
+	// Format:
+	//	XORI rt, rs, immediate
+	// Description: rt <- rs ^ immediate
+	//	The 16-bit immediate is zero-extended and combined with the contents of
+	//	general register rs in a bit-wise logical exclusive OR operation.
+	//	The result is placed into general register rt.
+	// Exceptions:
+	//	None
+	//
 	void instr_xori(uint32_t instr);
+
+	//
+	// LUI  Load Upper Immediate
+	//
+	// 31          26 25       21 20       16 15                                   0
+	// +-------------+-----------+-----------+-------------------------------------+
+	// |     LUI     |     0     |           |                                     |
+	// | 0 0 1 1 1 1 | 0 0 0 0 0 |    rt     |              immediate              |
+	// |             |           |           |                                     |
+	// +-------------+-----------+-----------+-------------------------------------+
+	//         6            5          5                         16
+	//
+	// Format:
+	//	LUI rt, immediate
+	// Description: rt <- immediate << 16
+	//	The 16-bit immediate is shifted left 16 bits and concatenated with
+	//	16 bits of low-order zeros. The 32-bit result is then placed into
+	//	general register rt.
+	// Exceptions:
+	//	None
+	//
 	void instr_lui(uint32_t instr);
 
+	//
+	// LB  Load Byte
+	//
+	// 31          26 25       21 20       16 15                                   0
+	// +-------------+-----------+-----------+-------------------------------------+
+	// |      LB     |           |           |                                     |
+	// | 1 0 0 0 0 0 |    base   |    rt     |              immediate              |
+	// |             |           |           |                                     |
+	// +-------------+-----------+-----------+-------------------------------------+
+	//         6            5          5                         16
+	//
+	// Format:
+	//	LB rt, offset(base)
+	// Description: rt <- offset(base)
+	//	The 16-bit offset is sign-extended and added to the contents of general
+	//	register base to form an address. The contents of the byte at the
+	//	memory location specified by the effective address are sign-extended and
+	//	loaded into general register rt.
+	// Exceptions:
+	//	Bus error exception
+	//
 	void instr_lb(uint32_t instr);
+
+	//
+	// LH  Load Halfword
+	//
+	// 31          26 25       21 20       16 15                                   0
+	// +-------------+-----------+-----------+-------------------------------------+
+	// |      LH     |           |           |                                     |
+	// | 1 0 0 0 0 1 |    base   |    rt     |              immediate              |
+	// |             |           |           |                                     |
+	// +-------------+-----------+-----------+-------------------------------------+
+	//         6            5          5                         16
+	//
+	// Format:
+	//	LH rt, offset(base)
+	// Description: rt <- offset(base)
+	//	The 16-bit offset is sign-extended and added to the contents of general
+	//	register base to form an address. The contents of the halfword at the
+	//	memory location specified by the effective address are sign-extended and
+	//	loaded into general register rt. If the least-significant bit of the effective
+	//	address is non-zero, an address error exception occurs.
+	// Exceptions:
+	//	Bus error exception
+	//	Address error exception
+	//
 	void instr_lh(uint32_t instr);
+
+	//
+	// LW  Load Word
+	//
+	// 31          26 25       21 20       16 15                                   0
+	// +-------------+-----------+-----------+-------------------------------------+
+	// |      LW     |           |           |                                     |
+	// | 1 0 0 0 1 1 |    base   |    rt     |              immediate              |
+	// |             |           |           |                                     |
+	// +-------------+-----------+-----------+-------------------------------------+
+	//         6            5          5                         16
+	//
+	// Format:
+	//	LW rt, offset(base)
+	// Description: rt <- offset(base)
+	//	The 16-bit offset is sign-extended and added to the contents of general
+	//	register base to form an address. The contents of the word at the memory
+	//	location specified by the effective address are loaded into general
+	//	register rt. If either of the two least-significant bits of the effective
+	//	address is non-zero, an address error exception occurs.
+	// Exceptions:
+	//	Bus error exception
+	//	Address error exception
+	//
 	void instr_lw(uint32_t instr);
+
+	//
+	// LBU  Load Byte Unsigned
+	//
+	// 31          26 25       21 20       16 15                                   0
+	// +-------------+-----------+-----------+-------------------------------------+
+	// |     LBU     |           |           |                                     |
+	// | 1 0 0 1 0 0 |    base   |    rt     |              immediate              |
+	// |             |           |           |                                     |
+	// +-------------+-----------+-----------+-------------------------------------+
+	//         6            5          5                         16
+	//
+	// Format:
+	//	LBU rt, offset(base)
+	// Description: rt <- offset(base)
+	//	The 16-bit offset is sign-extended and added to the contents of general
+	//	register base to form an address. The contents of the byte at the memory
+	//	location specified by the effective address are zero-extended and loaded
+	//	into general register rt.
+	// Exceptions:
+	//	Bus error exception
+	//
 	void instr_lbu(uint32_t instr);
+
+	//
+	// LHU  Load Halfword Unsigned
+	//
+	// 31          26 25       21 20       16 15                                   0
+	// +-------------+-----------+-----------+-------------------------------------+
+	// |     LHU     |           |           |                                     |
+	// | 1 0 0 1 0 1 |    base   |    rt     |              immediate              |
+	// |             |           |           |                                     |
+	// +-------------+-----------+-----------+-------------------------------------+
+	//         6            5          5                         16
+	//
+	// Format:
+	//	LHU rt, offset(base)
+	// Description: rt <- offset(base)
+	//	The 16-bit offset is sign-extended and added to the contents of general
+	//	register base to form an address. The contents of the halfword at the
+	//	memory location specified by the effective address are zero-extended
+	//	and loaded into general register rt. If the least-significant bit of
+	//	the effective address is non-zero, an address error exception occurs.
+	// Exceptions:
+	//	Bus error exception
+	//	Address error exception
+	//
 	void instr_lhu(uint32_t instr);
+
+	//
+	// SB  Store Byte
+	//
+	// 31          26 25       21 20       16 15                                   0
+	// +-------------+-----------+-----------+-------------------------------------+
+	// |     SB      |           |           |                                     |
+	// | 1 0 1 0 0 0 |    base   |    rt     |              immediate              |
+	// |             |           |           |                                     |
+	// +-------------+-----------+-----------+-------------------------------------+
+	//         6            5          5                         16
+	//
+	// Format:
+	//	SB rt, offset(base)
+	// Description: offset(base) <- rt
+	//	The 16-bit offset is sign-extended and added to the contents of general
+	//	register base to form an address. The least-significant byte of register
+	//	rt is stored at the effective address.
+	// Exceptions:
+	//	Bus error exception
+	//
 	void instr_sb(uint32_t instr);
+
+	//
+	// SH  Store Halfword
+	//
+	// 31          26 25       21 20       16 15                                   0
+	// +-------------+-----------+-----------+-------------------------------------+
+	// |      SH     |           |           |                                     |
+	// | 1 0 1 0 0 1 |    base   |    rt     |              immediate              |
+	// |             |           |           |                                     |
+	// +-------------+-----------+-----------+-------------------------------------+
+	//         6            5          5                         16
+	//
+	// Format:
+	//	SH rt, offset(base)
+	// Description: offset(base) <- rt
+	//	The 16-bit offset is sign-extended and added to the contents of general
+	//	register base to form an unsigned effective address. The least-significant
+	//	halfword of register rt is stored at the effective address. If the
+	//	least-significant bit of the effective address is non-zero, an address
+	//	error exception occurs.
+	// Exceptions:
+	//	Bus error exception
+	//	Address error exception
+	//
 	void instr_sh(uint32_t instr);
+
+	//
+	// SW  Store Word
+	//
+	// 31          26 25       21 20       16 15                                   0
+	// +-------------+-----------+-----------+-------------------------------------+
+	// |      SW     |           |           |                                     |
+	// | 1 0 1 0 1 0 |    base   |    rt     |              immediate              |
+	// |             |           |           |                                     |
+	// +-------------+-----------+-----------+-------------------------------------+
+	//         6            5          5                         16
+	//
+	// Format:
+	//	SW rt, offset(base)
+	// Description: offset(base) <- rt
+	//	The 16-bit offset is sign-extended and added to the contents of general
+	//	register base to form an address. The contents of general register rt
+	//	are stored at the memory location specified by the effective address.
+	//	If either of the two least-significant bits of the effective address
+	//	are non-zero, an address error exception occurs.
+	// Exceptions:
+	//	Bus error exception
+	//	Address error exception
+	//
 	void instr_sw(uint32_t instr);
 
+	//
+	// Execute SPECIAL class instructions
+	//
 	void exec_special(uint32_t instr, bool dslot);
+
+	//
+	// Execute Coprocessor 0 instructions
+	// Registers supported:
+	//   0xA  - IVTB (Interrupt Vector Table Base, two LSB bits are ignored)
+	//   0xB  - PSR  (Copy of SR register on interrupt/exception entrance)
+	//   0xC  - SR   (Status Register)
+	//             Bit 0 - IE (Interrupt enable)
+	//   0xE  - EPC  (Program counter saved on interrupt/exception entrance)
+	//   0xF  - PRId (Processor Id)
+	//
 	void exec_cop0(uint32_t instr, bool dslot);
+
+	//
+	// Execute Load/Store instructions
+	//
 	void exec_load_store(uint32_t instr, bool dslot);
+
+	//
+	// Execute REGIMM class instructions
+	//
 	void exec_regimm(uint32_t instr, bool dslot);
+
+	//
+	// Execute other instructions
+	//
 	void exec_other(uint32_t instr, bool dslot);
 
+	//
+	// Execute instruction (main entry point for execute stage)
+	//
 	void execute(uint32_t instr, bool dslot);
 
+	//
+	// Main CPU thread
+	//
 	void cpu_thread(void);
 
 private:
@@ -236,15 +1639,15 @@ private:
 };
 
 
-inline int32_t cpu_top::sign_extend8(uint32_t imm)
+inline uint32_t cpu_top::sign_extend8(uint32_t imm)
 {
-	return (imm & (1<<7)) ? static_cast<int32_t>(imm | (0xFFFFFF00)) : imm;
+	return (imm & (1<<7)) ? imm | 0xFFFFFF00 : imm;
 }
 
 
-inline int32_t cpu_top::sign_extend16(uint32_t imm)
+inline uint32_t cpu_top::sign_extend16(uint32_t imm)
 {
-	return (imm & (1<<15)) ? static_cast<int32_t>(imm | (0xFFFF0000)) : imm;
+	return (imm & (1<<15)) ? imm | 0xFFFF0000 : imm;
 }
 
 
@@ -670,6 +2073,7 @@ inline void cpu_top::instr_jr(uint32_t instr)
 	}
 
 	m_next_pc = target;
+	m_delay_slot = true;
 }
 
 
@@ -693,6 +2097,7 @@ inline void cpu_top::instr_jalr(uint32_t instr)
 	wr_gpreg(iw.r.rd, m_pc + 4 + 4);
 
 	m_next_pc = target;
+	m_delay_slot = true;
 }
 
 
@@ -993,6 +2398,7 @@ inline void cpu_top::instr_bltz(uint32_t instr)
 	} else {
 		m_next_pc = m_pc + 4 + 4;
 	}
+	m_delay_slot = true;
 }
 
 
@@ -1009,6 +2415,7 @@ inline void cpu_top::instr_bgez(uint32_t instr)
 	} else {
 		m_next_pc = m_pc + 4 + 4;
 	}
+	m_delay_slot = true;
 }
 
 
@@ -1026,6 +2433,7 @@ inline void cpu_top::instr_bltzal(uint32_t instr)
 	} else {
 		m_next_pc = m_pc + 4 + 4;
 	}
+	m_delay_slot = true;
 }
 
 
@@ -1043,6 +2451,7 @@ inline void cpu_top::instr_bgezal(uint32_t instr)
 	} else {
 		m_next_pc = m_pc + 4 + 4;
 	}
+	m_delay_slot = true;
 }
 
 
@@ -1053,6 +2462,7 @@ inline void cpu_top::instr_j(uint32_t instr)
 
 	uint32_t target = iw.j.target;
 	m_next_pc = ((m_pc+4) & 0xF0000000) | target << 2;
+	m_delay_slot = true;
 }
 
 
@@ -1064,6 +2474,7 @@ inline void cpu_top::instr_jal(uint32_t instr)
 	uint32_t target = iw.j.target;
 	m_next_pc = ((m_pc+4) & 0xF0000000) | target << 2;
 	m_gp_regs[31] = m_pc + 4 + 4;
+	m_delay_slot = true;
 }
 
 
@@ -1081,6 +2492,7 @@ inline void cpu_top::instr_beq(uint32_t instr)
 	} else {
 		m_next_pc = m_pc + 4 + 4;
 	}
+	m_delay_slot = true;
 }
 
 
@@ -1098,6 +2510,7 @@ inline void cpu_top::instr_bne(uint32_t instr)
 	} else {
 		m_next_pc = m_pc + 4 + 4;
 	}
+	m_delay_slot = true;
 }
 
 
@@ -1119,6 +2532,7 @@ inline void cpu_top::instr_blez(uint32_t instr)
 	} else {
 		m_next_pc = m_pc + 4 + 4;
 	}
+	m_delay_slot = true;
 }
 
 
@@ -1140,6 +2554,7 @@ inline void cpu_top::instr_bgtz(uint32_t instr)
 	} else {
 		m_next_pc = m_pc + 4 + 4;
 	}
+	m_delay_slot = true;
 }
 
 
@@ -1469,16 +2884,6 @@ inline void cpu_top::exec_special(uint32_t instr, bool dslot)
 }
 
 
-//
-// Execute Coprocessor 0 instructions
-// Registers supported:
-//   0xA  - IVTB (Interrupt Vector Table Base, two LSB bits are ignored)
-//   0xB  - PSR  (Copy of SR register on interrupt/exception entrance)
-//   0xC  - SR   (Status Register)
-//             Bit 0 - IE (Interrupt enable)
-//   0xE  - EPC  (Program counter saved on interrupt/exception entrance)
-//   0xF  - PRId (Processor Id)
-//
 inline void cpu_top::exec_cop0(uint32_t instr, bool dslot)
 {
 	(void)dslot;
@@ -1666,7 +3071,6 @@ inline void cpu_top::execute(uint32_t instr, bool dslot)
 			exec_other(instr, dslot);
 			break;
 		default:
-			std::cout << "invalid opcode: " << iw.r.op << std::endl;
 			m_except = EX_RSVD_INSTR;
 			break;
 	}
@@ -1701,5 +3105,4 @@ inline void cpu_top::cpu_thread(void) {
 		m_pc = m_next_pc;
 		m_next_pc += 4;
 	}
-
 }

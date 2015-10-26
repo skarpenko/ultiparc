@@ -188,5 +188,10 @@ int sc_main(int argc, char *argv[])
 	if(sys_trace)
 		sc_close_vcd_trace_file(sys_trace);
 
-	return 0;
+	// Simulation result
+	int err = 0;
+	if(top.ctrl.last_value & (1<<31))
+		err = -1;
+
+	return err;
 }

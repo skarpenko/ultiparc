@@ -39,7 +39,8 @@
 //  Registers:
 //    0x00  -  control register;
 //             Bits:
-//              [31:1] - ignored;
+//              [31]   - used to indicate error condition on model termination;
+//              [30:1] - ignored;
 //              [0]    - stop simulation.
 SC_MODULE(sim_ctrl) {
 	sc_in<bool>          clk;

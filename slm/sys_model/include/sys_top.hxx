@@ -35,8 +35,11 @@
 #include "ocp_fabric.hxx"
 #include "ibus_adapt.hxx"
 #include "dbus_adapt.hxx"
-#include "cpu/cpu_top.hxx"
-//#include "cpu_ltm/cpu_top.hxx"
+#ifdef LTM_CPU_MODEL
+#  include "cpu_ltm/cpu_top.hxx"
+#else
+#  include "cpu/cpu_top.hxx"
+#endif
 #pragma once
 
 
