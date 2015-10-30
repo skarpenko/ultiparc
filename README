@@ -18,6 +18,9 @@ PREREQUISITES
   * GTK Wave (http://gtkwave.sourceforge.net/). GTK+ based wave viewer
     which could be used for waveforms visusalization.
 
+  * GNU C/C++ for MIPS32 ISA (http://gcc.gnu.org/). GNU C/C++ cross-compiler
+    is required for building firmware examples and verification tests.
+
 
 DIRECTORY STRUCTURE:
 

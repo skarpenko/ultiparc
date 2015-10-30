@@ -1,0 +1,52 @@
+# The Ultiparc Project
+# Basic testsuite Makefile
+
+# Test programs list
+TESTS := \
+	syscall.elf \
+	breakpoint.elf
+
+
+# List of final targets
+TARGETS := \
+	$(TESTS) \
+	$(TESTS:.elf=.bin) \
+	$(TESTS:.elf=.hex) \
+	$(TESTS:.elf=.dump)
+
+
+# Include common options
+include $(ULTIPARC_HOME)/verif/testsuite/common/common.mk
+
+
+# Tell Make to keep obejct files
+.SECONDARY: $(TESTS:.elf=.o)
+
+
+all: $(TARGETS)
+
+
+%.elf: %.o
+	$(GCC_PREFIX)ld -s -o $@ -T $(ULTIPARC_HOME)/verif/testsuite/common/hw.ld $<
+
+
+%.bin: %.elf
+	$(GCC_PREFIX)objcopy -O binary $< $@
+
+
+%.hex: %.elf
+	$(GCC_PREFIX)objcopy -O verilog $< $@
+
+
+%.dump: %.elf
+	$(GCC_PREFIX)objdump -D $< > $@
+
+
+%.o: %.S
+	$(GCC_PREFIX)gcc $(CFLAGS) $(ASFLAGS) -c $< -o $@
+
+
+# Clean
+.PHONY: clean
+clean:
+	-rm -f $(TARGETS) $(TESTS:.elf=.o)
