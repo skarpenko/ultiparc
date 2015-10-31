@@ -156,6 +156,7 @@ private:
 			o_cpuI_SData = i_px_SData[pi];
 			o_cpuI_SResp = i_px_SResp[pi];
 			wait(i_px_SResp[pi].value_changed_event());
+			o_px_MCmd[pi] = i_cpuI_MCmd;
 			o_cpuI_SData = i_px_SData[pi];
 			o_cpuI_SResp = i_px_SResp[pi];
 		} else {
@@ -219,6 +220,7 @@ private:
 			o_cpuD_SData = i_px_SData[pi];
 			o_cpuD_SResp = i_px_SResp[pi];
 			wait(i_px_SResp[pi].value_changed_event());
+			o_px_MCmd[pi] = i_cpuD_MCmd;
 			o_cpuD_SData = i_px_SData[pi];
 			o_cpuD_SResp = i_px_SResp[pi];
 		} else {

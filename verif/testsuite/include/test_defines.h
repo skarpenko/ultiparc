@@ -40,9 +40,29 @@
 
 
 /* Control device */
-#define CTRL_DEV_IOBASE	0x80100000	/* Simulation control device I/O base */
+#define SIM_CTRL_IOBASE	0x80100000	/* Simulation control device I/O base */
+#define SIM_CTRL_CTLREG	(SIM_CTRL_IOBASE + 0x00)	/* Control register */
 #define TEST_PASSED	0x00000001	/* Test passed command */
 #define TEST_FAILED	0x80000001	/* Test failed command */
+
+
+/* Micro UART */
+#define MUART_IOBASE	0x80000000	/* Micro UART I/O base */
+#define MUART_CHREG	(MUART_IOBASE + 0x00)	/* Character register */
+
+
+/* Interrupt controller */
+#define INTCTL_IOBASE	0x80200000	/* Interrupt controller I/O base */
+#define INTCTL_STATUS	(INTCTL_IOBASE + 0x00)	/* Status register */
+#define INTCTL_MASK	(INTCTL_IOBASE + 0x04)	/* Mask register */
+#define INTCTL_RAW	(INTCTL_IOBASE + 0x08)	/* Raw interrupts */
+
+
+/* Interval timer */
+#define ITIMER_IOBASE	0x80300000	/* Interval timer I/O base */
+#define ITIMER_CTLREG	(ITIMER_IOBASE + 0x00)	/* Control register */
+#define ITIMER_COUNT	(ITIMER_IOBASE + 0x04)	/* Counter register */
+#define ITIMER_CURRENT	(ITIMER_IOBASE + 0x08)	/* Current count value */
 
 
 #endif /* _CPU_TEST_DEFINES_H_ */

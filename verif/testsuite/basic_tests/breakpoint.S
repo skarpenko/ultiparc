@@ -84,7 +84,7 @@ check_result:
 
 test_passed:
 	/* Report success to simulator */
-	li $t0, CTRL_DEV_IOBASE
+	li $t0, SIM_CTRL_CTLREG
 	li $t1, TEST_PASSED
 	sw $t1, 0($t0)
 	j test_passed
@@ -92,7 +92,7 @@ test_passed:
 
 test_failed:
 	/* Report failure to simulator */
-	li $t0, CTRL_DEV_IOBASE
+	li $t0, SIM_CTRL_CTLREG
 	li $t1, TEST_FAILED
 	sw $t1, 0($t0)
 	j test_failed

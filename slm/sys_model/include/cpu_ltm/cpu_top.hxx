@@ -1751,6 +1751,7 @@ inline uint32_t cpu_top::fetch_instr(uint32_t pc)
 	uint32_t instr = ib_data_i.read();
 	if(ib_err_i.read() == true)
 		m_except = EX_BUS_ERR;
+	wait(clk.posedge_event());
 	ib_rdc_o.write(false);
 
 	return instr;
@@ -1776,6 +1777,7 @@ inline uint32_t cpu_top::load_byte(uint32_t addr)
 	uint32_t data = db_data_i.read();
 	if(db_err_i.read() == true)
 		m_except = EX_BUS_ERR;
+	wait(clk.posedge_event());
 	db_cmd_o.write(false);
 
 	data >>= (sht<<3);
@@ -1811,6 +1813,7 @@ inline uint32_t cpu_top::load_halfword(uint32_t addr)
 	uint32_t data = db_data_i.read();
 	if(db_err_i.read() == true)
 		m_except = EX_BUS_ERR;
+	wait(clk.posedge_event());
 	db_cmd_o.write(false);
 
 	data >>= (sht<<3);
@@ -1842,6 +1845,7 @@ inline uint32_t cpu_top::load_word(uint32_t addr)
 	uint32_t data = db_data_i.read();
 	if(db_err_i.read() == true)
 		m_except = EX_BUS_ERR;
+	wait(clk.posedge_event());
 	db_cmd_o.write(false);
 
 	return data;
@@ -1868,6 +1872,7 @@ inline void cpu_top::store_byte(uint32_t addr, uint32_t v)
 
 	if(db_err_i.read() == true)
 		m_except = EX_BUS_ERR;
+	wait(clk.posedge_event());
 	db_cmd_o.write(false);
 }
 
@@ -1899,6 +1904,7 @@ inline void cpu_top::store_halfword(uint32_t addr, uint32_t v)
 
 	if(db_err_i.read() == true)
 		m_except = EX_BUS_ERR;
+	wait(clk.posedge_event());
 	db_cmd_o.write(false);
 }
 
@@ -1925,6 +1931,7 @@ inline void cpu_top::store_word(uint32_t addr, uint32_t v)
 
 	if(db_err_i.read() == true)
 		m_except = EX_BUS_ERR;
+	wait(clk.posedge_event());
 	db_cmd_o.write(false);
 }
 

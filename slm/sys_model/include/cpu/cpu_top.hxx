@@ -124,6 +124,7 @@ private:
 			do {
 				wait(clk.posedge_event() | ib_rdy_i.value_changed_event() | ib_err_i.value_changed_event());
 			} while(ib_rdy_i.read() != true && ib_err_i.read() != true);
+			wait(clk.posedge_event());
 			ib_rdc_o.write(false);
 			wait();
 
@@ -135,6 +136,7 @@ private:
 			do {
 				wait(clk.posedge_event() | db_rdy_i.value_changed_event() | db_err_i.value_changed_event());
 			} while(db_rdy_i.read() != true && db_err_i.read() != true);
+			wait(clk.posedge_event());
 			db_cmd_o.write(false);
 			wait();
 
@@ -146,6 +148,7 @@ private:
 			do {
 				wait(clk.posedge_event() | db_rdy_i.value_changed_event() | db_err_i.value_changed_event());
 			} while(db_rdy_i.read() != true && db_err_i.read() != true);
+			wait(clk.posedge_event());
 			db_cmd_o.write(false);
 			wait();
 
@@ -160,6 +163,7 @@ private:
 				do {
 					wait(clk.posedge_event() | db_rdy_i.value_changed_event() | db_err_i.value_changed_event());
 				} while(db_rdy_i.read() != true && db_err_i.read() != true);
+				wait(clk.posedge_event());
 				db_cmd_o.write(false);
 				wait();
 			}
