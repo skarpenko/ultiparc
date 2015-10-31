@@ -39,6 +39,8 @@ SC_MODULE(cpu_top) {
 	sc_in<bool>          clk;
 	sc_in<bool>          nrst;
 
+	sc_in<bool>          intr_i;
+
 	// I-Bus port
 	sc_out<sc_uint<32> > ib_addr_o;
 	sc_out<bool>         ib_rdc_o;
@@ -60,6 +62,7 @@ SC_MODULE(cpu_top) {
 	SC_CTOR(cpu_top)
 		: m_prid(0)
 	{
+		SC_CTHREAD(cpu_intr_thread, clk.pos());
 		SC_THREAD(cpu_thread);
 			sensitive << clk.pos();
 
@@ -77,6 +80,49 @@ SC_MODULE(cpu_top) {
 		m_delay_slot = false;
 		m_interrupt = false;
 	}
+
+public:
+	// Exported CPU register values for software debug
+	sc_signal<sc_uint<32> > cpu_reg_r0_zero;
+	sc_signal<sc_uint<32> > cpu_reg_r1_at;
+	sc_signal<sc_uint<32> > cpu_reg_r2_v0;
+	sc_signal<sc_uint<32> > cpu_reg_r3_v1;
+	sc_signal<sc_uint<32> > cpu_reg_r4_a0;
+	sc_signal<sc_uint<32> > cpu_reg_r5_a1;
+	sc_signal<sc_uint<32> > cpu_reg_r6_a2;
+	sc_signal<sc_uint<32> > cpu_reg_r7_a3;
+	sc_signal<sc_uint<32> > cpu_reg_r8_t0;
+	sc_signal<sc_uint<32> > cpu_reg_r9_t1;
+	sc_signal<sc_uint<32> > cpu_reg_r10_t2;
+	sc_signal<sc_uint<32> > cpu_reg_r11_t3;
+	sc_signal<sc_uint<32> > cpu_reg_r12_t4;
+	sc_signal<sc_uint<32> > cpu_reg_r13_t5;
+	sc_signal<sc_uint<32> > cpu_reg_r14_t6;
+	sc_signal<sc_uint<32> > cpu_reg_r15_t7;
+	sc_signal<sc_uint<32> > cpu_reg_r16_s0;
+	sc_signal<sc_uint<32> > cpu_reg_r17_s1;
+	sc_signal<sc_uint<32> > cpu_reg_r18_s2;
+	sc_signal<sc_uint<32> > cpu_reg_r19_s3;
+	sc_signal<sc_uint<32> > cpu_reg_r20_s4;
+	sc_signal<sc_uint<32> > cpu_reg_r21_s5;
+	sc_signal<sc_uint<32> > cpu_reg_r22_s6;
+	sc_signal<sc_uint<32> > cpu_reg_r23_s7;
+	sc_signal<sc_uint<32> > cpu_reg_r24_t8;
+	sc_signal<sc_uint<32> > cpu_reg_r25_t9;
+	sc_signal<sc_uint<32> > cpu_reg_r26_k0;
+	sc_signal<sc_uint<32> > cpu_reg_r27_k1;
+	sc_signal<sc_uint<32> > cpu_reg_r28_gp;
+	sc_signal<sc_uint<32> > cpu_reg_r29_sp;
+	sc_signal<sc_uint<32> > cpu_reg_r30_s8_fp;
+	sc_signal<sc_uint<32> > cpu_reg_r31_ra;
+	sc_signal<sc_uint<32> > cpu_reg_pc;
+	sc_signal<sc_uint<32> > cpu_reg_hi;
+	sc_signal<sc_uint<32> > cpu_reg_lo;
+	sc_signal<sc_uint<32> > cpu_reg_prid;
+	sc_signal<sc_uint<32> > cpu_reg_epc;
+	sc_signal<sc_uint<32> > cpu_reg_sr;
+	sc_signal<sc_uint<32> > cpu_reg_psr;
+	sc_signal<sc_uint<32> > cpu_reg_ivtb;
 
 private:
 	static const unsigned IVT_ENTRY_SZ = 8;	// IVT entry size
@@ -1620,6 +1666,16 @@ private:
 	//
 	void cpu_thread(void);
 
+	//
+	// Interrupt delivery thread
+	//
+	void cpu_intr_thread(void);
+
+	//
+	// Export CPU register values
+	//
+	void export_register_values(uint32_t pc);
+
 private:
 	uint32_t m_gp_regs[32];		// General purpose registers
 	uint32_t m_pc, m_next_pc;	// Program Counters
@@ -1949,10 +2005,10 @@ inline void cpu_top::instr_mtc0(uint32_t instr)
 			m_ivtb = m_gp_regs[iw.r.rt] & (~0x3);
 			break;
 		case 11: // PSR Register
-			m_psr = m_gp_regs[iw.r.rt] & (~0x1);
+			m_psr = m_gp_regs[iw.r.rt] & (0x1);
 			break;
 		case 12: // SR Register
-			m_sr = m_gp_regs[iw.r.rt] & (~0x1);
+			m_sr = m_gp_regs[iw.r.rt] & (0x1);
 			break;
 		case 14: // EPC Register
 			m_epc = m_gp_regs[iw.r.rt];
@@ -3081,6 +3137,8 @@ inline void cpu_top::cpu_thread(void) {
 	wait(nrst.posedge_event());
 
 	while(true) {
+		export_register_values(m_pc);
+
 		uint32_t instr = fetch_instr(m_pc);
 		if(check_except())
 			continue;
@@ -3088,6 +3146,8 @@ inline void cpu_top::cpu_thread(void) {
 		execute(instr, false);
 		if(check_except())
 			continue;
+
+		export_register_values(m_pc);
 
 		if(m_delay_slot) {
 			m_delay_slot = false;
@@ -3097,6 +3157,8 @@ inline void cpu_top::cpu_thread(void) {
 			execute(instr, true);
 			if(check_except())
 				continue;
+
+			export_register_values(m_pc+4);
 		}
 
 		if(check_intr())
@@ -3105,4 +3167,63 @@ inline void cpu_top::cpu_thread(void) {
 		m_pc = m_next_pc;
 		m_next_pc += 4;
 	}
+}
+
+
+inline void cpu_top::cpu_intr_thread(void)
+{
+	while(true) {
+		wait();
+		if(!nrst.read())
+			continue;
+		m_interrupt = intr_i.read();
+	}
+}
+
+
+inline void cpu_top::export_register_values(uint32_t pc)
+{
+	cpu_reg_pc.write(pc);
+
+	cpu_reg_r0_zero.write(rd_gpreg(0));
+	cpu_reg_r1_at.write(rd_gpreg(1));
+	cpu_reg_r2_v0.write(rd_gpreg(2));
+	cpu_reg_r3_v1.write(rd_gpreg(3));
+	cpu_reg_r4_a0.write(rd_gpreg(4));
+	cpu_reg_r5_a1.write(rd_gpreg(5));
+	cpu_reg_r6_a2.write(rd_gpreg(6));
+	cpu_reg_r7_a3.write(rd_gpreg(7));
+	cpu_reg_r8_t0.write(rd_gpreg(8));
+	cpu_reg_r9_t1.write(rd_gpreg(9));
+	cpu_reg_r10_t2.write(rd_gpreg(10));
+	cpu_reg_r11_t3.write(rd_gpreg(11));
+	cpu_reg_r12_t4.write(rd_gpreg(12));
+	cpu_reg_r13_t5.write(rd_gpreg(13));
+	cpu_reg_r14_t6.write(rd_gpreg(14));
+	cpu_reg_r15_t7.write(rd_gpreg(15));
+	cpu_reg_r16_s0.write(rd_gpreg(16));
+	cpu_reg_r17_s1.write(rd_gpreg(17));
+	cpu_reg_r18_s2.write(rd_gpreg(18));
+	cpu_reg_r19_s3.write(rd_gpreg(19));
+	cpu_reg_r20_s4.write(rd_gpreg(20));
+	cpu_reg_r21_s5.write(rd_gpreg(21));
+	cpu_reg_r22_s6.write(rd_gpreg(22));
+	cpu_reg_r23_s7.write(rd_gpreg(23));
+	cpu_reg_r24_t8.write(rd_gpreg(24));
+	cpu_reg_r25_t9.write(rd_gpreg(25));
+	cpu_reg_r26_k0.write(rd_gpreg(26));
+	cpu_reg_r27_k1.write(rd_gpreg(27));
+	cpu_reg_r28_gp.write(rd_gpreg(28));
+	cpu_reg_r29_sp.write(rd_gpreg(29));
+	cpu_reg_r30_s8_fp.write(rd_gpreg(30));
+	cpu_reg_r31_ra.write(rd_gpreg(31));
+
+	cpu_reg_hi.write(m_hi);
+	cpu_reg_lo.write(m_lo);
+
+	cpu_reg_prid.write(m_prid);
+	cpu_reg_epc.write(m_epc);
+	cpu_reg_sr.write(m_sr);
+	cpu_reg_psr.write(m_psr);
+	cpu_reg_ivtb.write(m_ivtb);
 }

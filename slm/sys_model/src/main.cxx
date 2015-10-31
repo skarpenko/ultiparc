@@ -159,6 +159,24 @@ int sc_main(int argc, char *argv[])
 		sc_trace_x(sys_trace, top.fab.i_px_SData[2]);
 		sc_trace_x(sys_trace, top.fab.i_px_SResp[2]);
 
+		// Fabric port 3
+		sc_trace_x(sys_trace, top.fab.o_px_MAddr[3]);
+		sc_trace_x(sys_trace, top.fab.o_px_MCmd[3]);
+		sc_trace_x(sys_trace, top.fab.o_px_MData[3]);
+		sc_trace_x(sys_trace, top.fab.o_px_MByteEn[3]);
+		sc_trace_x(sys_trace, top.fab.i_px_SCmdAccept[3]);
+		sc_trace_x(sys_trace, top.fab.i_px_SData[3]);
+		sc_trace_x(sys_trace, top.fab.i_px_SResp[3]);
+
+		// Fabric port 4
+		sc_trace_x(sys_trace, top.fab.o_px_MAddr[4]);
+		sc_trace_x(sys_trace, top.fab.o_px_MCmd[4]);
+		sc_trace_x(sys_trace, top.fab.o_px_MData[4]);
+		sc_trace_x(sys_trace, top.fab.o_px_MByteEn[4]);
+		sc_trace_x(sys_trace, top.fab.i_px_SCmdAccept[4]);
+		sc_trace_x(sys_trace, top.fab.i_px_SData[4]);
+		sc_trace_x(sys_trace, top.fab.i_px_SResp[4]);
+
 		// CPU instruction bus
 		sc_trace_x(sys_trace, top.cpu.ib_addr_o);
 		sc_trace_x(sys_trace, top.cpu.ib_rdc_o);
@@ -175,6 +193,72 @@ int sc_main(int argc, char *argv[])
 		sc_trace_x(sys_trace, top.cpu.db_data_i);
 		sc_trace_x(sys_trace, top.cpu.db_rdy_i);
 		sc_trace_x(sys_trace, top.cpu.db_err_i);
+
+		// CPU interrupt input
+		sc_trace_x(sys_trace, top.cpu.intr_i);
+
+		// CPU registers
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_r0_zero);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_r1_at);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_r2_v0);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_r3_v1);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_r4_a0);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_r5_a1);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_r6_a2);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_r7_a3);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_r8_t0);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_r9_t1);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_r10_t2);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_r11_t3);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_r12_t4);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_r13_t5);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_r14_t6);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_r15_t7);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_r16_s0);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_r17_s1);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_r18_s2);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_r19_s3);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_r20_s4);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_r21_s5);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_r22_s6);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_r23_s7);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_r24_t8);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_r25_t9);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_r26_k0);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_r27_k1);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_r28_gp);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_r29_sp);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_r30_s8_fp);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_r31_ra);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_pc);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_hi);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_lo);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_prid);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_epc);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_sr);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_psr);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_ivtb);
+
+		// Interrupt controller
+		sc_trace_x(sys_trace, top.intctl.i_MAddr);
+		sc_trace_x(sys_trace, top.intctl.i_MCmd);
+		sc_trace_x(sys_trace, top.intctl.i_MData);
+		sc_trace_x(sys_trace, top.intctl.i_MByteEn);
+		sc_trace_x(sys_trace, top.intctl.o_SCmdAccept);
+		sc_trace_x(sys_trace, top.intctl.o_SData);
+		sc_trace_x(sys_trace, top.intctl.o_SResp);
+		sc_trace_x(sys_trace, top.intctl.intr0_i);
+		sc_trace_x(sys_trace, top.intctl.cpu_intr_o);
+
+		// Interval timer
+		sc_trace_x(sys_trace, top.itimer.i_MAddr);
+		sc_trace_x(sys_trace, top.itimer.i_MCmd);
+		sc_trace_x(sys_trace, top.itimer.i_MData);
+		sc_trace_x(sys_trace, top.itimer.i_MByteEn);
+		sc_trace_x(sys_trace, top.itimer.o_SCmdAccept);
+		sc_trace_x(sys_trace, top.itimer.o_SData);
+		sc_trace_x(sys_trace, top.itimer.o_SResp);
+		sc_trace_x(sys_trace, top.itimer.intr_o);
 	}
 
 	// Start simulation

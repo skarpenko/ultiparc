@@ -24,7 +24,7 @@
  */
 
 /*
- * Simulation control device
+ * Interval Timer module
  */
 
 #include <systemc.h>
@@ -35,16 +35,21 @@
 #pragma once
 
 
-// Simulation control
+// Interval Timer
 //  Registers:
 //    0x00  -  control register;
 //             Bits:
-//              [31]   - used to indicate error condition on model termination;
-//              [30:1] - ignored;
-//              [0]    - stop simulation.
-SC_MODULE(sim_ctrl) {
+//              [31:3] - ignored;
+//              [2]    - reload value (1);
+//              [1]    - mask (0) or unmask (1) interrupt;
+//              [0]    - enable (1) and disable (0) timer.
+//    0x04  -  counter register;
+//    0x08  -  current count register (read only).
+SC_MODULE(intimer) {
 	sc_in<bool>          clk;
 	sc_in<bool>          nrst;
+
+	sc_out<bool>         intr_o; // interrupt signal
 
 	// Slave port
 	sc_in<sc_uint<32> >  i_MAddr;
@@ -56,19 +61,53 @@ SC_MODULE(sim_ctrl) {
 	sc_out<sc_uint<2> >  o_SResp;
 
 
-	SC_CTOR(sim_ctrl) {
-		SC_THREAD(sim_ctrl_proc);
+	SC_CTOR(intimer) {
+		SC_CTHREAD(intimer_count_proc, clk.pos());
+		SC_THREAD(intimer_ctrl_proc);
 			sensitive << clk.pos() << i_MCmd;
 		o_SCmdAccept.initialize(true);
-		last_value = 0;
+		m_ctrl = 0;
+		m_counter = 0;
+		m_current = 0;
 	}
 
 public:
-	unsigned int last_value;  // last value written to control register
+	uint32_t m_ctrl;	// Control register value
+	uint32_t m_counter;	// Initial counter value
+	uint32_t m_current;	// Current count
 
 private:
-	// main thread
-	void sim_ctrl_proc(void)
+	// counting thread
+	void intimer_count_proc(void)
+	{
+		while(true) {
+			wait();
+			if(!nrst.read())
+				continue;
+
+			if(intr_o.read())
+				intr_o.write(false);
+
+			if(!(m_ctrl & 0x01))
+				continue;
+
+			if(!m_current && (m_ctrl & 0x04)) {
+				m_current = m_counter;
+				continue;
+			} else if(!m_current && !(m_ctrl & 0x04)) {
+				continue;
+			}
+
+			if(!(--m_current))
+				if(m_ctrl & 0x02) {
+					intr_o.write(true);
+					wait();
+				}
+		}
+	}
+
+	// main control thread
+	void intimer_ctrl_proc(void)
 	{
 		wait(nrst.posedge_event());
 
@@ -83,8 +122,8 @@ private:
 			if(cmd == OCP_CMD_IDLE)
 				continue;
 
-			// Address must be 0
-			bool addr_err = (addr != 0);
+			// Address must be 0x00, 0x04 or 0x08
+			bool addr_err = ((addr != 0x00) && (addr != 0x04) && (addr != 0x08));
 
 			// Only read and write OCP commands supported
 			if(addr_err || (cmd != OCP_CMD_READ && cmd != OCP_CMD_WRITE)) {
@@ -95,9 +134,15 @@ private:
 			}
 
 			if(cmd == OCP_CMD_READ) {
-				// Return last written value
 				wait(clk.posedge_event());
-				o_SData = last_value;
+				uint32_t val;
+				if(addr == 0x00)
+					val = m_ctrl;
+				else if(addr == 0x04)
+					val = m_counter;
+				else
+					val = m_current;
+				o_SData = val;
 				o_SResp = OCP_RESP_DVA;
 				wait(clk.posedge_event());
 				o_SResp = OCP_RESP_NULL;
@@ -109,13 +154,14 @@ private:
 				if(ben&0x4) mask |= 0x00ff0000;
 				if(ben&0x8) mask |= 0xff000000;
 				data &= mask;
-				last_value &= ~mask;
-				last_value |= data;
 
-				// If simulation termination requested
-				if(last_value & 0x1) {
-					std::cout << std::endl;
-					sc_stop();
+				if(addr == 0x00) {
+					m_ctrl &= ~mask;
+					m_ctrl |= data;
+				} else if(addr == 0x04) {
+					m_counter &= ~mask;
+					m_counter |= data;
+					m_current = m_counter; // reload
 				}
 
 				o_SResp = OCP_RESP_DVA;

@@ -39,6 +39,8 @@ SC_MODULE(cpu_top) {
 	sc_in<bool>          clk;
 	sc_in<bool>          nrst;
 
+	sc_in<bool>          intr_i;
+
 	// I-Bus port
 	sc_out<sc_uint<32> > ib_addr_o;
 	sc_out<bool>         ib_rdc_o;
@@ -61,6 +63,49 @@ SC_MODULE(cpu_top) {
 		SC_THREAD(cpu_test);
 			sensitive << clk.pos();
 	}
+
+public:
+	// Exported CPU register values for software debug
+	sc_signal<sc_uint<32> > cpu_reg_r0_zero;
+	sc_signal<sc_uint<32> > cpu_reg_r1_at;
+	sc_signal<sc_uint<32> > cpu_reg_r2_v0;
+	sc_signal<sc_uint<32> > cpu_reg_r3_v1;
+	sc_signal<sc_uint<32> > cpu_reg_r4_a0;
+	sc_signal<sc_uint<32> > cpu_reg_r5_a1;
+	sc_signal<sc_uint<32> > cpu_reg_r6_a2;
+	sc_signal<sc_uint<32> > cpu_reg_r7_a3;
+	sc_signal<sc_uint<32> > cpu_reg_r8_t0;
+	sc_signal<sc_uint<32> > cpu_reg_r9_t1;
+	sc_signal<sc_uint<32> > cpu_reg_r10_t2;
+	sc_signal<sc_uint<32> > cpu_reg_r11_t3;
+	sc_signal<sc_uint<32> > cpu_reg_r12_t4;
+	sc_signal<sc_uint<32> > cpu_reg_r13_t5;
+	sc_signal<sc_uint<32> > cpu_reg_r14_t6;
+	sc_signal<sc_uint<32> > cpu_reg_r15_t7;
+	sc_signal<sc_uint<32> > cpu_reg_r16_s0;
+	sc_signal<sc_uint<32> > cpu_reg_r17_s1;
+	sc_signal<sc_uint<32> > cpu_reg_r18_s2;
+	sc_signal<sc_uint<32> > cpu_reg_r19_s3;
+	sc_signal<sc_uint<32> > cpu_reg_r20_s4;
+	sc_signal<sc_uint<32> > cpu_reg_r21_s5;
+	sc_signal<sc_uint<32> > cpu_reg_r22_s6;
+	sc_signal<sc_uint<32> > cpu_reg_r23_s7;
+	sc_signal<sc_uint<32> > cpu_reg_r24_t8;
+	sc_signal<sc_uint<32> > cpu_reg_r25_t9;
+	sc_signal<sc_uint<32> > cpu_reg_r26_k0;
+	sc_signal<sc_uint<32> > cpu_reg_r27_k1;
+	sc_signal<sc_uint<32> > cpu_reg_r28_gp;
+	sc_signal<sc_uint<32> > cpu_reg_r29_sp;
+	sc_signal<sc_uint<32> > cpu_reg_r30_s8_fp;
+	sc_signal<sc_uint<32> > cpu_reg_r31_ra;
+	sc_signal<sc_uint<32> > cpu_reg_pc;
+	sc_signal<sc_uint<32> > cpu_reg_hi;
+	sc_signal<sc_uint<32> > cpu_reg_lo;
+	sc_signal<sc_uint<32> > cpu_reg_prid;
+	sc_signal<sc_uint<32> > cpu_reg_epc;
+	sc_signal<sc_uint<32> > cpu_reg_sr;
+	sc_signal<sc_uint<32> > cpu_reg_psr;
+	sc_signal<sc_uint<32> > cpu_reg_ivtb;
 
 private:
 	// Test stimuli thread

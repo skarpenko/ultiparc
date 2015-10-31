@@ -56,7 +56,7 @@ SC_MODULE(fabric) {
 	sc_out<sc_uint<32> > o_cpuD_SData;
 	sc_out<sc_uint<2> >  o_cpuD_SResp;
 
-	static const int NPORTS = 3; // Total master ports number
+	static const int NPORTS = 5; // Total master ports number
 
 	// Master ports
 	sc_out<sc_uint<32> > o_px_MAddr[NPORTS];
@@ -233,10 +233,14 @@ private:
 };
 
 const fabric::port_addr fabric::PX_ADDR[] = {
-	// Port 0
+	// Port 0 (RAM)
 	{ .base = 0x00000000, .last = 0x0fffffff },
-	// Port 1
+	// Port 1 (mUART)
 	{ .base = 0x80000000, .last = 0x800fffff },
-	// Port 2
-	{ .base = 0x80100000, .last = 0x801fffff }
+	// Port 2 (Simulation Control)
+	{ .base = 0x80100000, .last = 0x801fffff },
+	// Port 3 (Interrupt Controller)
+	{ .base = 0x80200000, .last = 0x802fffff },
+	// Port 4 (Interval Timer)
+	{ .base = 0x80300000, .last = 0x803fffff }
 };

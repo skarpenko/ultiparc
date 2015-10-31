@@ -33,6 +33,8 @@
 #include "ocp_muart.hxx"
 #include "ocp_ctrl.hxx"
 #include "ocp_fabric.hxx"
+#include "ocp_intctrl.hxx"
+#include "ocp_intimer.hxx"
 #include "ibus_adapt.hxx"
 #include "dbus_adapt.hxx"
 #ifdef LTM_CPU_MODEL
@@ -54,18 +56,21 @@ SC_MODULE(sys_top) {
 
 
 	// System components
-	memory     ram;
-	fabric     fab;
-	muart      uart;
-	sim_ctrl   ctrl;
-	cpu_top    cpu;
-	ibus_adapt ibusa;
-	dbus_adapt dbusa;
+	memory       ram;
+	fabric       fab;
+	muart        uart;
+	sim_ctrl     ctrl;
+	cpu_top      cpu;
+	ibus_adapt   ibusa;
+	dbus_adapt   dbusa;
+	intctrl      intctl;
+	intimer      itimer;
 
 
 	SC_CTOR(sys_top)
 		: clk("clk"), nrst("nrst"), ram("ram", RAM_SIZE), fab("fab"), uart("uart"),
-		  ctrl("ctrl"), cpu("cpu"), ibusa("ibusa"), dbusa("dbusa")
+		  ctrl("ctrl"), cpu("cpu"), ibusa("ibusa"), dbusa("dbusa"), intctl("intctl"),
+		  itimer("itimer")
 	{
 		// connect clock
 		fab.clk(clk);
@@ -75,6 +80,8 @@ SC_MODULE(sys_top) {
 		cpu.clk(clk);
 		ibusa.clk(clk);
 		dbusa.clk(clk);
+		intctl.clk(clk);
+		itimer.clk(clk);
 
 		// connect reset
 		fab.nrst(nrst);
@@ -84,6 +91,14 @@ SC_MODULE(sys_top) {
 		cpu.nrst(nrst);
 		ibusa.nrst(nrst);
 		dbusa.nrst(nrst);
+		intctl.nrst(nrst);
+		itimer.nrst(nrst);
+
+		// interrupt connections
+		intctl.cpu_intr_o(sig_cpu_intr);
+		cpu.intr_i(sig_cpu_intr);
+		intctl.intr0_i(sig_intc_intr0);
+		itimer.intr_o(sig_intc_intr0);
 
 		// RAM
 		ram.i_MAddr(sig_p0_MAddr);
@@ -132,6 +147,38 @@ SC_MODULE(sys_top) {
 		fab.i_px_SData[2](sig_p2_SData);
 		ctrl.o_SResp(sig_p2_SResp);
 		fab.i_px_SResp[2](sig_p2_SResp);
+
+		// Interrupt Controller
+		intctl.i_MAddr(sig_p3_MAddr);
+		fab.o_px_MAddr[3](sig_p3_MAddr);
+		intctl.i_MCmd(sig_p3_MCmd);
+		fab.o_px_MCmd[3](sig_p3_MCmd);
+		intctl.i_MData(sig_p3_MData);
+		fab.o_px_MData[3](sig_p3_MData);
+		intctl.i_MByteEn(sig_p3_MByteEn);
+		fab.o_px_MByteEn[3](sig_p3_MByteEn);
+		intctl.o_SCmdAccept(sig_p3_SCmdAccept);
+		fab.i_px_SCmdAccept[3](sig_p3_SCmdAccept);
+		intctl.o_SData(sig_p3_SData);
+		fab.i_px_SData[3](sig_p3_SData);
+		intctl.o_SResp(sig_p3_SResp);
+		fab.i_px_SResp[3](sig_p3_SResp);
+
+		// Interval Timer
+		itimer.i_MAddr(sig_p4_MAddr);
+		fab.o_px_MAddr[4](sig_p4_MAddr);
+		itimer.i_MCmd(sig_p4_MCmd);
+		fab.o_px_MCmd[4](sig_p4_MCmd);
+		itimer.i_MData(sig_p4_MData);
+		fab.o_px_MData[4](sig_p4_MData);
+		itimer.i_MByteEn(sig_p4_MByteEn);
+		fab.o_px_MByteEn[4](sig_p4_MByteEn);
+		itimer.o_SCmdAccept(sig_p4_SCmdAccept);
+		fab.i_px_SCmdAccept[4](sig_p4_SCmdAccept);
+		itimer.o_SData(sig_p4_SData);
+		fab.i_px_SData[4](sig_p4_SData);
+		itimer.o_SResp(sig_p4_SResp);
+		fab.i_px_SResp[4](sig_p4_SResp);
 
 		// I-Bus adapter
 		fab.i_cpuI_MAddr(sig_cpuI_MAddr);
@@ -224,6 +271,24 @@ private:
 	sc_signal<sc_uint<32> > sig_p2_SData;
 	sc_signal<sc_uint<2> >  sig_p2_SResp;
 
+	// Port 3 signals (fabric)
+	sc_signal<sc_uint<32> > sig_p3_MAddr;
+	sc_signal<sc_uint<3> >  sig_p3_MCmd;
+	sc_signal<sc_uint<32> > sig_p3_MData;
+	sc_signal<sc_uint<4> >  sig_p3_MByteEn;
+	sc_signal<bool>         sig_p3_SCmdAccept;
+	sc_signal<sc_uint<32> > sig_p3_SData;
+	sc_signal<sc_uint<2> >  sig_p3_SResp;
+
+	// Port 4 signals (fabric)
+	sc_signal<sc_uint<32> > sig_p4_MAddr;
+	sc_signal<sc_uint<3> >  sig_p4_MCmd;
+	sc_signal<sc_uint<32> > sig_p4_MData;
+	sc_signal<sc_uint<4> >  sig_p4_MByteEn;
+	sc_signal<bool>         sig_p4_SCmdAccept;
+	sc_signal<sc_uint<32> > sig_p4_SData;
+	sc_signal<sc_uint<2> >  sig_p4_SResp;
+
 	// CPU instruction port signals (fabric)
 	sc_signal<sc_uint<32> >  sig_cpuI_MAddr;
 	sc_signal<sc_uint<3> >   sig_cpuI_MCmd;
@@ -258,4 +323,8 @@ private:
 	sc_signal<sc_uint<32> >  sig_cpu_db_sdata;
 	sc_signal<bool>          sig_cpu_db_rdy;
 	sc_signal<bool>          sig_cpu_db_err;
+
+	// Interrupt connection signals
+	sc_signal<bool>          sig_intc_intr0;
+	sc_signal<bool>          sig_cpu_intr;
 };
