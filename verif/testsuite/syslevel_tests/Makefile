@@ -1,11 +1,13 @@
 # The Ultiparc Project
-# Basic testsuite Makefile
+# System-level testsuite Makefile
 
 # Test programs list
 TESTS := \
-	syscall.elf \
-	breakpoint.elf \
-	ivtbase.elf
+	timer.elf
+
+
+# Lists of object files
+timer.elf := entry.o timer.o
 
 
 # List of final targets
@@ -20,15 +22,11 @@ TARGETS := \
 include $(ULTIPARC_HOME)/verif/testsuite/common/common.mk
 
 
-# Tell Make to keep obejct files
-.SECONDARY: $(TESTS:.elf=.o)
-
-
 all: $(TARGETS)
 
 
-%.elf: %.o
-	$(GCC_PREFIX)ld -T $(ULTIPARC_HOME)/verif/testsuite/common/hw.ld -o $@ $< $(LDFLAGS)
+timer.elf: $(timer.elf)
+	$(GCC_PREFIX)ld -T $(ULTIPARC_HOME)/verif/testsuite/common/hw.ld -o $@ $(timer.elf) $(LDFLAGS)
 
 
 %.bin: %.elf
@@ -47,7 +45,12 @@ all: $(TARGETS)
 	$(GCC_PREFIX)gcc $(CFLAGS) $(ASFLAGS) -c $< -o $@
 
 
+%.o: %.c
+	$(GCC_PREFIX)gcc $(CFLAGS) -c $< -o $@
+
+
 # Clean
 .PHONY: clean
 clean:
 	-rm -f $(TARGETS) $(TESTS:.elf=.o)
+	-rm -f $(foreach TARGET, $(TARGETS), $($(TARGET)))

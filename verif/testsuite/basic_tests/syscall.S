@@ -27,6 +27,7 @@
  * System Call exception test
  */
 
+#include <arch.h>
 #include <test_defines.h>
 
 /*
@@ -48,7 +49,7 @@ bus_error_exception:
 overflow_exception:
 	j test_failed
 	nop
-/******************************* Address Overflow *****************************/
+/********************************* Address Error ******************************/
 address_error_exception:
 	j test_failed
 	nop

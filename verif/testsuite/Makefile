@@ -2,7 +2,8 @@
 # Testsuite Makefile
 
 TESTSUITES := \
-	basic_tests
+	basic_tests \
+	syslevel_tests
 
 
 TESTSUITES_CLEAN := $(addsuffix .clean_target,$(TESTSUITES))

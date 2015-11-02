@@ -31,12 +31,7 @@
 #define _CPU_TEST_DEFINES_H_
 
 
-/* Coprocessor 0 registers */
-#define IVTB	10	/* IVT Base */
-#define PSR	11	/* Prev. Status Register  */
-#define SR	12	/* Status Register */
-#define EPC	14	/* Exception PC */
-#define PRID	15	/* Processor Id */
+#include "arch_types.h"
 
 
 /* Control device */
@@ -63,6 +58,28 @@
 #define ITIMER_CTLREG	(ITIMER_IOBASE + 0x00)	/* Control register */
 #define ITIMER_COUNT	(ITIMER_IOBASE + 0x04)	/* Counter register */
 #define ITIMER_CURRENT	(ITIMER_IOBASE + 0x08)	/* Current count value */
+
+
+#ifndef __ASSEMBLY__
+
+/* Report success to simulator */
+static inline void test_passed(void)
+{
+	*((volatile addr_t *)SIM_CTRL_CTLREG) = TEST_PASSED;
+	while(1)
+		;
+}
+
+
+/* Report failure to simulator */
+static inline void test_failed(void)
+{
+	*((volatile addr_t *)SIM_CTRL_CTLREG) = TEST_FAILED;
+	while(1)
+		;
+}
+
+#endif /* __ASSEMBLY__ */
 
 
 #endif /* _CPU_TEST_DEFINES_H_ */

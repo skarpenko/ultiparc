@@ -14,6 +14,14 @@ my @tests = (
 		name => "Breakpoint Exception",
 		path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/basic_tests/breakpoint.bin"
 	},
+	{
+		name => "IVT Base Address Change",
+		path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/basic_tests/ivtbase.bin"
+	},
+	{
+		name => "Timer Interrupt",
+		path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/syslevel_tests/timer.bin"
+	},
 );
 
 my $passed = 0;

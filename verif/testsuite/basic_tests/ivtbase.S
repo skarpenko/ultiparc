@@ -24,15 +24,12 @@
  */
 
 /*
- * Breakpoint exception test
+ * Interrupt Vector Table base change test
  */
 
 #include <arch.h>
 #include <test_defines.h>
 
-/*
- * Notes: Any exception other than Breakpoint fails the test.
- */
 
 .text
 .set noreorder
@@ -59,7 +56,7 @@ resvd_instr_exception:
 	nop
 /********************************** Breakpoint ********************************/
 break_exception:
-	j breakpoint_handler	/* Jump to exception handler */
+	j test_failed
 	nop
 /********************************** System Call *******************************/
 syscall_exception:
@@ -72,16 +69,13 @@ hardware_interrupt:
 
 /******************************* TEST ENTRY POINT *****************************/
 test_entry:
-	xor $k0, $k0, $k0	/* Use $k0 for counting successful steps */
-	break 0x0		/* Breakpoint */
-	j check_result		/* Breakpoint in delay slot */
-	break 0x0
-
-check_result:
-	/* $k0 should contain two successful tries, otherwise test failed */
-	li $t0, 2
-	bne $t0, $k0, test_failed
-	nop /* delay slot */
+	la $k0, new_ivt		/* Load address of the new IVT */
+	mtc0 $k0, $IVTB
+	nop
+	syscall 0x0		/* Do syscall using newly loaded IVT */
+	nop
+	j test_failed
+	nop
 
 test_passed:
 	/* Report success to simulator */
@@ -99,21 +93,29 @@ test_failed:
 	j test_failed
 	nop
 
-	/*** Breakpoint Exception handler ***/
-breakpoint_handler:
-	/* Increment counter */
-	addiu $k0, $k0, 1
-	/* Get return address */
-	mfc0 $ra, $EPC
-	/* Load faulted instruction */
-	lw $t0, 0($ra)
-	/* If instruction is break then increment $ra by 4 otherwise increment
-	 * by 8 because it is in delay slot.
-	 */
-	li $t1, 0xd
-	beq $t0, $t1, exception_return
-	addiu $ra, $ra, 4
-	addiu $ra, $ra, 4
-exception_return:
-	jr $ra
-	rfe
+
+/************************* New Interrupt Vector Table *************************/
+new_ivt:
+	j test_failed
+	nop
+new_bus_error_exception:
+	j test_failed
+	nop
+new_overflow_exception:
+	j test_failed
+	nop
+new_address_error_exception:
+	j test_failed
+	nop
+new_resvd_instr_exception:
+	j test_failed
+	nop
+new_break_exception:
+	j test_failed
+	nop
+new_syscall_exception:
+	j test_passed	/* Jump to test passed */
+	nop
+new_hardware_interrupt:
+	j test_failed
+	nop

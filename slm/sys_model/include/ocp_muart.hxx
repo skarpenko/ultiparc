@@ -108,7 +108,8 @@ private:
 			} else if(cmd == OCP_CMD_WRITE) {
 				// Print character to stdout
 				if(ben&0x1)
-					std::cout << static_cast<char>(data & 0xff);
+					std::cout << static_cast<char>(data & 0xff)
+						<< std::flush;
 				o_SResp = OCP_RESP_DVA;
 				wait(clk.posedge_event());
 				o_SResp = OCP_RESP_NULL;

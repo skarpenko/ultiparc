@@ -24,52 +24,51 @@
  */
 
 /*
- * Linker script
+ * Timer interrupt test
  */
 
-
-OUTPUT_FORMAT("elf32-littlemips", "elf32-bigmips",
-		"elf32-littlemips")
-OUTPUT_ARCH(mips)
-ENTRY(__reset)
+#include <arch.h>
+#include <test_defines.h>
 
 
-MEMORY
+#define NEXPECT	10	/* Number of timer ticks to expect */
+#define COUNT	2000	/* Timer count value */
+
+
+volatile unsigned int_count = 0;	/* Ticks count */
+
+
+/* Interrupt handler */
+void interrupt_entry(struct interrupt_frame *p)
 {
-	ram(rwx): ORIGIN = 0x00000000, LENGTH = 256K
+	u32 status;
+
+	/* Test failed if system exception occurred (7 - HW interrupt) */
+	if(p->vec != 7)
+		test_failed();
+
+	++int_count;	/* count tick */
+
+	/* Acknowledge interrupt */
+	status = readl(INTCTL_STATUS);
+	writel(status, INTCTL_STATUS);
 }
 
 
-SECTIONS
+/* Test start */
+void user_entry()
 {
-	.text		0x00000000 : { *(.text .text.*) } > ram
-	.rodata		ALIGN(0x4) : { *(.rodata .rodata.*) } > ram
-	.rodata1	ALIGN(0x4) : { *(.rodata1) } > ram
-	.sdata2		ALIGN(0x4) : { *(.sdata2 .sdata2.*) } > ram
-	.sbss2		ALIGN(0x4) : {
-		__sbss2_start = ABSOLUTE(.);
-		*(.sbss2 .sbss2.*);
-		. = ALIGN(0x4);
-		__sbss2_end = ABSOLUTE(.);
-	} > ram
-	.data		ALIGN(0x4) : { *(.data .data.*) } > ram
-	.data1		ALIGN(0x4) : { *(.data1) } > ram
-	HIDDEN(_gp = ALIGN(16) + 0x7ff0);
-	.got		ALIGN(0x4) : { *(.got .got.*) } > ram
-	.sdata		ALIGN(0x4) : { *(.sdata .sdata.*) } > ram
-	.sbss		ALIGN(0x4) : {
-		__sbss_start = ABSOLUTE(.);
-		*(.sbss .sbss.*);
-		. = ALIGN(0x4);
-		__sbss_end = ABSOLUTE(.);
-	} > ram
-	.bss		ALIGN(0x4) : {
-		__bss_start = ABSOLUTE(.);
-		*(.bss .bss.*);
-		. = ALIGN(0x4);
-		__bss_end = ABSOLUTE(.);
-	} > ram
-	/DISCARD/ : { *(.note.GNU-stack) *(.gnu_debuglink) *(.reginfo) }
+	writel(COUNT, ITIMER_COUNT);	/* Set timer counter */
+	writel(7, ITIMER_CTLREG);	/* Enable timer (+reload and interrupt) */
 
-	PROVIDE(__stack_top = ABSOLUTE(ORIGIN("ram") + LENGTH("ram")));
+	/* Unmask interrupt controller line */
+	writel(1, INTCTL_MASK);
+
+	interrupts_enable();
+
+	/* Wait for expected timer ticks count */
+	while(int_count < NEXPECT)
+		;
+
+	test_passed();
 }

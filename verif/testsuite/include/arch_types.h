@@ -24,52 +24,27 @@
  */
 
 /*
- * Linker script
+ * CPU architecture specific type defines
  */
 
-
-OUTPUT_FORMAT("elf32-littlemips", "elf32-bigmips",
-		"elf32-littlemips")
-OUTPUT_ARCH(mips)
-ENTRY(__reset)
+#ifndef _CPU_ARCH_TYPES_H_
+#define _CPU_ARCH_TYPES_H_
 
 
-MEMORY
-{
-	ram(rwx): ORIGIN = 0x00000000, LENGTH = 256K
-}
+#ifndef __ASSEMBLY__
+
+typedef signed char		s8;
+typedef unsigned char		u8;
+typedef signed short		s16;
+typedef unsigned short		u16;
+typedef signed int		s32;
+typedef unsigned int		u32;
+typedef signed long long	s64;
+typedef unsigned long long	u64;
+
+typedef unsigned long		addr_t;
+
+#endif /* __ASSEMBLY__ */
 
 
-SECTIONS
-{
-	.text		0x00000000 : { *(.text .text.*) } > ram
-	.rodata		ALIGN(0x4) : { *(.rodata .rodata.*) } > ram
-	.rodata1	ALIGN(0x4) : { *(.rodata1) } > ram
-	.sdata2		ALIGN(0x4) : { *(.sdata2 .sdata2.*) } > ram
-	.sbss2		ALIGN(0x4) : {
-		__sbss2_start = ABSOLUTE(.);
-		*(.sbss2 .sbss2.*);
-		. = ALIGN(0x4);
-		__sbss2_end = ABSOLUTE(.);
-	} > ram
-	.data		ALIGN(0x4) : { *(.data .data.*) } > ram
-	.data1		ALIGN(0x4) : { *(.data1) } > ram
-	HIDDEN(_gp = ALIGN(16) + 0x7ff0);
-	.got		ALIGN(0x4) : { *(.got .got.*) } > ram
-	.sdata		ALIGN(0x4) : { *(.sdata .sdata.*) } > ram
-	.sbss		ALIGN(0x4) : {
-		__sbss_start = ABSOLUTE(.);
-		*(.sbss .sbss.*);
-		. = ALIGN(0x4);
-		__sbss_end = ABSOLUTE(.);
-	} > ram
-	.bss		ALIGN(0x4) : {
-		__bss_start = ABSOLUTE(.);
-		*(.bss .bss.*);
-		. = ALIGN(0x4);
-		__bss_end = ABSOLUTE(.);
-	} > ram
-	/DISCARD/ : { *(.note.GNU-stack) *(.gnu_debuglink) *(.reginfo) }
-
-	PROVIDE(__stack_top = ABSOLUTE(ORIGIN("ram") + LENGTH("ram")));
-}
+#endif /* _CPU_ARCH_TYPES_H_ */
