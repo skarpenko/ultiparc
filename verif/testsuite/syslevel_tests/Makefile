@@ -3,11 +3,13 @@
 
 # Test programs list
 TESTS := \
-	timer.elf
+	timer.elf \
+	memcopy.elf
 
 
 # Lists of object files
 timer.elf := entry.o timer.o
+memcopy.elf := entry.o memcopy.o common.o
 
 
 # List of final targets
@@ -27,6 +29,10 @@ all: $(TARGETS)
 
 timer.elf: $(timer.elf)
 	$(GCC_PREFIX)ld -T $(ULTIPARC_HOME)/verif/testsuite/common/hw.ld -o $@ $(timer.elf) $(LDFLAGS)
+
+
+memcopy.elf: $(memcopy.elf)
+	$(GCC_PREFIX)ld -T $(ULTIPARC_HOME)/verif/testsuite/common/hw.ld -o $@ $(memcopy.elf) $(LDFLAGS)
 
 
 %.bin: %.elf

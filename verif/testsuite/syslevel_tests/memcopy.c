@@ -24,28 +24,38 @@
  */
 
 /*
- * CPU architecture specific type defines
+ * Memory copy test
  */
 
-#ifndef _CPU_ARCH_TYPES_H_
-#define _CPU_ARCH_TYPES_H_
+#include <arch.h>
+#include <test_defines.h>
+#include "common.h"
 
 
-#ifndef __ASSEMBLY__
+#define BLOCK_SZ 1021
 
-typedef signed char		s8;
-typedef unsigned char		u8;
-typedef signed short		s16;
-typedef unsigned short		u16;
-typedef signed int		s32;
-typedef unsigned int		u32;
-typedef signed long long	s64;
-typedef unsigned long long	u64;
-
-typedef unsigned long		addr_t;
-typedef unsigned long		word_t;
-
-#endif /* __ASSEMBLY__ */
+static char src_block[BLOCK_SZ];
+static char dst_block[BLOCK_SZ];
 
 
-#endif /* _CPU_ARCH_TYPES_H_ */
+/* Test start */
+void user_entry()
+{
+	int i;
+
+	/* Fill source block with pattern */
+	for(i=0; i<BLOCK_SZ; ++i)
+		src_block[i] = i % 256;
+
+	/* Copy block */
+	memcpy(dst_block, src_block, BLOCK_SZ);
+
+	/* Check blocks content */
+	for(i=0; i<BLOCK_SZ; ++i) {
+		char pat = i % 256;
+		if(src_block[i] != pat || dst_block[i] != pat)
+			test_failed();
+	}
+
+	test_passed();
+}

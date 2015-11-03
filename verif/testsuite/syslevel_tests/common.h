@@ -24,28 +24,21 @@
  */
 
 /*
- * CPU architecture specific type defines
+ * Common routines used by system-level tests
  */
 
-#ifndef _CPU_ARCH_TYPES_H_
-#define _CPU_ARCH_TYPES_H_
+#ifndef _SYSLEVEL_TESTS_COMMON_H_
+#define _SYSLEVEL_TESTS_COMMON_H_
 
 
-#ifndef __ASSEMBLY__
+/* Memory copy routine */
+void *memcpy(void *dst, const void *src, unsigned int count);
 
-typedef signed char		s8;
-typedef unsigned char		u8;
-typedef signed short		s16;
-typedef unsigned short		u16;
-typedef signed int		s32;
-typedef unsigned int		u32;
-typedef signed long long	s64;
-typedef unsigned long long	u64;
+/* Print single character */
+void print_char(char ch);
 
-typedef unsigned long		addr_t;
-typedef unsigned long		word_t;
-
-#endif /* __ASSEMBLY__ */
+/* Print string */
+void print_str(const char *str);
 
 
-#endif /* _CPU_ARCH_TYPES_H_ */
+#endif /* _SYSLEVEL_TESTS_COMMON_H_ */

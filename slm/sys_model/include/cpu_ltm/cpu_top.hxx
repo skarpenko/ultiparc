@@ -60,7 +60,7 @@ SC_MODULE(cpu_top) {
 
 
 	SC_CTOR(cpu_top)
-		: m_prid(0)
+		: m_prid(0x001A8100)
 	{
 		SC_CTHREAD(cpu_intr_thread, clk.pos());
 		SC_THREAD(cpu_thread);

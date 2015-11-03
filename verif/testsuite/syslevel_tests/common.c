@@ -24,28 +24,66 @@
  */
 
 /*
- * CPU architecture specific type defines
+ * Common routines used by system-level tests
  */
 
-#ifndef _CPU_ARCH_TYPES_H_
-#define _CPU_ARCH_TYPES_H_
+#include <arch.h>
+#include <test_defines.h>
 
 
-#ifndef __ASSEMBLY__
+void *memcpy(void *dst, const void *src, unsigned int count)
+{
+/* Word size and mask */
+#define wsize	sizeof(word_t)
+#define wmask	(wsize - 1)
 
-typedef signed char		s8;
-typedef unsigned char		u8;
-typedef signed short		s16;
-typedef unsigned short		u16;
-typedef signed int		s32;
-typedef unsigned int		u32;
-typedef signed long long	s64;
-typedef unsigned long long	u64;
+	char *d = (char *)dst;
+	const char *s = (const char *)src;
+	int len;
 
-typedef unsigned long		addr_t;
-typedef unsigned long		word_t;
+	if(count == 0 || dst == src)
+		return dst;
 
-#endif /* __ASSEMBLY__ */
+	if(((word_t)d | (word_t)s) & wmask) {
+		/* src and/or dst is not word aligned */
+		if((((word_t)d ^ (word_t)s) & wmask) || (count < wsize))
+			len = count; /* copy leftover using using byte access */
+		else
+			len = wsize - ((word_t)d & wmask); /* word align pointers */
+
+		count -= len;
+		for(; len > 0; len--)
+			*d++ = *s++;
+	}
+	/* words copy */
+	for(len = count / wsize; len > 0; len--) {
+		*(word_t *)d = *(word_t *)s;
+		d += wsize;
+		s += wsize;
+	}
+	/* bytes copy */
+	for(len = count & wmask; len > 0; len--)
+		*d++ = *s++;
+
+	return dst;
+#undef wsize
+#undef wmask
+}
 
 
-#endif /* _CPU_ARCH_TYPES_H_ */
+void print_char(char ch)
+{
+	writel(ch, MUART_CHREG);
+}
+
+
+void print_str(const char *str)
+{
+	if(str) {
+		while(*str) {
+			writel(*str, MUART_CHREG);
+			++str;
+		}
+	} else
+		print_str("<NULL>");
+}

@@ -16,6 +16,7 @@ CFLAGS += -ffreestanding -fno-pic
 CFLAGS += -finline -fno-builtin -fno-strict-aliasing
 CFLAGS += -ffunction-sections -fdata-sections
 CFLAGS += -I$(LIBGCC_INCLUDE)
+CFLAGS += -Wall
 
 # Assembler flags
 ASFLAGS := -D__ASSEMBLY__

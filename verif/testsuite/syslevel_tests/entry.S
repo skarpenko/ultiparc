@@ -75,11 +75,10 @@ __entry:
 	/* Zero .bss section */
 	la $t0, __bss_start
 	la $t1, __bss_end
-	xor $t2, $t2, $t2
 __zero_bss:
 	beq $t0, $t1, __zero_bss_end
 	nop
-	sw $t2, 0($t0)
+	sw $zero, 0($t0)
 	j __zero_bss
 	addiu $t0, $t0, 4
 __zero_bss_end:
@@ -87,11 +86,10 @@ __zero_bss_end:
 	/* Zero .sbss section */
 	la $t0, __sbss_start
 	la $t1, __sbss_end
-	xor $t2, $t2, $t2
 __zero_sbss:
 	beq $t0, $t1, __zero_sbss_end
 	nop
-	sw $t2, 0($t0)
+	sw $zero, 0($t0)
 	j __zero_sbss
 	addiu $t0, $t0, 4
 __zero_sbss_end:
@@ -99,11 +97,10 @@ __zero_sbss_end:
 	/* Zero .sbss2 section */
 	la $t0, __sbss2_start
 	la $t1, __sbss2_end
-	xor $t2, $t2, $t2
 __zero_sbss2:
 	beq $t0, $t1, __zero_sbss2_end
 	nop
-	sw $t2, 0($t0)
+	sw $zero, 0($t0)
 	j __zero_sbss
 	addiu $t0, $t0, 4
 __zero_sbss2_end:
@@ -125,7 +122,6 @@ __hang:
 
 /************************ Exception handler entry *****************************/
 
-.set noreorder
 .set noat
 __exception_entry:
 	/* Registers $k0 and $k1 are ours! */
@@ -236,7 +232,6 @@ __exception_entry:
 	jr $k0
 	rfe
 .set at
-.set reorder
 
 /************************* Default interrupt handler **************************/
 .weak interrupt_entry

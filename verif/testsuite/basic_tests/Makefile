@@ -5,7 +5,10 @@
 TESTS := \
 	syscall.elf \
 	breakpoint.elf \
-	ivtbase.elf
+	ivtbase.elf \
+	proc_id.elf \
+	status_reg.elf \
+	addr_err.elf
 
 
 # List of final targets
