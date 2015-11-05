@@ -33,12 +33,24 @@ my @tests = (
 		path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/basic_tests/addr_err.bin"
 	},
 	{
+		name => "Load Store",
+		path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/basic_tests/load_store.bin"
+	},
+	{
+		name => "Integer Overflow Exception",
+		path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/basic_tests/int_overflow.bin"
+	},
+	{
 		name => "Timer Interrupt",
 		path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/syslevel_tests/timer.bin"
 	},
 	{
 		name => "Memory Block Copy",
 		path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/syslevel_tests/memcopy.bin"
+	},
+	{
+		name => "Matrix Multiply",
+		path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/syslevel_tests/matrix_mul.bin"
 	},
 );
 
@@ -51,9 +63,10 @@ printf "\nRunning testsuite...\n\n";
 
 foreach $test (@tests) {
 	++$total;
-	print "$total. $test->{'name'}...";
-	if (length $test->{'name'} < $max_name) {
-		print " " x ($max_name - length $test->{'name'});
+	my $fmt = "$total. $test->{'name'}...";
+	print "$fmt";
+	if (length $fmt < $max_name) {
+		print " " x ($max_name - length $fmt);
 	}
 	$err = system("$sys_model_bin -fw_image $test->{'path'} 1>/dev/null 2>/dev/null");
 	if ($err == 0) {

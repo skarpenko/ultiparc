@@ -40,5 +40,14 @@ void print_char(char ch);
 /* Print string */
 void print_str(const char *str);
 
+/* Print hexadecimal value */
+void print_hex(unsigned hex);
+
+/* Print signed integer value */
+void print_integer(int v);
+
+/* Print unsigned integer value */
+void print_unsigned(unsigned v);
+
 
 #endif /* _SYSLEVEL_TESTS_COMMON_H_ */

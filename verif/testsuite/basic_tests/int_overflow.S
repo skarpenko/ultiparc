@@ -24,14 +24,14 @@
  */
 
 /*
- * Address Error exception test
+ * Integer Overflow exception test
  */
 
 #include <arch.h>
 #include <test_defines.h>
 
 /*
- * Notes: Any exception other than Address Error fails the test.
+ * Notes: Any exception other than Integer Overflow fails the test.
  */
 
 .text
@@ -47,11 +47,11 @@ bus_error_exception:
 	nop
 /******************************* Integer Overflow *****************************/
 overflow_exception:
-	j test_failed
+	j overflow_handler	/* Jump to exception handler */
 	nop
 /********************************* Address Error ******************************/
 address_error_exception:
-	j address_error_handler	/* Jump to exception handler */
+	j test_failed
 	nop
 /***************************** Reserved Instruction ***************************/
 resvd_instr_exception:
@@ -74,77 +74,65 @@ hardware_interrupt:
 test_entry:
 	xor $k0, $k0, $k0	/* Use $k0 for counting successful steps */
 
-	/* Jump to unaligned address */
-	la $t0, test_failed
-	addiu $t0, $t0, 1
-	jr $t0
+	li $t0, 0xCAFEBABE	/* Value of destination register */
+
+	/* Add two negative values which cause result overflow */
+	li $t1, 0x80000000
+	li $t2, 0xFFFF8000
+	add $t0, $t1, $t2
 	nop
-	/* And once again */
-	jalr $t0
+	addi $t0, $t1, 0x8000
+	nop
+	/* Add two positive values which cause result overflow */
+	li $t1, 0x7FFFFFFF
+	li $t2, 0x7FFF
+	add $t0, $t1, $t2
+	nop
+	addi $t0, $t1, 0x7FFF
+	nop
+	/* Subtract values which casue result overflow */
+	li $t1, 0x7FFFFFFF
+	li $t2, 0xFFFF8000
+	sub $t0, $t1, $t2
+	nop
+	li $t1, 0x80000000
+	li $t2, 0x7FFF
+	sub $t0, $t1, $t2
 	nop
 
-	/* Unaligned loads and stores */
-	la $t0, test_data
-	li $t1, 0xDEADBEEF
-	move $t2, $t1
-	addiu $t0, $t0, 1
-	/* Load half word */
-	lh $t1, 0($t0)
-	nop
-	bne $t1, $t2, test_failed
-	nop
-	/* Load half word unsigned */
-	lhu $t1, 0($t0)
-	nop
-	bne $t1, $t2, test_failed
-	nop
-	/* Load word */
-	lw $t1, 0($t0)
-	nop
-	bne $t1, $t2, test_failed
-	nop
-	/* Store half word */
-	sh $t1, 0($t0)
-	nop
-	/* Store word */
-	sw $t1, 0($t0)
-	nop
+	/** Now repeat tests for delay slots **/
 
-	/* Unaligned loads and stores in delay slots */
-	/* Load half word in delay slot */
+	/* Add two negative values with overflow */
+	li $t1, 0x80000000
+	li $t2, 0xFFFF8000
 	j test_failed
-	lh $t1, 0($t0)
-	bne $t1, $t2, test_failed
-	nop
-	/* Load half word unsigned in delay slot */
+	add $t0, $t1, $t2
 	j test_failed
-	lhu $t1, 0($t0)
-	bne $t1, $t2, test_failed
-	nop
-	/* Load word in delay slot */
+	addi $t0, $t1, 0x8000
+	/* Add two positive values with overflow */
+	li $t1, 0x7FFFFFFF
+	li $t2, 0x7FFF
 	j test_failed
-	lw $t1, 0($t0)
-	nop
-	bne $t1, $t2, test_failed
-	nop
-	/* Store half word in delay slot */
+	add $t0, $t1, $t2
 	j test_failed
-	sh $t1, 0($t0)
-	/* Store word in delay slot */
+	addi $t0, $t1, 0x7FFF
+	/* Subtract values with overflow */
+	li $t1, 0x7FFFFFFF
+	li $t2, 0xFFFF8000
 	j test_failed
-	sw $t1, 0($t0)
+	sub $t0, $t1, $t2
+	li $t1, 0x80000000
+	li $t2, 0x7FFF
+	j test_failed
+	sub $t0, $t1, $t2
 
-	/* Check data in memory. Should be unchanged. */
-	la $t0, test_data
-	lw $t1, 0($t0)
-	bne $t1, $zero, test_failed
-	nop
-	lw $t1, 4($t0)
-	bne $t1, $zero, test_failed
+	/* Check value of destination (should be unchanged) */
+	li $t1, 0xCAFEBABE
+	bne $t0, $t1, test_failed
 	nop
 
 check_result:
-	/* Shoud get 12 Address Error exceptions */
+	/* Should get 12 Integer Overflow exceptions */
 	li $t0, 12
 	bne $t0, $k0, test_failed
 	nop
@@ -165,21 +153,14 @@ test_failed:
 	j test_failed
 	nop
 
-	/*** Address Error Exception handler ***/
-address_error_handler:
+	/*** Overflow Exception handler ***/
+overflow_handler:
 	/* Increment counter */
 	addiu $k0, $k0, 1
 	/* Get return address */
 	mfc0 $ra, $EPC
 	/* Advance return address */
 	addiu $ra, $ra, 8
-	/* Return */
+	/* Return from exception */
 	jr $ra
 	rfe
-
-	/*** Data section ***/
-.data
-
-test_data:
-	.long 0
-	.long 0

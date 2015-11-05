@@ -24,14 +24,14 @@
  */
 
 /*
- * Address Error exception test
+ * Load / Store instructions test
  */
 
 #include <arch.h>
 #include <test_defines.h>
 
 /*
- * Notes: Any exception other than Address Error fails the test.
+ * Notes: Any exception fails the test.
  */
 
 .text
@@ -51,7 +51,7 @@ overflow_exception:
 	nop
 /********************************* Address Error ******************************/
 address_error_exception:
-	j address_error_handler	/* Jump to exception handler */
+	j test_failed
 	nop
 /***************************** Reserved Instruction ***************************/
 resvd_instr_exception:
@@ -72,81 +72,116 @@ hardware_interrupt:
 
 /******************************* TEST ENTRY POINT *****************************/
 test_entry:
-	xor $k0, $k0, $k0	/* Use $k0 for counting successful steps */
+	la $t0, load_pattern	/* Pattern for loads test */
 
-	/* Jump to unaligned address */
-	la $t0, test_failed
-	addiu $t0, $t0, 1
-	jr $t0
-	nop
-	/* And once again */
-	jalr $t0
-	nop
-
-	/* Unaligned loads and stores */
-	la $t0, test_data
-	li $t1, 0xDEADBEEF
-	move $t2, $t1
-	addiu $t0, $t0, 1
-	/* Load half word */
-	lh $t1, 0($t0)
-	nop
-	bne $t1, $t2, test_failed
-	nop
-	/* Load half word unsigned */
-	lhu $t1, 0($t0)
-	nop
-	bne $t1, $t2, test_failed
-	nop
 	/* Load word */
 	lw $t1, 0($t0)
-	nop
+	li $t2, 0xF3F2F1F0
 	bne $t1, $t2, test_failed
 	nop
-	/* Store half word */
-	sh $t1, 0($t0)
-	nop
-	/* Store word */
-	sw $t1, 0($t0)
-	nop
 
-	/* Unaligned loads and stores in delay slots */
-	/* Load half word in delay slot */
-	j test_failed
+	/* Load half word */
 	lh $t1, 0($t0)
+	li $t2, 0xFFFFF1F0
 	bne $t1, $t2, test_failed
 	nop
-	/* Load half word unsigned in delay slot */
-	j test_failed
+	lh $t1, 2($t0)
+	li $t2, 0xFFFFF3F2
+	bne $t1, $t2, test_failed
+	nop
+
+	/* Load half word unsigned */
 	lhu $t1, 0($t0)
+	li $t2, 0xF1F0
 	bne $t1, $t2, test_failed
 	nop
-	/* Load word in delay slot */
-	j test_failed
-	lw $t1, 0($t0)
-	nop
+	lhu $t1, 2($t0)
+	li $t2, 0xF3F2
 	bne $t1, $t2, test_failed
 	nop
-	/* Store half word in delay slot */
-	j test_failed
-	sh $t1, 0($t0)
-	/* Store word in delay slot */
-	j test_failed
+
+	/* Load byte */
+	lb $t1, 0($t0)
+	li $t2, 0xFFFFFFF0
+	bne $t1, $t2, test_failed
+	nop
+	lb $t1, 1($t0)
+	li $t2, 0xFFFFFFF1
+	bne $t1, $t2, test_failed
+	nop
+	lb $t1, 2($t0)
+	li $t2, 0xFFFFFFF2
+	bne $t1, $t2, test_failed
+	nop
+	lb $t1, 3($t0)
+	li $t2, 0xFFFFFFF3
+	bne $t1, $t2, test_failed
+	nop
+
+	/* Load byte unsigned */
+	lbu $t1, 0($t0)
+	li $t2, 0xF0
+	bne $t1, $t2, test_failed
+	nop
+	lbu $t1, 1($t0)
+	li $t2, 0xF1
+	bne $t1, $t2, test_failed
+	nop
+	lbu $t1, 2($t0)
+	li $t2, 0xF2
+	bne $t1, $t2, test_failed
+	nop
+	lbu $t1, 3($t0)
+	li $t2, 0xF3
+	bne $t1, $t2, test_failed
+	nop
+
+	/* Store word */
+	la $t0, sw_data
+	li $t1, 0xE3E2E1E0
 	sw $t1, 0($t0)
-
-	/* Check data in memory. Should be unchanged. */
-	la $t0, test_data
-	lw $t1, 0($t0)
-	bne $t1, $zero, test_failed
-	nop
-	lw $t1, 4($t0)
-	bne $t1, $zero, test_failed
+	lw $t2, 0($t0)
+	bne $t1, $t2, test_failed
 	nop
 
-check_result:
-	/* Shoud get 12 Address Error exceptions */
-	li $t0, 12
-	bne $t0, $k0, test_failed
+	/* Store half word */
+	la $t0, sh_data
+	li $t1, 0xE1E0
+	sh $t1, 0($t0)
+	lw $t2, 0($t0)
+	bne $t1, $t2, test_failed
+	nop
+	li $t1, 0xE3E2
+	sh $t1, 2($t0)
+	lw $t2, 0($t0)
+	li $t1, 0xE3E2E1E0
+	bne $t1, $t2, test_failed
+	nop
+
+	/* Store byte */
+	la $t0, sb_data
+	li $t1, 0xE0
+	sb $t1, 0($t0)
+	lw $t2, 0($t0)
+	bne $t1, $t2, test_failed
+	nop
+	li $t1, 0xE1
+	sb $t1, 1($t0)
+	lw $t2, 0($t0)
+	li $t1, 0xE1E0
+	bne $t1, $t2, test_failed
+	nop
+	li $t1, 0xE2
+	sb $t1, 2($t0)
+	lw $t2, 0($t0)
+	li $t1, 0xE2E1E0
+	bne $t1, $t2, test_failed
+	nop
+	li $t1, 0xE3
+	sb $t1, 3($t0)
+	lw $t2, 0($t0)
+	li $t1, 0xE3E2E1E0
+	bne $t1, $t2, test_failed
 	nop
 
 test_passed:
@@ -165,21 +200,14 @@ test_failed:
 	j test_failed
 	nop
 
-	/*** Address Error Exception handler ***/
-address_error_handler:
-	/* Increment counter */
-	addiu $k0, $k0, 1
-	/* Get return address */
-	mfc0 $ra, $EPC
-	/* Advance return address */
-	addiu $ra, $ra, 8
-	/* Return */
-	jr $ra
-	rfe
-
 	/*** Data section ***/
 .data
 
-test_data:
+load_pattern:
+	.long 0xF3F2F1F0
+sw_data:
 	.long 0
+sh_data:
+	.long 0
+sb_data:
 	.long 0

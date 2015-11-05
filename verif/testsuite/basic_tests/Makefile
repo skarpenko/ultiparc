@@ -8,7 +8,9 @@ TESTS := \
 	ivtbase.elf \
 	proc_id.elf \
 	status_reg.elf \
-	addr_err.elf
+	addr_err.elf \
+	load_store.elf \
+	int_overflow.elf
 
 
 # List of final targets

@@ -4,12 +4,14 @@
 # Test programs list
 TESTS := \
 	timer.elf \
-	memcopy.elf
+	memcopy.elf \
+	matrix_mul.elf
 
 
 # Lists of object files
 timer.elf := entry.o timer.o
 memcopy.elf := entry.o memcopy.o common.o
+matrix_mul.elf := entry.o matrix_mul.o
 
 
 # List of final targets
@@ -33,6 +35,10 @@ timer.elf: $(timer.elf)
 
 memcopy.elf: $(memcopy.elf)
 	$(GCC_PREFIX)ld -T $(ULTIPARC_HOME)/verif/testsuite/common/hw.ld -o $@ $(memcopy.elf) $(LDFLAGS)
+
+
+matrix_mul.elf: $(matrix_mul.elf)
+	$(GCC_PREFIX)ld -T $(ULTIPARC_HOME)/verif/testsuite/common/hw.ld -o $@ $(matrix_mul.elf) $(LDFLAGS)
 
 
 %.bin: %.elf

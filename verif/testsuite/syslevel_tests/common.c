@@ -81,9 +81,62 @@ void print_str(const char *str)
 {
 	if(str) {
 		while(*str) {
-			writel(*str, MUART_CHREG);
+			print_char(*str);
 			++str;
 		}
 	} else
 		print_str("<NULL>");
+}
+
+
+void print_hex(unsigned hex)
+{
+	const static char h[] = "0123456789ABCDEF";
+	print_char(h[(hex & 0xF0000000)>>28]);
+	print_char(h[(hex & 0x0F000000)>>24]);
+	print_char(h[(hex & 0x00F00000)>>20]);
+	print_char(h[(hex & 0x000F0000)>>16]);
+	print_char(h[(hex & 0x0000F000)>>12]);
+	print_char(h[(hex & 0x00000F00)>>8]);
+	print_char(h[(hex & 0x000000F0)>>4]);
+	print_char(h[(hex & 0x0000000F)>>0]);
+}
+
+
+void print_integer(int v)
+{
+	int d;
+	int o = 1000000000;
+	int f = 0;
+
+	if(v<0)
+		print_char('-');
+
+	while(o != 1) {
+		d = v / o;
+		v = v % o;
+		o = o / 10;
+		d = (d<0 ? -d : d);
+		v = (v<0 ? -v : v);
+		f = f | d;
+		if(f) print_char('0' + d);
+	}
+	print_char('0' + v);
+}
+
+
+void print_unsigned(unsigned v)
+{
+	int d;
+	int o = 1000000000;
+	int f = 0;
+
+	while(o != 1) {
+		d = v / o;
+		v = v % o;
+		o = o / 10;
+		f = f | d;
+		if(f) print_char('0' + d);
+	}
+	print_char('0' + v);
 }
