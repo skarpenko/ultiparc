@@ -1,6 +1,8 @@
-#!/bin/perl
+#!/usr/bin/perl
 # The Ultiparc Project
 # Test script
+
+use Term::ANSIColor qw(:constants);
 
 
 my $sys_model_bin = "$ENV{'ULTIPARC_HOME'}/slm/sys_model/sys_model.elf";
@@ -37,8 +39,28 @@ my @tests = (
 		path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/basic_tests/load_store.bin"
 	},
 	{
+		name => "Shifts",
+		path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/basic_tests/shifts.bin"
+	},
+	{
+		name => "Multiply and Divide",
+		path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/basic_tests/mul_div.bin"
+	},
+	{
+		name => "Jump Register",
+		path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/basic_tests/jumpr.bin"
+	},
+	{
+		name => "Set On Less Than",
+		path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/basic_tests/set_on_less.bin"
+	},
+	{
 		name => "Integer Overflow Exception",
 		path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/basic_tests/int_overflow.bin"
+	},
+	{
+		name => "Reserved Instruction Exception",
+		path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/basic_tests/rsvd_instr.bin"
 	},
 	{
 		name => "Timer Interrupt",
@@ -70,10 +92,10 @@ foreach $test (@tests) {
 	}
 	$err = system("$sys_model_bin -fw_image $test->{'path'} 1>/dev/null 2>/dev/null");
 	if ($err == 0) {
-		print "PASSED\n";
+		print GREEN, "PASSED\n", RESET;
 		++$passed;
 	} else {
-		print "FAILED\n";
+		print RED, "FAILED\n", RESET;
 		++$failed;
 	}
 }

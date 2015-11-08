@@ -24,12 +24,15 @@
  */
 
 /*
- * Status register test
+ * Shift instructions test
  */
 
 #include <arch.h>
 #include <test_defines.h>
 
+/*
+ * Notes: Any exception fails the test.
+ */
 
 .text
 .set noreorder
@@ -60,7 +63,7 @@ break_exception:
 	nop
 /********************************** System Call *******************************/
 syscall_exception:
-	j handle_syscall
+	j test_failed
 	nop
 /****************************** Hardware Interrupt ****************************/
 hardware_interrupt:
@@ -69,16 +72,32 @@ hardware_interrupt:
 
 /******************************* TEST ENTRY POINT *****************************/
 test_entry:
-	/* Set IE flag */
-	mfc0 $t0, $SR
-	ori $t0, $t0, 1
-	mtc0 $t0, $SR
-	/* Do syscall exception */
-	syscall 0x0
-	/* Check that SR was restored from PSR */
-	mfc0 $t0, $SR
-	andi $t0, $t0, 1
-	beq $t0, $zero, test_failed
+	/* Load test patterns */
+	li $t7, 0xFFFFFFFF
+	li $t6, 0xFFFF0000
+	li $t5, 0x0000FFFF
+
+	/* Fixed shift instructions */
+	sll $t0, $t5, 16
+	bne $t0, $t6, test_failed
+	nop
+	srl $t0, $t6, 16
+	bne $t0, $t5, test_failed
+	nop
+	sra $t0, $t6, 16
+	bne $t0, $t7, test_failed
+	nop
+
+	/* Variable shift instructions */
+	li $t1, 16
+	sllv $t0, $t5, $t1
+	bne $t0, $t6, test_failed
+	nop
+	srlv $t0, $t6, $t1
+	bne $t0, $t5, test_failed
+	nop
+	srav $t0, $t6, $t1
+	bne $t0, $t7, test_failed
 	nop
 
 test_passed:
@@ -96,24 +115,3 @@ test_failed:
 	sw $t1, 0($t0)
 	j test_failed
 	nop
-
-	/*** System Call exception handler ***/
-handle_syscall:
-	/* Get return address */
-	mfc0 $ra, $EPC
-	addiu $ra, $ra, 4
-	/* Check IE bit */
-	li $t1, 1
-	/* Bit in SR should be cleared */
-	mfc0 $t0, $SR
-	and $t2, $t0, $t1
-	bne $t2, $zero, test_failed
-	nop
-	/* Bit in PSR should be set */
-	mfc0 $t0, $PSR
-	and $t2, $t0, $t1
-	beq $t2, $zero, test_failed
-	nop
-	/* Return from exception */
-	jr $ra
-	rfe

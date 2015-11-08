@@ -10,7 +10,12 @@ TESTS := \
 	status_reg.elf \
 	addr_err.elf \
 	load_store.elf \
-	int_overflow.elf
+	int_overflow.elf \
+	shifts.elf \
+	jumpr.elf \
+	set_on_less.elf \
+	rsvd_instr.elf \
+	mul_div.elf
 
 
 # List of final targets

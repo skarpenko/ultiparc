@@ -24,12 +24,15 @@
  */
 
 /*
- * Status register test
+ * Jump register instructions test
  */
 
 #include <arch.h>
 #include <test_defines.h>
 
+/*
+ * Notes: Any exception fails the test.
+ */
 
 .text
 .set noreorder
@@ -60,7 +63,7 @@ break_exception:
 	nop
 /********************************** System Call *******************************/
 syscall_exception:
-	j handle_syscall
+	j test_failed
 	nop
 /****************************** Hardware Interrupt ****************************/
 hardware_interrupt:
@@ -69,17 +72,37 @@ hardware_interrupt:
 
 /******************************* TEST ENTRY POINT *****************************/
 test_entry:
-	/* Set IE flag */
-	mfc0 $t0, $SR
-	ori $t0, $t0, 1
-	mtc0 $t0, $SR
-	/* Do syscall exception */
-	syscall 0x0
-	/* Check that SR was restored from PSR */
-	mfc0 $t0, $SR
-	andi $t0, $t0, 1
-	beq $t0, $zero, test_failed
+	/* Load destination address 0 */
+	la $t1, jump_point0
+	jalr $t1
+	addiu $t0, $zero, 1		/* Set argument in delay slot */
+	li $t7, 2
+	bne $t0, $t7, test_failed	/* Check returned value */
 	nop
+
+	/* Load destination address 1 */
+	la $t1, jump_point1
+	jalr $t6, $t1
+	addiu $t0, $zero, 3		/* Set argument in delay slot */
+	li $t7, 4
+	bne $t0, $t7, test_failed	/* Check returned value */
+	nop
+	j test_passed
+	nop
+
+jump_point0:
+	li $t7, 1
+	bne $t0, $t7, test_failed	/* Check argument */
+	nop
+	jr $ra
+	addiu $t0, $zero, 2		/* Set return velue */
+
+jump_point1:
+	li $t7, 3
+	bne $t0, $t7, test_failed	/* Check argument */
+	nop
+	jr $t6
+	addiu $t0, $zero, 4		/* Set return value */
 
 test_passed:
 	/* Report success to simulator */
@@ -96,24 +119,3 @@ test_failed:
 	sw $t1, 0($t0)
 	j test_failed
 	nop
-
-	/*** System Call exception handler ***/
-handle_syscall:
-	/* Get return address */
-	mfc0 $ra, $EPC
-	addiu $ra, $ra, 4
-	/* Check IE bit */
-	li $t1, 1
-	/* Bit in SR should be cleared */
-	mfc0 $t0, $SR
-	and $t2, $t0, $t1
-	bne $t2, $zero, test_failed
-	nop
-	/* Bit in PSR should be set */
-	mfc0 $t0, $PSR
-	and $t2, $t0, $t1
-	beq $t2, $zero, test_failed
-	nop
-	/* Return from exception */
-	jr $ra
-	rfe

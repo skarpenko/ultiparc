@@ -24,12 +24,15 @@
  */
 
 /*
- * Status register test
+ * Reserved Instruction exception test
  */
 
 #include <arch.h>
 #include <test_defines.h>
 
+/*
+ * Notes: Any exception other than Reserved Instruction fails the test.
+ */
 
 .text
 .set noreorder
@@ -52,7 +55,7 @@ address_error_exception:
 	nop
 /***************************** Reserved Instruction ***************************/
 resvd_instr_exception:
-	j test_failed
+	j resvd_instr_handler	/* Jump to exception handler */
 	nop
 /********************************** Breakpoint ********************************/
 break_exception:
@@ -60,7 +63,7 @@ break_exception:
 	nop
 /********************************** System Call *******************************/
 syscall_exception:
-	j handle_syscall
+	j test_failed
 	nop
 /****************************** Hardware Interrupt ****************************/
 hardware_interrupt:
@@ -69,16 +72,17 @@ hardware_interrupt:
 
 /******************************* TEST ENTRY POINT *****************************/
 test_entry:
-	/* Set IE flag */
-	mfc0 $t0, $SR
-	ori $t0, $t0, 1
-	mtc0 $t0, $SR
-	/* Do syscall exception */
-	syscall 0x0
-	/* Check that SR was restored from PSR */
-	mfc0 $t0, $SR
-	andi $t0, $t0, 1
-	beq $t0, $zero, test_failed
+	xor $k0, $k0, $k0	/* Use $k0 for counting successful steps */
+
+	/* Something illegal */
+	.long 0xFFFFFFFF
+	nop
+	nop
+
+check_result:
+	/* Should get 1 Reserved Instruct Exception */
+	li $t0, 1
+	bne $t0, $k0, test_failed
 	nop
 
 test_passed:
@@ -97,23 +101,14 @@ test_failed:
 	j test_failed
 	nop
 
-	/*** System Call exception handler ***/
-handle_syscall:
+	/*** Reserved Instruction Exception handler ***/
+resvd_instr_handler:
+	/* Increment counter */
+	addiu $k0, $k0, 1
 	/* Get return address */
 	mfc0 $ra, $EPC
+	/* Advance return address */
 	addiu $ra, $ra, 4
-	/* Check IE bit */
-	li $t1, 1
-	/* Bit in SR should be cleared */
-	mfc0 $t0, $SR
-	and $t2, $t0, $t1
-	bne $t2, $zero, test_failed
-	nop
-	/* Bit in PSR should be set */
-	mfc0 $t0, $PSR
-	and $t2, $t0, $t1
-	beq $t2, $zero, test_failed
-	nop
-	/* Return from exception */
+	/* Return */
 	jr $ra
 	rfe
