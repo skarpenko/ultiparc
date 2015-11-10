@@ -74,6 +74,10 @@ my @tests = (
 		name => "Matrix Multiply",
 		path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/syslevel_tests/matrix_mul.bin"
 	},
+	{
+		name => "Fixed-Point FFT",
+		path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/syslevel_tests/fxp_fft.bin"
+	},
 );
 
 my $passed = 0;

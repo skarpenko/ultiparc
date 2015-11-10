@@ -149,7 +149,8 @@ test_entry:
 	nop
 	nop
 	mfhi $t0
-	bne $t0, $zero, test_failed
+	li $t1, 0xFFFFFFF3
+	bne $t0, $t1, test_failed
 	nop
 	mflo $t0
 	li $t1, 0x1E
@@ -161,7 +162,8 @@ test_entry:
 	nop
 	nop
 	mfhi $t0
-	bne $t0, $zero, test_failed
+	li $t1, 9
+	bne $t0, $t1, test_failed
 	nop
 	mflo $t0
 	li $t1, 0xFFFFFFE2
@@ -173,7 +175,8 @@ test_entry:
 	nop
 	nop
 	mfhi $t0
-	bne $t0, $zero, test_failed
+	li $t1, 2
+	bne $t0, $t1, test_failed
 	nop
 	mflo $t0
 	li $t1, 0xFFFFFFE2

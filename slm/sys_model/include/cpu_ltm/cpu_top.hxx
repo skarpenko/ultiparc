@@ -2246,7 +2246,7 @@ inline void cpu_top::instr_mult(uint32_t instr)
 
 	int32_t rs = rd_gpreg(iw.r.rs);
 	int32_t rt = rd_gpreg(iw.r.rt);
-	int64_t t = rs * rt;
+	int64_t t = (int64_t)rs * (int64_t)rt;
 	m_lo = (uint32_t)(t & 0xFFFFFFFF);
 	m_hi = (uint32_t)((t>>32) & 0xFFFFFFFF);
 }
@@ -2264,7 +2264,7 @@ inline void cpu_top::instr_multu(uint32_t instr)
 
 	uint32_t rs = rd_gpreg(iw.r.rs);
 	uint32_t rt = rd_gpreg(iw.r.rt);
-	uint64_t t = rs * rt;
+	uint64_t t = (uint64_t)rs * (uint64_t)rt;
 	m_lo = (uint32_t)(t & 0xFFFFFFFF);
 	m_hi = (uint32_t)((t>>32) & 0xFFFFFFFF);
 }
