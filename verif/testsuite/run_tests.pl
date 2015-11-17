@@ -63,6 +63,10 @@ my @tests = (
 		path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/basic_tests/rsvd_instr.bin"
 	},
 	{
+		name => "Pipeline hazards",
+		path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/basic_tests/hazards.bin"
+	},
+	{
 		name => "Timer Interrupt",
 		path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/syslevel_tests/timer.bin"
 	},
@@ -77,6 +81,10 @@ my @tests = (
 	{
 		name => "Fixed-Point FFT",
 		path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/syslevel_tests/fxp_fft.bin"
+	},
+	{
+		name => "Fixed-Point Taylor series",
+		path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/syslevel_tests/fxp_taylor.bin"
 	},
 );
 

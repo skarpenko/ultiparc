@@ -15,7 +15,8 @@ TESTS := \
 	jumpr.elf \
 	set_on_less.elf \
 	rsvd_instr.elf \
-	mul_div.elf
+	mul_div.elf \
+	hazards.elf
 
 
 # List of final targets

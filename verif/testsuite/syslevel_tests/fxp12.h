@@ -24,17 +24,17 @@
  */
 
 /*
- * Arithmetic operations on Q8.24 fixed-point values
+ * Arithmetic operations on Q20.12 fixed-point values
  */
 
-#ifndef _SYSLEVEL_TESTS_FXP24_H_
-#define _SYSLEVEL_TESTS_FXP24_H_
+#ifndef _SYSLEVEL_TESTS_FXP12_H_
+#define _SYSLEVEL_TESTS_FXP12_H_
 
 
 /* Size of fractional part */
-#define FXP_FRAC_BITS	24
+#define FXP_FRAC_BITS	12
 
 #include "fxpqmn.h"
 
 
-#endif /* _SYSLEVEL_TESTS_FXP24_H_ */
+#endif /* _SYSLEVEL_TESTS_FXP12_H_ */

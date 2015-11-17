@@ -32,6 +32,13 @@
 #include "fxp24.h"
 
 
+/* Any exception fails the test */
+void interrupt_entry(struct interrupt_frame *p)
+{
+	test_failed();
+}
+
+
 /* compute fixed-point fast Fourier transform */
 static void fxp_fft(fixed_t *re, fixed_t *im, unsigned n, int isign)
 {

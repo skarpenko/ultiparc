@@ -24,17 +24,46 @@
  */
 
 /*
- * Arithmetic operations on Q8.24 fixed-point values
+ * Generic definition of fixed-point arithmetic operations
  */
 
-#ifndef _SYSLEVEL_TESTS_FXP24_H_
-#define _SYSLEVEL_TESTS_FXP24_H_
+#ifndef _SYSLEVEL_TESTS_FXPQMN_H_
+#define _SYSLEVEL_TESTS_FXPQMN_H_
 
 
-/* Size of fractional part */
-#define FXP_FRAC_BITS	24
+#ifndef FXP_FRAC_BITS
+#  error "Size of fractional part was not defined."
+#endif
 
-#include "fxpqmn.h"
+
+/* Fixed-point types */
+typedef signed long fixed_t;
+typedef signed long long __extended_t;
 
 
-#endif /* _SYSLEVEL_TESTS_FXP24_H_ */
+/* Fixed-point 1.0 value */
+#define FXP_ONE		(fixed_t)((fixed_t)1<<FXP_FRAC_BITS)
+/* Fixed-point 0.0 value */
+#define FXP_ZERO	(fixed_t)(0)
+
+/* Convertion to fixed-point for integer values */
+#define FXP_INTEGER(a)	(fixed_t)((a)<<FXP_FRAC_BITS)
+
+/* Addition */
+#define FXP_ADD(a,b)	\
+	(fixed_t)((a)+(b))
+/* Subtraction */
+#define FXP_SUB(a,b)	\
+	(fixed_t)((a)-(b))
+/* Multiply */
+#define FXP_MUL(a,b)	\
+	(fixed_t)(((__extended_t)(a)*(__extended_t)(b))>>FXP_FRAC_BITS)
+/* Divide */
+#define FXP_DIV(a,b)	\
+	(fixed_t)(((__extended_t)(a)<<FXP_FRAC_BITS)/(__extended_t)(b))
+/* Negation */
+#define FXP_NEG(a)	\
+	(fixed_t)(-(a))
+
+
+#endif /* _SYSLEVEL_TESTS_FXPQMN_H_ */
