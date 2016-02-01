@@ -16,16 +16,19 @@ PREREQUISITES
     environment variable should be set to SystemC installation path.
 
   * GTK Wave (http://gtkwave.sourceforge.net/). GTK+ based wave viewer
-    which could be used for waveforms visusalization.
+    which could be used for waveforms visualization.
 
-  * GNU C/C++ for MIPS32 ISA (http://gcc.gnu.org/). GNU C/C++ cross-compiler
+  * GNU C/C++ for MIPS-I ISA (http://gcc.gnu.org/). GNU C/C++ cross-compiler
     is required for building firmware examples and verification tests.
+
+  * Icarus Verilog v10.0 (http://iverilog.icarus.com/). Verilog simulation
+    tool which is used for running Ultiparc RTL simulation.
 
 
 DIRECTORY STRUCTURE:
 
   /
-  |- slm        - system level modelling related sources.
+  |- slm        - system level modeling related sources.
   |- rtl        - Verilog sources.
   |- verif      - Verification firmware.
   -- setenv.sh  - environment configuration script.
