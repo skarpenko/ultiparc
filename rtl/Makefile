@@ -1,24 +1,65 @@
 # The Ultiparc Project
 # RTL model Makefile
 
-all: tb_timer
 
-IVFLAGS := -Iinclude
-
-
-tb_timer: src/interval_timer.v
-	iverilog $(IVFLAGS) -s tb_interval_timer src/interval_timer.v src/tb_interval_timer.v -o tb_timer
+# Available testbenches
+TESTBENCHES := \
+	tb_interval_timer \
+	tb_intr_controller
 
 
-trace.vcd: tb_timer
-	./tb_timer
+TB ?=
+TARGETS :=
 
 
-.PHONY: waveform
-waveform: trace.vcd
-	gtkwave trace.vcd
+ifneq ($(TB),)
+TARGETS :=$(TB)
+else
+TARGETS := $(TESTBENCHES)
+endif
 
 
-PHONY: clean
+# Icarus Verilog flags
+IVFLAGS := -Wall -Iinclude $(EXTRA_IVFLAGS)
+
+
+.PHONY: all
+all: $(TARGETS)
+
+
+# Remove build results
+.PHONY: clean
 clean:
-	-rm trace.vcd tb_timer
+	-rm -f $(TARGETS)
+
+
+# Remove build results and simulation results
+.PHONY: cleanall
+cleanall:
+	-rm -f $(TARGETS)
+	-rm -f $(addsuffix .vcd,$(TARGETS))
+
+
+# Run simulation
+.PHONY: sim
+sim: $(TARGETS)
+	$(foreach tb,$(TARGETS),./$(tb);)
+
+
+.PHONY: help
+help:
+	@echo "The Ultiparc Project (HDL model)"
+	@echo "================================"
+	@echo "Targets:"
+	@echo "  help     - print this help;"
+	@echo "  sim      - run simulation;"
+	@echo "  clean    - remove build results;"
+	@echo "  cleanall - remove build and simulation results."
+	@echo "Arguments:"
+	@echo "  TB=<testbench> - specifies testbench to use (default: all)."
+	@echo "Available testbenches:"
+	@echo "  $(TESTBENCHES)"
+
+
+%: flists/%.lst
+	iverilog $(IVFLAGS) -s $@ -o $@ -f $<

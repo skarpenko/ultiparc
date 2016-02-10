@@ -1,0 +1,6 @@
+# Interrupt Controller testbench
+
++define+TRACE_FILE="tb_intr_controller.vcd"
++timescale+1us/100ns
+src/intr_controller.v
+tb/tb_intr_controller.v

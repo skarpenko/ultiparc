@@ -24,7 +24,7 @@
  */
 
 /*
- * Programmable interval timer
+ * Programmable interrupt controller
  */
 
 `include "common.vh"
@@ -32,20 +32,24 @@
 
 
 /*
- * Programmable interval timer
+ * Programmable interrupt controller
  *  Registers:
- *    0x00  -  control register;
+ *    0x00  -  interrupt status register;
  *             Bits:
- *              [31:3] - ignored;
- *              [2]    - reload value (1);
- *              [1]    - mask (0) or unmask (1) interrupt;
- *              [0]    - enable (1) and disable (0) timer.
- *    0x04  -  counter register;
- *    0x08  -  current count register (read only).
+ *              [31:0] - set bits denotes active unmasked interrupt lines.
+ *             Write to this register acknowledges specified interrupts.
+ *    0x04  -  interrupt mask register;
+ *             Bits:
+ *              [31:0] - set bits correspond to unmasked interrupts.
+ *    0x08  -  raw interrupts register (read only register);
+ *             Bits:
+ *              [31:0] - set bits correspond to active interrupt lines.
  */
-module interval_timer(
+module intr_controller(
 	input				clk,
 	input				nrst,
+	/* Interrupts input */
+	input [31:0]			i_intr_vec,
 	/* Interrupt output */
 	output				o_intr,
 	/* OCP interface */
@@ -62,20 +66,16 @@ localparam [2:0] IDLE  = 3'b001;
 localparam [2:0] WRITE = 3'b010;
 localparam [2:0] READ  = 3'b100;
 
-/* Timer counter states */
-localparam [2:0] STOP   = 3'b001;
-localparam [2:0] RELOAD = 3'b010;
-localparam [2:0] COUNT  = 3'b100;
-
 /* Register offsets */
-localparam [`ADDR_WIDTH-1:0] CTRLREG = 32'h000;	/* Control register */
-localparam [`ADDR_WIDTH-1:0] CNTRREG = 32'h004;	/* Counter register */
-localparam [`ADDR_WIDTH-1:0] CURRREG = 32'h008;	/* Current counter */
+localparam [`ADDR_WIDTH-1:0] ISTATREG = 32'h000;	/* Interrupts status register */
+localparam [`ADDR_WIDTH-1:0] IMASKREG = 32'h004;	/* Interrupts mask register */
+localparam [`ADDR_WIDTH-1:0] IRAWREG  = 32'h008;	/* Raw interrupts register */
 
 /* Inputs and outputs */
 wire			clk;
 wire			nrst;
-reg			o_intr;
+wire [31:0]		i_intr_vec;
+wire			o_intr;
 wire [`ADDR_WIDTH-1:0]	i_MAddr;
 wire [2:0]		i_MCmd;
 wire [`DATA_WIDTH-1:0]	i_MData;
@@ -85,11 +85,9 @@ reg [`DATA_WIDTH-1:0]	o_SData;
 reg [1:0]		o_SResp;
 
 /* Internal registers */
-reg [`DATA_WIDTH-1:0] initval;	/* Initial value */
-reg [`DATA_WIDTH-1:0] currval;	/* Current value */
-reg enable;			/* Timer enabled */
-reg imask;			/* Interrupt mask */
-reg reload;			/* Reload counter automatically */
+reg [31:0] int_mask;	/* Interrupt mask */
+reg [31:0] raw_int;	/* Raw interrupts */
+
 
 /* Latched address */
 reg [`ADDR_WIDTH-1:0] l_addr;
@@ -100,9 +98,7 @@ reg [`DATA_WIDTH-1:0] l_wdata;
 reg [2:0] bus_state;
 reg [2:0] bus_next_state;
 
-/* Counter FSM state */
-reg [2:0] ctr_state;
-reg reload_en;		/* Force counter reload */
+reg iack;	/* Interrupt acknowledge */
 
 
 /* Seq logic */
@@ -144,43 +140,35 @@ begin
 	begin
 		o_SData <= {(`DATA_WIDTH){1'b0}};
 		o_SResp <= `OCP_RESP_NULL;
-		enable <= 1'b0;
-		imask <= 1'b0;
-		reload <= 1'b0;
-		reload_en <= 1'b0;
+		int_mask <= 32'b0;
+		iack <= 1'b0;
 	end
 	else
 	begin
-		/* Force reload if updating initial count value */
-		reload_en <= (bus_state == WRITE && l_addr == CNTRREG) ? 1'b1 : 1'b0;
+		/* Interrut acknowledge happens on write to interrupt status  */
+		iack <= (bus_state == WRITE && l_addr == ISTATREG) ? 1'b1 : 1'b0;
 
 		case(bus_state)
 		WRITE: begin
-			if(l_addr == CTRLREG)
+			if(l_addr == IMASKREG)
 			begin
-				enable <= l_wdata[0];
-				imask <= l_wdata[1];
-				reload <= l_wdata[2];
-			end
-			else if(l_addr == CNTRREG)
-			begin
-				initval <= l_wdata;
+				int_mask <= l_wdata;
 			end
 			o_SResp <= `OCP_RESP_DVA;
 		end
 		READ: begin
-			if(l_addr == CTRLREG)
+			if(l_addr == ISTATREG)
 			begin
 				o_SData <= { {(`DATA_WIDTH-3){1'b0}},
-					reload, imask, enable };
+					int_mask & raw_int };
 			end
-			else if(l_addr == CNTRREG)
+			else if(l_addr == IMASKREG)
 			begin
-				o_SData <= initval;
+				o_SData <= int_mask;
 			end
-			else if(l_addr == CURRREG)
+			else if(l_addr == IRAWREG)
 			begin
-				o_SData <= currval;
+				o_SData <= raw_int;
 			end
 			else
 				o_SData <= 32'hDEADDEAD;
@@ -193,48 +181,19 @@ begin
 	end
 end
 
-/* Counter FSM */
-always @(posedge clk or negedge nrst or reload_en)
+assign o_intr = |(int_mask & raw_int);
+
+/* Accept and acknowledge interrupts */
+always @(posedge clk or negedge nrst or posedge iack)
 begin
 	if(!nrst)
 	begin
-		currval <= 0;
-		o_intr <= 1'b0;
-		ctr_state <= STOP;
-	end
-	else if(reload_en)
-	begin
-		/* Update current value and restart timer */
-		currval <= initval;
-		ctr_state <= STOP;
+		raw_int <= 32'b0;
 	end
 	else
 	begin
-		case(ctr_state)
-		STOP: begin
-			o_intr <= 1'b0;
-			if(enable)
-				ctr_state <= COUNT;
-		end
-		COUNT: begin
-			if(currval == 0)
-				o_intr <= 1'b1 & imask; /* Set interrupt */
-			else
-				currval <= currval - 1;
-
-			/* After zero reached next state depends on reload flag */
-			ctr_state <= enable ?
-				(currval == 0 ?
-				(reload ? RELOAD : STOP) : COUNT) : STOP;
-		end
-		RELOAD: begin
-			o_intr <= 1'b0;
-			currval <= initval - 1;
-			ctr_state <= enable ? COUNT : STOP;
-		end
-		default: ctr_state <= STOP;
-		endcase
+		raw_int <= (iack ? raw_int & ~l_wdata : raw_int) | i_intr_vec;
 	end
 end
 
-endmodule /* interval_timer */
+endmodule /* intr_controller */

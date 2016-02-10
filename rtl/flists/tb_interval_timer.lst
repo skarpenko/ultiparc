@@ -1,0 +1,6 @@
+# Interval Timer testbench
+
++define+TRACE_FILE="tb_interval_timer.vcd"
++timescale+1us/100ns
+src/interval_timer.v
+tb/tb_interval_timer.v

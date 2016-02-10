@@ -39,14 +39,14 @@
 //  Registers:
 //    0x00  -  interrupt status register;
 //             Bits:
-//              [31:1] - set bits denotes active unmasked interrupt lines.
+//              [31:0] - set bits denotes active unmasked interrupt lines.
 //             Write to this register acknowledges specified interrupts.
 //    0x04  -  interrupt mask register;
 //             Bits:
-//              [31:1] - set bits correspond to unmasked interrupts.
+//              [31:0] - set bits correspond to unmasked interrupts.
 //    0x08  -  raw interrupts register (read only register);
 //             Bits:
-//              [31:1] - set bits correspond to active interrupt lines.
+//              [31:0] - set bits correspond to active interrupt lines.
 SC_MODULE(intctrl) {
 	sc_in<bool>          clk;
 	sc_in<bool>          nrst;

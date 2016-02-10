@@ -27,31 +27,34 @@
  * Testbench for programmable interval timer
  */
 
-`timescale 1us/100ns
-
 `include "common.vh"
 `include "ocp_const.vh"
+
+
+`ifndef TRACE_FILE
+`define TRACE_FILE "trace.vcd"
+`endif
 
 
 module tb_interval_timer();
 	localparam HCLK = 5;
 	localparam PCLK = 2*HCLK;	/* Clock period */
 
-	/* Timer Register */
-	localparam CTRLREG = 32'h000;	/* Control register */
-	localparam CNTRREG = 32'h004;	/* Counter register */
-	localparam CURRREG = 32'h008;	/* Current counter */
+	/* Timer Registers */
+	localparam [2:0] CTRLREG = 32'h000;	/* Control register */
+	localparam [2:0] CNTRREG = 32'h004;	/* Counter register */
+	localparam [2:0] CURRREG = 32'h008;	/* Current counter */
 
 	reg clk;
 	reg nrst;
-	reg [`ADDR_WIDTH-1:0]	i_addr;
-	reg [2:0]		i_cmd;
-	reg [`DATA_WIDTH-1:0]	i_data;
-	reg [`BEN_WIDTH-1:0]	i_ben;
-	wire			o_cmd_acc;
-	wire [`DATA_WIDTH-1:0]	o_data;
-	wire [1:0]		o_resp;
-	wire			o_intr;
+	reg [`ADDR_WIDTH-1:0]	MAddr;
+	reg [2:0]		MCmd;
+	reg [`DATA_WIDTH-1:0]	MData;
+	reg [`BEN_WIDTH-1:0]	MByteEn;
+	wire			SCmdAccept;
+	wire [`DATA_WIDTH-1:0]	SData;
+	wire [1:0]		SResp;
+	wire			intr;
 
 	always
 		#HCLK clk = !clk;
@@ -59,111 +62,111 @@ module tb_interval_timer();
 	initial
 	begin
 		/* Set tracing */
-		$dumpfile("trace.vcd");
+		$dumpfile(`TRACE_FILE);
 		$dumpvars(0, tb_interval_timer);
 
 		clk = 1;
 		nrst = 0;
-		i_addr = 0;
-		i_data = 0;
-		i_ben = 0;
-		i_cmd = 0;
+		MAddr = 0;
+		MData = 0;
+		MByteEn = 0;
+		MCmd = 0;
 		#(10*PCLK) nrst = 1;
 
 		#(2*PCLK)
 		@(posedge clk)
 		begin
 			/* Set counter value */
-			i_addr = CNTRREG;
-			i_data = 32'h10;
-			i_ben = 4'hf;
-			i_cmd = `OCP_CMD_WRITE;
+			MAddr = CNTRREG;
+			MData = 32'h10;
+			MByteEn = 4'hf;
+			MCmd = `OCP_CMD_WRITE;
 		end
 
 		@(posedge clk)
 		begin
-			i_cmd = `OCP_CMD_IDLE;
+			MCmd = `OCP_CMD_IDLE;
 		end
 
 		@(posedge clk)
 		begin
 			/* Start: enable = 1, reload = 1, imask = 1 */
-			i_addr = CTRLREG;
-			i_data = 32'h7;
-			i_ben = 4'hf;
-			i_cmd = `OCP_CMD_WRITE;
+			MAddr = CTRLREG;
+			MData = 32'h7;
+			MByteEn = 4'hf;
+			MCmd = `OCP_CMD_WRITE;
 		end
 
 		@(posedge clk)
 		begin
-			i_cmd = `OCP_CMD_IDLE;
+			MCmd = `OCP_CMD_IDLE;
 		end
 
 		@(posedge clk)
 		begin
 			/* Read control register */
-			i_addr = CTRLREG;
-			i_ben = 4'hf;
-			i_cmd = `OCP_CMD_READ;
+			MAddr = CTRLREG;
+			MByteEn = 4'hf;
+			MCmd = `OCP_CMD_READ;
 		end
 
 		@(posedge clk)
 		begin
-			i_cmd = `OCP_CMD_IDLE;
+			MCmd = `OCP_CMD_IDLE;
 		end
 
 		@(posedge clk)
 		begin
 			/* Read counter register */
-			i_addr = CNTRREG;
-			i_ben = 4'hf;
-			i_cmd = `OCP_CMD_READ;
+			MAddr = CNTRREG;
+			MByteEn = 4'hf;
+			MCmd = `OCP_CMD_READ;
 		end
 
 		@(posedge clk)
 		begin
-			i_cmd = `OCP_CMD_IDLE;
+			MCmd = `OCP_CMD_IDLE;
 		end
 
 		@(posedge clk)
 		begin
 			/* Read current count (1) */
-			i_addr = CURRREG;
-			i_ben = 4'hf;
-			i_cmd = `OCP_CMD_READ;
+			MAddr = CURRREG;
+			MByteEn = 4'hf;
+			MCmd = `OCP_CMD_READ;
 		end
 
 		@(posedge clk)
 		begin
-			i_cmd = `OCP_CMD_IDLE;
+			MCmd = `OCP_CMD_IDLE;
 		end
 
 		@(posedge clk)
 		begin
 			/* Read current count (2) */
-			i_addr = CURRREG;
-			i_ben = 4'hf;
-			i_cmd = `OCP_CMD_READ;
+			MAddr = CURRREG;
+			MByteEn = 4'hf;
+			MCmd = `OCP_CMD_READ;
 		end
 
 		@(posedge clk)
 		begin
-			i_cmd = `OCP_CMD_IDLE;
+			MCmd = `OCP_CMD_IDLE;
 		end
 
 		#(40*PCLK)
 		@(posedge clk)
 		begin
 			/* Update counter value */
-			i_addr = CNTRREG;
-			i_data = 32'h4;
-			i_ben = 4'hf;
-			i_cmd = `OCP_CMD_WRITE;
+			MAddr = CNTRREG;
+			MData = 32'h4;
+			MByteEn = 4'hf;
+			MCmd = `OCP_CMD_WRITE;
 		end
 
 		@(posedge clk)
 		begin
-			i_cmd = `OCP_CMD_IDLE;
+			MCmd = `OCP_CMD_IDLE;
 		end
 
 		#(20*PCLK)
@@ -171,15 +174,15 @@ module tb_interval_timer();
 		@(posedge clk)
 		begin
 			/* Start: enable = 1, reload = 0, imask = 0 */
-			i_addr = CTRLREG;
-			i_data = 32'h1;
-			i_ben = 4'hf;
-			i_cmd = `OCP_CMD_WRITE;
+			MAddr = CTRLREG;
+			MData = 32'h1;
+			MByteEn = 4'hf;
+			MCmd = `OCP_CMD_WRITE;
 		end
 
 		@(posedge clk)
 		begin
-			i_cmd = `OCP_CMD_IDLE;
+			MCmd = `OCP_CMD_IDLE;
 		end
 
 		#500 $finish;
@@ -190,14 +193,14 @@ module tb_interval_timer();
 	interval_timer timer(
 		.clk(clk),
 		.nrst(nrst),
-		.i_MAddr(i_addr),
-		.i_MCmd(i_cmd),
-		.i_MData(i_data),
-		.i_MByteEn(i_ben),
-		.o_SCmdAccept(o_cmd_acc),
-		.o_SData(o_data),
-		.o_SResp(o_resp),
-		.o_intr(o_intr)
+		.i_MAddr(MAddr),
+		.i_MCmd(MCmd),
+		.i_MData(MData),
+		.i_MByteEn(MByteEn),
+		.o_SCmdAccept(SCmdAccept),
+		.o_SData(SData),
+		.o_SResp(SResp),
+		.o_intr(intr)
 	);
 
 endmodule /* tb_interval_timer */
