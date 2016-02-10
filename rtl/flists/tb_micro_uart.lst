@@ -1,0 +1,6 @@
+# Micro UART testbench
+
++define+TRACE_FILE="tb_micro_uart.vcd"
++timescale+1us/100ns
+src/micro_uart.v
+tb/tb_micro_uart.v

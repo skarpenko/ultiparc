@@ -1,0 +1,6 @@
+# Simulation Conrol Device testbench
+
++define+TRACE_FILE="tb_sim_control.vcd"
++timescale+1us/100ns
+src/sim_control.v
+tb/tb_sim_control.v

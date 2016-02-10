@@ -24,7 +24,7 @@
  */
 
 /*
- * Programmable interrupt controller
+ * RTL Simulation Control Device
  */
 
 `include "common.vh"
@@ -32,26 +32,17 @@
 
 
 /*
- * Programmable interrupt controller
+ * Simulation control device
  *  Registers:
- *    0x00  -  interrupt status register;
+ *    0x00  -  control register;
  *             Bits:
- *              [31:0] - set bits denotes active unmasked interrupt lines.
- *             Write to this register acknowledges specified interrupts.
- *    0x04  -  interrupt mask register;
- *             Bits:
- *              [31:0] - set bits correspond to unmasked interrupts.
- *    0x08  -  raw interrupts register (read only register);
- *             Bits:
- *              [31:0] - set bits correspond to active interrupt lines.
+ *              [31]   - used to indicate error condition on model termination;
+ *              [30:1] - ignored;
+ *              [0]    - stop simulation if 1 written.
  */
-module intr_controller(
+module sim_control(
 	input				clk,
 	input				nrst,
-	/* Interrupts input */
-	input [31:0]			i_intr_vec,
-	/* Interrupt output */
-	output				o_intr,
 	/* OCP interface */
 	input [`ADDR_WIDTH-1:0]		i_MAddr,
 	input [2:0]			i_MCmd,
@@ -67,15 +58,11 @@ localparam [2:0] WRITE = 3'b010;
 localparam [2:0] READ  = 3'b100;
 
 /* Register offsets */
-localparam [`ADDR_WIDTH-1:0] ISTATREG = 32'h000;	/* Interrupts status register */
-localparam [`ADDR_WIDTH-1:0] IMASKREG = 32'h004;	/* Interrupts mask register */
-localparam [`ADDR_WIDTH-1:0] IRAWREG  = 32'h008;	/* Raw interrupts register */
+localparam [`ADDR_WIDTH-1:0] CTRLREG = 32'h000;	/* Control register */
 
 /* Inputs and outputs */
 wire			clk;
 wire			nrst;
-wire [31:0]		i_intr_vec;
-wire			o_intr;
 wire [`ADDR_WIDTH-1:0]	i_MAddr;
 wire [2:0]		i_MCmd;
 wire [`DATA_WIDTH-1:0]	i_MData;
@@ -84,21 +71,17 @@ reg			o_SCmdAccept;
 reg [`DATA_WIDTH-1:0]	o_SData;
 reg [1:0]		o_SResp;
 
-/* Internal registers */
-reg [31:0] int_mask;	/* Interrupt mask */
-reg [31:0] raw_int;	/* Raw interrupts */
-
 
 /* Latched address */
 reg [`ADDR_WIDTH-1:0] l_addr;
 /* Latched write data */
 reg [`DATA_WIDTH-1:0] l_wdata;
 
+reg [`DATA_WIDTH-1:0] last_value; /* Last written value */
+
 /* Bus FSM state */
 reg [2:0] bus_state;
 reg [2:0] bus_next_state;
-
-reg iack;	/* Interrupt acknowledge */
 
 
 /* Seq logic */
@@ -136,39 +119,27 @@ end
 /* Output logic */
 always @(bus_state or negedge nrst)
 begin
-	if(!nrst)
+	if(nrst)
 	begin
-		o_SData <= {(`DATA_WIDTH){1'b0}};
-		o_SResp <= `OCP_RESP_NULL;
-		int_mask <= 32'b0;
-		iack <= 1'b0;
-	end
-	else
-	begin
-		/* Interrut acknowledge happens on write to interrupt status  */
-		iack <= (bus_state == WRITE && l_addr == ISTATREG) ? 1'b1 : 1'b0;
-
 		case(bus_state)
 		WRITE: begin
-			if(l_addr == IMASKREG)
+			if(l_addr == CTRLREG)
 			begin
-				int_mask <= l_wdata;
+				last_value <= l_wdata;
+				if(l_wdata[0])
+				begin
+					if(l_wdata[31])
+						$display("SIMULATION TERMINATED WITH ERRORS!");
+					else
+						$display("SIMULATION SUCCESSFULLY TERMINATED!");
+				end
 			end
 			o_SResp <= `OCP_RESP_DVA;
 		end
 		READ: begin
-			if(l_addr == ISTATREG)
+			if(l_addr == CTRLREG)
 			begin
-				o_SData <= { {(`DATA_WIDTH-32){1'b0}},
-					int_mask & raw_int };
-			end
-			else if(l_addr == IMASKREG)
-			begin
-				o_SData <= int_mask;
-			end
-			else if(l_addr == IRAWREG)
-			begin
-				o_SData <= raw_int;
+				o_SData <= last_value;
 			end
 			else
 				o_SData <= 32'hDEADDEAD;
@@ -179,21 +150,11 @@ begin
 		end
 		endcase
 	end
-end
-
-assign o_intr = |(int_mask & raw_int);
-
-/* Accept and acknowledge interrupts */
-always @(posedge clk or negedge nrst or posedge iack)
-begin
-	if(!nrst)
-	begin
-		raw_int <= 32'b0;
-	end
 	else
 	begin
-		raw_int <= (iack ? raw_int & ~l_wdata : raw_int) | i_intr_vec;
+		o_SData <= { (`DATA_WIDTH){1'b0} };
+		o_SResp <= `OCP_RESP_NULL;
 	end
 end
 
-endmodule /* intr_controller */
+endmodule /* sim_control */

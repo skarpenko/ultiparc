@@ -24,7 +24,7 @@
  */
 
 /*
- * Testbench for programmable interrupt controller
+ * Testbench for micro UART
  */
 
 `include "common.vh"
@@ -36,14 +36,12 @@
 `endif
 
 
-module tb_intr_controller();
+module tb_micro_uart();
 	localparam HCLK = 5;
 	localparam PCLK = 2*HCLK;	/* Clock period */
 
-	/* Interrupt controller registers */
-	localparam [`ADDR_WIDTH-1:0] ISTATREG = 32'h000;	/* Interrupts status register */
-	localparam [`ADDR_WIDTH-1:0] IMASKREG = 32'h004;	/* Interrupts mask register */
-	localparam [`ADDR_WIDTH-1:0] IRAWREG  = 32'h008;	/* Raw interrupts register */
+	/* Micro UART register offsets */
+	localparam [`ADDR_WIDTH-1:0] CHARREG = 32'h000;	/* Character register */
 
 	reg clk;
 	reg nrst;
@@ -54,8 +52,6 @@ module tb_intr_controller();
 	wire			SCmdAccept;
 	wire [`DATA_WIDTH-1:0]	SData;
 	wire [1:0]		SResp;
-	reg [31:0]		intr_vec;
-	wire			intr;
 
 	always
 		#HCLK clk = !clk;
@@ -64,7 +60,7 @@ module tb_intr_controller();
 	begin
 		/* Set tracing */
 		$dumpfile(`TRACE_FILE);
-		$dumpvars(0, tb_intr_controller);
+		$dumpvars(0, tb_micro_uart);
 
 		clk = 1;
 		nrst = 0;
@@ -72,71 +68,13 @@ module tb_intr_controller();
 		MData = 0;
 		MByteEn = 0;
 		MCmd = 0;
-		intr_vec = 0;
 		#(10*PCLK) nrst = 1;
 
 		#(2*PCLK)
-
 		@(posedge clk)
 		begin
-			/* Unmask line 0 */
-			MAddr = IMASKREG;
-			MData = 32'h1;
-			MByteEn = 4'hf;
-			MCmd = `OCP_CMD_WRITE;
-		end
-
-		@(posedge clk)
-		begin
-			MCmd = `OCP_CMD_IDLE;
-		end
-
-		#(2*PCLK)
-
-		/* Generate interrupt on line 0 */
-		@(posedge clk)
-		begin
-			intr_vec[0] = 1;
-		end
-		@(posedge clk)
-		begin
-			intr_vec[0] = 0;
-		end
-
-		#(2*PCLK)
-
-		@(posedge clk)
-		begin
-			/* Acknowledge */
-			MAddr = ISTATREG;
-			MData = 32'h1;
-			MByteEn = 4'hf;
-			MCmd = `OCP_CMD_WRITE;
-		end
-
-		@(posedge clk)
-		begin
-			MCmd = `OCP_CMD_IDLE;
-		end
-
-		#(2*PCLK)
-
-		/* Generate interrupt on line 1 */
-		@(posedge clk)
-		begin
-			intr_vec[1] = 1;
-		end
-		@(posedge clk)
-		begin
-			intr_vec[1] = 0;
-		end
-
-		#(2*PCLK)
-
-		@(posedge clk)
-		begin
-			/* Read raw status */
-			MAddr = IRAWREG;
+			/* Read char register */
+			MAddr = CHARREG;
 			MByteEn = 4'hf;
 			MCmd = `OCP_CMD_READ;
 		end
@@ -146,12 +84,97 @@ module tb_intr_controller();
 			MCmd = `OCP_CMD_IDLE;
 		end
 
+		@(posedge clk)
+		begin
+			/* Write char register */
+			MAddr = CHARREG;
+			MData = "H";
+			MByteEn = 4'hf;
+			MCmd = `OCP_CMD_WRITE;
+		end
+
+		@(posedge clk)
+		begin
+			MCmd = `OCP_CMD_IDLE;
+		end
+
+		@(posedge clk)
+		begin
+			/* Write char register */
+			MAddr = CHARREG;
+			MData = "e";
+			MByteEn = 4'hf;
+			MCmd = `OCP_CMD_WRITE;
+		end
+
+		@(posedge clk)
+		begin
+			MCmd = `OCP_CMD_IDLE;
+		end
+
+		@(posedge clk)
+		begin
+			/* Write char register */
+			MAddr = CHARREG;
+			MData = "l";
+			MByteEn = 4'hf;
+			MCmd = `OCP_CMD_WRITE;
+		end
+
+		@(posedge clk)
+		begin
+			MCmd = `OCP_CMD_IDLE;
+		end
+
+		@(posedge clk)
+		begin
+			/* Write char register */
+			MAddr = CHARREG;
+			MData = "l";
+			MByteEn = 4'hf;
+			MCmd = `OCP_CMD_WRITE;
+		end
+
+		@(posedge clk)
+		begin
+			MCmd = `OCP_CMD_IDLE;
+		end
+
+		@(posedge clk)
+		begin
+			/* Write char register */
+			MAddr = CHARREG;
+			MData = "o";
+			MByteEn = 4'hf;
+			MCmd = `OCP_CMD_WRITE;
+		end
+
+		@(posedge clk)
+		begin
+			MCmd = `OCP_CMD_IDLE;
+		end
+
+		@(posedge clk)
+		begin
+			/* Write char register */
+			MAddr = CHARREG;
+			MData = "\n";
+			MByteEn = 4'hf;
+			MCmd = `OCP_CMD_WRITE;
+		end
+
+		@(posedge clk)
+		begin
+			MCmd = `OCP_CMD_IDLE;
+		end
+
+
 		#500 $finish;
 	end
 
 
-	/* Instantiate interrupt controller */
-	intr_controller intr_ctrl(
+	/* Instantiate micro UART */
+	micro_uart uart(
 		.clk(clk),
 		.nrst(nrst),
 		.i_MAddr(MAddr),
@@ -160,9 +183,7 @@ module tb_intr_controller();
 		.i_MByteEn(MByteEn),
 		.o_SCmdAccept(SCmdAccept),
 		.o_SData(SData),
-		.o_SResp(SResp),
-		.o_intr(intr),
-		.i_intr_vec(intr_vec)
+		.o_SResp(SResp)
 	);
 
-endmodule /* tb_intr_controller */
+endmodule /* tb_micro_uart */

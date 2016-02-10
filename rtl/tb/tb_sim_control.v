@@ -24,7 +24,7 @@
  */
 
 /*
- * Testbench for programmable interrupt controller
+ * Testbench for simulation control device
  */
 
 `include "common.vh"
@@ -36,14 +36,12 @@
 `endif
 
 
-module tb_intr_controller();
+module tb_sim_control();
 	localparam HCLK = 5;
 	localparam PCLK = 2*HCLK;	/* Clock period */
 
-	/* Interrupt controller registers */
-	localparam [`ADDR_WIDTH-1:0] ISTATREG = 32'h000;	/* Interrupts status register */
-	localparam [`ADDR_WIDTH-1:0] IMASKREG = 32'h004;	/* Interrupts mask register */
-	localparam [`ADDR_WIDTH-1:0] IRAWREG  = 32'h008;	/* Raw interrupts register */
+	/* Control device registers */
+	localparam [`ADDR_WIDTH-1:0] CTRLREG = 32'h000;	/* Control register */
 
 	reg clk;
 	reg nrst;
@@ -54,8 +52,6 @@ module tb_intr_controller();
 	wire			SCmdAccept;
 	wire [`DATA_WIDTH-1:0]	SData;
 	wire [1:0]		SResp;
-	reg [31:0]		intr_vec;
-	wire			intr;
 
 	always
 		#HCLK clk = !clk;
@@ -64,7 +60,7 @@ module tb_intr_controller();
 	begin
 		/* Set tracing */
 		$dumpfile(`TRACE_FILE);
-		$dumpvars(0, tb_intr_controller);
+		$dumpvars(0, tb_sim_control);
 
 		clk = 1;
 		nrst = 0;
@@ -72,16 +68,14 @@ module tb_intr_controller();
 		MData = 0;
 		MByteEn = 0;
 		MCmd = 0;
-		intr_vec = 0;
 		#(10*PCLK) nrst = 1;
 
 		#(2*PCLK)
-
 		@(posedge clk)
 		begin
-			/* Unmask line 0 */
-			MAddr = IMASKREG;
-			MData = 32'h1;
+			/* Write control register */
+			MAddr = CTRLREG;
+			MData = 32'hffff0;
 			MByteEn = 4'hf;
 			MCmd = `OCP_CMD_WRITE;
 		end
@@ -91,54 +85,27 @@ module tb_intr_controller();
 			MCmd = `OCP_CMD_IDLE;
 		end
 
-		#(2*PCLK)
-
-		/* Generate interrupt on line 0 */
 		@(posedge clk)
 		begin
-			intr_vec[0] = 1;
-		end
-		@(posedge clk)
-		begin
-			intr_vec[0] = 0;
-		end
-
-		#(2*PCLK)
-
-		@(posedge clk)
-		begin
-			/* Acknowledge */
-			MAddr = ISTATREG;
-			MData = 32'h1;
-			MByteEn = 4'hf;
-			MCmd = `OCP_CMD_WRITE;
-		end
-
-		@(posedge clk)
-		begin
-			MCmd = `OCP_CMD_IDLE;
-		end
-
-		#(2*PCLK)
-
-		/* Generate interrupt on line 1 */
-		@(posedge clk)
-		begin
-			intr_vec[1] = 1;
-		end
-		@(posedge clk)
-		begin
-			intr_vec[1] = 0;
-		end
-
-		#(2*PCLK)
-
-		@(posedge clk)
-		begin
-			/* Read raw status */
-			MAddr = IRAWREG;
+			/* Read control register */
+			MAddr = CTRLREG;
 			MByteEn = 4'hf;
 			MCmd = `OCP_CMD_READ;
+		end
+
+		@(posedge clk)
+		begin
+			MCmd = `OCP_CMD_IDLE;
+		end
+
+		@(posedge clk)
+		begin
+			/* Write control register and finish simulation */
+			MAddr = CTRLREG;
+			MData = 32'h1;		/* Normal termination */
+			/*MData = 32'h80000001;*/		/* Termination with error */
+			MByteEn = 4'hf;
+			MCmd = `OCP_CMD_WRITE;
 		end
 
 		@(posedge clk)
@@ -150,8 +117,8 @@ module tb_intr_controller();
 	end
 
 
-	/* Instantiate interrupt controller */
-	intr_controller intr_ctrl(
+	/* Instantiate control device */
+	sim_control sim_ctl(
 		.clk(clk),
 		.nrst(nrst),
 		.i_MAddr(MAddr),
@@ -160,9 +127,7 @@ module tb_intr_controller();
 		.i_MByteEn(MByteEn),
 		.o_SCmdAccept(SCmdAccept),
 		.o_SData(SData),
-		.o_SResp(SResp),
-		.o_intr(intr),
-		.i_intr_vec(intr_vec)
+		.o_SResp(SResp)
 	);
 
-endmodule /* tb_intr_controller */
+endmodule /* tb_sim_control */

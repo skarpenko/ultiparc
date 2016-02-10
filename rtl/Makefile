@@ -5,7 +5,9 @@
 # Available testbenches
 TESTBENCHES := \
 	tb_interval_timer \
-	tb_intr_controller
+	tb_intr_controller \
+	tb_sim_control \
+	tb_micro_uart
 
 
 TB ?=
