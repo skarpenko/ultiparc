@@ -1,0 +1,7 @@
+# Behavioral memory testbench
+
++define+TRACE_FILE="tb_memory.vcd"
++define+MEMORY_IMAGE="tb/tb_memory.hex"
++timescale+1us/100ns
+src/memory.v
+tb/tb_memory.v

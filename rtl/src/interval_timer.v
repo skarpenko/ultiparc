@@ -194,7 +194,7 @@ begin
 end
 
 /* Counter FSM */
-always @(posedge clk or negedge nrst or reload_en)
+always @(posedge clk or negedge nrst)
 begin
 	if(!nrst)
 	begin

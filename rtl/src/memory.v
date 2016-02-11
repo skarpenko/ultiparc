@@ -24,7 +24,7 @@
  */
 
 /*
- * Programmable interrupt controller
+ * Behavioral memory model
  */
 
 `include "common.vh"
@@ -32,26 +32,11 @@
 
 
 /*
- * Programmable interrupt controller
- *  Registers:
- *    0x00  -  interrupt status register;
- *             Bits:
- *              [31:0] - set bits denotes active unmasked interrupt lines.
- *             Write to this register acknowledges specified interrupts.
- *    0x04  -  interrupt mask register;
- *             Bits:
- *              [31:0] - set bits correspond to unmasked interrupts.
- *    0x08  -  raw interrupts register (read only register);
- *             Bits:
- *              [31:0] - set bits correspond to active interrupt lines.
+ * RAM
  */
-module intr_controller(
+module memory(
 	input				clk,
 	input				nrst,
-	/* Interrupts input */
-	input [31:0]			i_intr_vec,
-	/* Interrupt output */
-	output				o_intr,
 	/* OCP interface */
 	input [`ADDR_WIDTH-1:0]		i_MAddr,
 	input [2:0]			i_MCmd,
@@ -61,21 +46,16 @@ module intr_controller(
 	output [`DATA_WIDTH-1:0]	o_SData,
 	output [1:0]			o_SResp
 );
+parameter MEMWORDS = 1048576; /* Memory size (number of data words) */
+
 /* Bus interface FSM states */
 localparam [2:0] IDLE  = 3'b001;
 localparam [2:0] WRITE = 3'b010;
 localparam [2:0] READ  = 3'b100;
 
-/* Register offsets */
-localparam [`ADDR_WIDTH-1:0] ISTATREG = 32'h000;	/* Interrupts status register */
-localparam [`ADDR_WIDTH-1:0] IMASKREG = 32'h004;	/* Interrupts mask register */
-localparam [`ADDR_WIDTH-1:0] IRAWREG  = 32'h008;	/* Raw interrupts register */
-
 /* Inputs and outputs */
 wire			clk;
 wire			nrst;
-wire [31:0]		i_intr_vec;
-wire			o_intr;
 wire [`ADDR_WIDTH-1:0]	i_MAddr;
 wire [2:0]		i_MCmd;
 wire [`DATA_WIDTH-1:0]	i_MData;
@@ -84,21 +64,32 @@ reg			o_SCmdAccept;
 reg [`DATA_WIDTH-1:0]	o_SData;
 reg [1:0]		o_SResp;
 
-/* Internal registers */
-reg [31:0] int_mask;	/* Interrupt mask */
-reg [31:0] raw_int;	/* Raw interrupts */
-
+/* RAM */
+reg [`DATA_WIDTH-1:0] mem[0:MEMWORDS-1];
 
 /* Latched address */
 reg [`ADDR_WIDTH-1:0] l_addr;
 /* Latched write data */
 reg [`DATA_WIDTH-1:0] l_wdata;
+/* Latched byte enable */
+reg [`BEN_WIDTH-1:0]  l_ben;
 
 /* Bus FSM state */
 reg [2:0] bus_state;
 reg [2:0] bus_next_state;
 
-reg iack;	/* Interrupt acknowledge */
+
+integer i;
+/* Preinit memory */
+initial
+begin
+	for(i=0; i<MEMWORDS; i=i+1) begin
+		mem[i] = 0;
+	end
+`ifdef MEMORY_IMAGE
+	$readmemh(`MEMORY_IMAGE, mem);
+`endif
+end
 
 
 /* Seq logic */
@@ -115,10 +106,12 @@ begin
 		`OCP_CMD_WRITE: begin
 			l_addr <= i_MAddr;
 			l_wdata <= i_MData;
+			l_ben <= i_MByteEn;
 			bus_next_state <= WRITE;
 		end
 		`OCP_CMD_READ: begin
 			l_addr <= i_MAddr;
+			l_ben <= i_MByteEn;
 			bus_next_state <= READ;
 		end
 		default: begin
@@ -133,42 +126,36 @@ begin
 	end
 end
 
+/* Byte enable mask */
+function [`DATA_WIDTH-1:0] bemask;
+	input [`BEN_WIDTH-1:0] ben;
+	bemask = (ben[0] ? 32'h0000_00ff : 0) |
+		(ben[1] ? 32'h0000_ff00 : 0) |
+		(ben[2] ? 32'h00ff_0000 : 0) |
+		(ben[3] ? 32'hff00_0000 : 0);
+	/* Note: Need to be modified if DATA_WIDTH/BEN_WIDTH changed. */
+endfunction
+
 /* Output logic */
 always @(bus_state or negedge nrst)
 begin
-	if(!nrst)
+	if(nrst)
 	begin
-		o_SData <= {(`DATA_WIDTH){1'b0}};
-		o_SResp <= `OCP_RESP_NULL;
-		int_mask <= 32'b0;
-		iack <= 1'b0;
-	end
-	else
-	begin
-		/* Interrut acknowledge happens on write to interrupt status  */
-		iack <= (bus_state == WRITE && l_addr == ISTATREG) ? 1'b1 : 1'b0;
-
 		case(bus_state)
 		WRITE: begin
-			if(l_addr == IMASKREG)
+			if(l_addr[`ADDR_WIDTH-1:2] < MEMWORDS)
 			begin
-				int_mask <= l_wdata;
+				mem[l_addr[`ADDR_WIDTH-1:2]] <=
+					(l_wdata & bemask(l_ben)) |
+					(mem[l_addr[`ADDR_WIDTH-1:2]] &
+						~bemask(l_ben));
 			end
 			o_SResp <= `OCP_RESP_DVA;
 		end
 		READ: begin
-			if(l_addr == ISTATREG)
+			if(l_addr[`ADDR_WIDTH-1:2] < MEMWORDS)
 			begin
-				o_SData <= { {(`DATA_WIDTH-32){1'b0}},
-					int_mask & raw_int };
-			end
-			else if(l_addr == IMASKREG)
-			begin
-				o_SData <= int_mask;
-			end
-			else if(l_addr == IRAWREG)
-			begin
-				o_SData <= raw_int;
+				o_SData <= mem[l_addr[`ADDR_WIDTH-1:2]];
 			end
 			else
 				o_SData <= 32'hDEADDEAD;
@@ -179,21 +166,11 @@ begin
 		end
 		endcase
 	end
-end
-
-assign o_intr = |(int_mask & raw_int);
-
-/* Accept and acknowledge interrupts */
-always @(posedge clk or negedge nrst)
-begin
-	if(!nrst)
-	begin
-		raw_int <= 32'b0;
-	end
 	else
 	begin
-		raw_int <= (iack ? raw_int & ~l_wdata : raw_int) | i_intr_vec;
+		o_SData <= { (`DATA_WIDTH){1'b0} };
+		o_SResp <= `OCP_RESP_NULL;
 	end
 end
 
-endmodule /* intr_controller */
+endmodule /* memory */

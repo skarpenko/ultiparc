@@ -7,7 +7,8 @@ TESTBENCHES := \
 	tb_interval_timer \
 	tb_intr_controller \
 	tb_sim_control \
-	tb_micro_uart
+	tb_micro_uart \
+	tb_memory
 
 
 TB ?=
