@@ -74,43 +74,52 @@ module tb_sim_control();
 		@(posedge clk)
 		begin
 			/* Write control register */
-			MAddr = CTRLREG;
-			MData = 32'hffff0;
-			MByteEn = 4'hf;
-			MCmd = `OCP_CMD_WRITE;
+			MAddr <= CTRLREG;
+			MData <= 32'hffff0;
+			MByteEn <= 4'hf;
+			MCmd <= `OCP_CMD_WRITE;
 		end
 
 		@(posedge clk)
 		begin
-			MCmd = `OCP_CMD_IDLE;
+			MAddr <= 0;
+			MData <= 0;
+			MByteEn <= 4'h0;
+			MCmd <= `OCP_CMD_IDLE;
 		end
 
 		@(posedge clk)
 		begin
 			/* Read control register */
-			MAddr = CTRLREG;
-			MByteEn = 4'hf;
-			MCmd = `OCP_CMD_READ;
+			MAddr <= CTRLREG;
+			MByteEn <= 4'hf;
+			MCmd <= `OCP_CMD_READ;
 		end
 
 		@(posedge clk)
 		begin
-			MCmd = `OCP_CMD_IDLE;
+			MAddr <= 0;
+			MData <= 0;
+			MByteEn <= 4'h0;
+			MCmd <= `OCP_CMD_IDLE;
 		end
 
 		@(posedge clk)
 		begin
 			/* Write control register and finish simulation */
-			MAddr = CTRLREG;
-			MData = 32'h1;		/* Normal termination */
-			/*MData = 32'h80000001;*/		/* Termination with error */
-			MByteEn = 4'hf;
-			MCmd = `OCP_CMD_WRITE;
+			MAddr <= CTRLREG;
+			MData <= 32'h1;		/* Normal termination */
+			/*MData <= 32'h80000001;*/		/* Termination with error */
+			MByteEn <= 4'hf;
+			MCmd <= `OCP_CMD_WRITE;
 		end
 
 		@(posedge clk)
 		begin
-			MCmd = `OCP_CMD_IDLE;
+			MAddr <= 0;
+			MData <= 0;
+			MByteEn <= 4'h0;
+			MCmd <= `OCP_CMD_IDLE;
 		end
 
 		#500 $finish;

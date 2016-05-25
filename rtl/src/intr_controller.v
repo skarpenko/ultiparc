@@ -80,7 +80,7 @@ wire [`ADDR_WIDTH-1:0]	i_MAddr;
 wire [2:0]		i_MCmd;
 wire [`DATA_WIDTH-1:0]	i_MData;
 wire [`BEN_WIDTH-1:0]	i_MByteEn;
-reg			o_SCmdAccept;
+wire			o_SCmdAccept;
 reg [`DATA_WIDTH-1:0]	o_SData;
 reg [1:0]		o_SResp;
 
@@ -89,10 +89,9 @@ reg [31:0] int_mask;	/* Interrupt mask */
 reg [31:0] raw_int;	/* Raw interrupts */
 
 
-/* Latched address */
-reg [`ADDR_WIDTH-1:0] l_addr;
-/* Latched write data */
-reg [`DATA_WIDTH-1:0] l_wdata;
+/* Latched address and data */
+reg [`ADDR_WIDTH-1:0] addr;
+reg [`DATA_WIDTH-1:0] wdata;
 
 /* Bus FSM state */
 reg [2:0] bus_state;
@@ -101,37 +100,37 @@ reg [2:0] bus_next_state;
 reg iack;	/* Interrupt acknowledge */
 
 
+assign o_SCmdAccept = (i_MCmd == `OCP_CMD_IDLE || bus_state == IDLE) ? 1'b1 : 1'b0;
+
+
+/* Latch address and data */
+always @(posedge clk)
+begin
+	addr <= i_MAddr;
+	wdata <= i_MData;
+end
+
+
 /* Seq logic */
 always @(posedge clk or negedge nrst)
 	bus_state <= nrst ? bus_next_state : IDLE;
 
+
 /* Next state logic */
-always @(bus_state or i_MCmd)
+always @(*)
 begin
+	bus_next_state = IDLE;
+
 	if(bus_state == IDLE)
 	begin
-		o_SCmdAccept <= 1'b1;
 		case(i_MCmd)
-		`OCP_CMD_WRITE: begin
-			l_addr <= i_MAddr;
-			l_wdata <= i_MData;
-			bus_next_state <= WRITE;
-		end
-		`OCP_CMD_READ: begin
-			l_addr <= i_MAddr;
-			bus_next_state <= READ;
-		end
-		default: begin
-			bus_next_state <= IDLE;
-		end
+		`OCP_CMD_WRITE: bus_next_state = WRITE;
+		`OCP_CMD_READ: bus_next_state = READ;
+		default: bus_next_state = IDLE;
 		endcase
 	end
-	else
-	begin
-		o_SCmdAccept <= (i_MCmd == `OCP_CMD_IDLE) ? 1'b1 : 1'b0;
-		bus_next_state <= IDLE;
-	end
 end
+
 
 /* Output logic */
 always @(bus_state or negedge nrst)
@@ -146,27 +145,27 @@ begin
 	else
 	begin
 		/* Interrut acknowledge happens on write to interrupt status  */
-		iack <= (bus_state == WRITE && l_addr == ISTATREG) ? 1'b1 : 1'b0;
+		iack <= (bus_state == WRITE && addr == ISTATREG) ? 1'b1 : 1'b0;
 
 		case(bus_state)
 		WRITE: begin
-			if(l_addr == IMASKREG)
+			if(addr == IMASKREG)
 			begin
-				int_mask <= l_wdata;
+				int_mask <= wdata;
 			end
 			o_SResp <= `OCP_RESP_DVA;
 		end
 		READ: begin
-			if(l_addr == ISTATREG)
+			if(addr == ISTATREG)
 			begin
 				o_SData <= { {(`DATA_WIDTH-32){1'b0}},
 					int_mask & raw_int };
 			end
-			else if(l_addr == IMASKREG)
+			else if(addr == IMASKREG)
 			begin
 				o_SData <= int_mask;
 			end
-			else if(l_addr == IRAWREG)
+			else if(addr == IRAWREG)
 			begin
 				o_SData <= raw_int;
 			end
@@ -192,7 +191,7 @@ begin
 	end
 	else
 	begin
-		raw_int <= (iack ? raw_int & ~l_wdata : raw_int) | i_intr_vec;
+		raw_int <= (iack ? raw_int & ~wdata : raw_int) | i_intr_vec;
 	end
 end
 

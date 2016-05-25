@@ -80,7 +80,7 @@ wire [`ADDR_WIDTH-1:0]	i_MAddr;
 wire [2:0]		i_MCmd;
 wire [`DATA_WIDTH-1:0]	i_MData;
 wire [`BEN_WIDTH-1:0]	i_MByteEn;
-reg			o_SCmdAccept;
+wire			o_SCmdAccept;
 reg [`DATA_WIDTH-1:0]	o_SData;
 reg [1:0]		o_SResp;
 
@@ -91,10 +91,9 @@ reg enable;			/* Timer enabled */
 reg imask;			/* Interrupt mask */
 reg reload;			/* Reload counter automatically */
 
-/* Latched address */
-reg [`ADDR_WIDTH-1:0] l_addr;
-/* Latched write data */
-reg [`DATA_WIDTH-1:0] l_wdata;
+/* Latched address and data */
+reg [`ADDR_WIDTH-1:0] addr;
+reg [`DATA_WIDTH-1:0] wdata;
 
 /* Bus FSM state */
 reg [2:0] bus_state;
@@ -105,37 +104,37 @@ reg [2:0] ctr_state;
 reg reload_en;		/* Force counter reload */
 
 
+assign o_SCmdAccept = (i_MCmd == `OCP_CMD_IDLE || bus_state == IDLE) ? 1'b1 : 1'b0;
+
+
+/* Latch address and data */
+always @(posedge clk)
+begin
+	addr <= i_MAddr;
+	wdata <= i_MData;
+end
+
+
 /* Seq logic */
 always @(posedge clk or negedge nrst)
 	bus_state <= nrst ? bus_next_state : IDLE;
 
+
 /* Next state logic */
-always @(bus_state or i_MCmd)
+always @(*)
 begin
+	bus_next_state = IDLE;
+
 	if(bus_state == IDLE)
 	begin
-		o_SCmdAccept <= 1'b1;
 		case(i_MCmd)
-		`OCP_CMD_WRITE: begin
-			l_addr <= i_MAddr;
-			l_wdata <= i_MData;
-			bus_next_state <= WRITE;
-		end
-		`OCP_CMD_READ: begin
-			l_addr <= i_MAddr;
-			bus_next_state <= READ;
-		end
-		default: begin
-			bus_next_state <= IDLE;
-		end
+		`OCP_CMD_WRITE: bus_next_state = WRITE;
+		`OCP_CMD_READ: bus_next_state = READ;
+		default: bus_next_state = IDLE;
 		endcase
 	end
-	else
-	begin
-		o_SCmdAccept <= (i_MCmd == `OCP_CMD_IDLE) ? 1'b1 : 1'b0;
-		bus_next_state <= IDLE;
-	end
 end
+
 
 /* Output logic */
 always @(bus_state or negedge nrst)
@@ -146,39 +145,40 @@ begin
 		o_SResp <= `OCP_RESP_NULL;
 		enable <= 1'b0;
 		imask <= 1'b0;
+		initval <= {(`DATA_WIDTH){1'b0}};
 		reload <= 1'b0;
 		reload_en <= 1'b0;
 	end
 	else
 	begin
 		/* Force reload if updating initial count value */
-		reload_en <= (bus_state == WRITE && l_addr == CNTRREG) ? 1'b1 : 1'b0;
+		reload_en <= (bus_state == WRITE && addr == CNTRREG) ? 1'b1 : 1'b0;
 
 		case(bus_state)
 		WRITE: begin
-			if(l_addr == CTRLREG)
+			if(addr == CTRLREG)
 			begin
-				enable <= l_wdata[0];
-				imask <= l_wdata[1];
-				reload <= l_wdata[2];
+				enable <= wdata[0];
+				imask <= wdata[1];
+				reload <= wdata[2];
 			end
-			else if(l_addr == CNTRREG)
+			else if(addr == CNTRREG)
 			begin
-				initval <= l_wdata;
+				initval <= wdata;
 			end
 			o_SResp <= `OCP_RESP_DVA;
 		end
 		READ: begin
-			if(l_addr == CTRLREG)
+			if(addr == CTRLREG)
 			begin
 				o_SData <= { {(`DATA_WIDTH-3){1'b0}},
 					reload, imask, enable };
 			end
-			else if(l_addr == CNTRREG)
+			else if(addr == CNTRREG)
 			begin
 				o_SData <= initval;
 			end
-			else if(l_addr == CURRREG)
+			else if(addr == CURRREG)
 			begin
 				o_SData <= currval;
 			end
@@ -192,6 +192,7 @@ begin
 		endcase
 	end
 end
+
 
 /* Counter FSM */
 always @(posedge clk or negedge nrst)

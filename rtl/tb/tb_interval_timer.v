@@ -74,99 +74,115 @@ module tb_interval_timer();
 		#(10*PCLK) nrst = 1;
 
 		#(2*PCLK)
+
 		@(posedge clk)
 		begin
 			/* Set counter value */
-			MAddr = CNTRREG;
-			MData = 32'h10;
-			MByteEn = 4'hf;
-			MCmd = `OCP_CMD_WRITE;
+			MAddr <= CNTRREG;
+			MData <= 32'h10;
+			MByteEn <= 4'hf;
+			MCmd <= `OCP_CMD_WRITE;
 		end
 
 		@(posedge clk)
 		begin
-			MCmd = `OCP_CMD_IDLE;
+			MAddr <= 0;
+			MData <= 0;
+			MCmd <= `OCP_CMD_IDLE;
 		end
 
 		@(posedge clk)
 		begin
 			/* Start: enable = 1, reload = 1, imask = 1 */
-			MAddr = CTRLREG;
-			MData = 32'h7;
-			MByteEn = 4'hf;
-			MCmd = `OCP_CMD_WRITE;
+			MAddr <= CTRLREG;
+			MData <= 32'h7;
+			MByteEn <= 4'hf;
+			MCmd <= `OCP_CMD_WRITE;
 		end
 
 		@(posedge clk)
 		begin
-			MCmd = `OCP_CMD_IDLE;
+			MAddr <= 0;
+			MData <= 0;
+			MCmd <= `OCP_CMD_IDLE;
 		end
 
 		@(posedge clk)
 		begin
 			/* Read control register */
-			MAddr = CTRLREG;
-			MByteEn = 4'hf;
-			MCmd = `OCP_CMD_READ;
+			MAddr <= CTRLREG;
+			MByteEn <= 4'hf;
+			MCmd <= `OCP_CMD_READ;
 		end
 
 		@(posedge clk)
 		begin
-			MCmd = `OCP_CMD_IDLE;
+			MAddr <= 0;
+			MData <= 0;
+			MCmd <= `OCP_CMD_IDLE;
 		end
 
 		@(posedge clk)
 		begin
 			/* Read counter register */
-			MAddr = CNTRREG;
-			MByteEn = 4'hf;
-			MCmd = `OCP_CMD_READ;
+			MAddr <= CNTRREG;
+			MByteEn <= 4'hf;
+			MCmd <= `OCP_CMD_READ;
 		end
 
 		@(posedge clk)
 		begin
-			MCmd = `OCP_CMD_IDLE;
+			MAddr <= 0;
+			MData <= 0;
+			MCmd <= `OCP_CMD_IDLE;
 		end
 
 		@(posedge clk)
 		begin
 			/* Read current count (1) */
-			MAddr = CURRREG;
-			MByteEn = 4'hf;
-			MCmd = `OCP_CMD_READ;
+			MAddr <= CURRREG;
+			MByteEn <= 4'hf;
+			MCmd <= `OCP_CMD_READ;
 		end
 
 		@(posedge clk)
 		begin
-			MCmd = `OCP_CMD_IDLE;
+			MAddr <= 0;
+			MData <= 0;
+			MCmd <= `OCP_CMD_IDLE;
 		end
 
 		@(posedge clk)
 		begin
 			/* Read current count (2) */
-			MAddr = CURRREG;
-			MByteEn = 4'hf;
-			MCmd = `OCP_CMD_READ;
+			MAddr <= CURRREG;
+			MByteEn <= 4'hf;
+			MCmd <= `OCP_CMD_READ;
 		end
 
 		@(posedge clk)
 		begin
-			MCmd = `OCP_CMD_IDLE;
+			MAddr <= 0;
+			MData <= 0;
+			MCmd <= `OCP_CMD_IDLE;
 		end
 
 		#(40*PCLK)
+
 		@(posedge clk)
 		begin
 			/* Update counter value */
-			MAddr = CNTRREG;
-			MData = 32'h4;
-			MByteEn = 4'hf;
-			MCmd = `OCP_CMD_WRITE;
+			MAddr <= CNTRREG;
+			MData <= 32'h4;
+			MByteEn <= 4'hf;
+			MCmd <= `OCP_CMD_WRITE;
 		end
 
 		@(posedge clk)
 		begin
-			MCmd = `OCP_CMD_IDLE;
+			MAddr <= 0;
+			MData <= 0;
+			MCmd <= `OCP_CMD_IDLE;
 		end
 
 		#(20*PCLK)
@@ -174,15 +190,17 @@ module tb_interval_timer();
 		@(posedge clk)
 		begin
 			/* Start: enable = 1, reload = 0, imask = 0 */
-			MAddr = CTRLREG;
-			MData = 32'h1;
-			MByteEn = 4'hf;
-			MCmd = `OCP_CMD_WRITE;
+			MAddr <= CTRLREG;
+			MData <= 32'h1;
+			MByteEn <= 4'hf;
+			MCmd <= `OCP_CMD_WRITE;
 		end
 
 		@(posedge clk)
 		begin
-			MCmd = `OCP_CMD_IDLE;
+			MAddr <= 0;
+			MData <= 0;
+			MCmd <= `OCP_CMD_IDLE;
 		end
 
 		#500 $finish;

@@ -60,19 +60,17 @@ wire [`ADDR_WIDTH-1:0]	i_MAddr;
 wire [2:0]		i_MCmd;
 wire [`DATA_WIDTH-1:0]	i_MData;
 wire [`BEN_WIDTH-1:0]	i_MByteEn;
-reg			o_SCmdAccept;
+wire			o_SCmdAccept;
 reg [`DATA_WIDTH-1:0]	o_SData;
 reg [1:0]		o_SResp;
 
 /* RAM */
 reg [`DATA_WIDTH-1:0] mem[0:MEMWORDS-1];
 
-/* Latched address */
-reg [`ADDR_WIDTH-1:0] l_addr;
-/* Latched write data */
-reg [`DATA_WIDTH-1:0] l_wdata;
-/* Latched byte enable */
-reg [`BEN_WIDTH-1:0]  l_ben;
+/* Latched address, data and byte enable */
+reg [`ADDR_WIDTH-1:0] addr;
+reg [`DATA_WIDTH-1:0] wdata;
+reg [`BEN_WIDTH-1:0]  ben;
 
 /* Bus FSM state */
 reg [2:0] bus_state;
@@ -92,70 +90,65 @@ begin
 end
 
 
+assign o_SCmdAccept = (i_MCmd == `OCP_CMD_IDLE || bus_state == IDLE) ? 1'b1 : 1'b0;
+
+
+/* Latch inputs */
+always @(posedge clk)
+begin
+	addr <= i_MAddr;
+	wdata <= i_MData;
+	ben <= i_MByteEn;
+end
+
+
 /* Seq logic */
 always @(posedge clk or negedge nrst)
 	bus_state <= nrst ? bus_next_state : IDLE;
 
+
 /* Next state logic */
-always @(bus_state or i_MCmd)
+always @(*)
 begin
+	bus_next_state = IDLE;
+
 	if(bus_state == IDLE)
 	begin
-		o_SCmdAccept <= 1'b1;
 		case(i_MCmd)
-		`OCP_CMD_WRITE: begin
-			l_addr <= i_MAddr;
-			l_wdata <= i_MData;
-			l_ben <= i_MByteEn;
-			bus_next_state <= WRITE;
-		end
-		`OCP_CMD_READ: begin
-			l_addr <= i_MAddr;
-			l_ben <= i_MByteEn;
-			bus_next_state <= READ;
-		end
-		default: begin
-			bus_next_state <= IDLE;
-		end
+		`OCP_CMD_WRITE: bus_next_state = WRITE;
+		`OCP_CMD_READ: bus_next_state = READ;
+		default: bus_next_state = IDLE;
 		endcase
-	end
-	else
-	begin
-		o_SCmdAccept <= (i_MCmd == `OCP_CMD_IDLE) ? 1'b1 : 1'b0;
-		bus_next_state <= IDLE;
 	end
 end
 
-/* Byte enable mask */
-function [`DATA_WIDTH-1:0] bemask;
-	input [`BEN_WIDTH-1:0] ben;
-	bemask = (ben[0] ? 32'h0000_00ff : 0) |
-		(ben[1] ? 32'h0000_ff00 : 0) |
-		(ben[2] ? 32'h00ff_0000 : 0) |
-		(ben[3] ? 32'hff00_0000 : 0);
-	/* Note: Need to be modified if DATA_WIDTH/BEN_WIDTH changed. */
-endfunction
 
 /* Output logic */
 always @(bus_state or negedge nrst)
 begin
-	if(nrst)
+	if(!nrst)
+	begin
+		o_SData <= { (`DATA_WIDTH){1'b0} };
+		o_SResp <= `OCP_RESP_NULL;
+	end
+	else
 	begin
 		case(bus_state)
 		WRITE: begin
-			if(l_addr[`ADDR_WIDTH-1:2] < MEMWORDS)
+			if(addr[`ADDR_WIDTH-1:2] < MEMWORDS)
 			begin
-				mem[l_addr[`ADDR_WIDTH-1:2]] <=
-					(l_wdata & bemask(l_ben)) |
-					(mem[l_addr[`ADDR_WIDTH-1:2]] &
-						~bemask(l_ben));
+				if(ben[0]) mem[addr[`ADDR_WIDTH-1:2]][7:0]   <= wdata[7:0];
+				if(ben[1]) mem[addr[`ADDR_WIDTH-1:2]][15:8]  <= wdata[15:8];
+				if(ben[2]) mem[addr[`ADDR_WIDTH-1:2]][23:16] <= wdata[23:16];
+				if(ben[3]) mem[addr[`ADDR_WIDTH-1:2]][31:24] <= wdata[31:24];
+				/* Note: Need to be modified if DATA_WIDTH/BEN_WIDTH changed. */
 			end
 			o_SResp <= `OCP_RESP_DVA;
 		end
 		READ: begin
-			if(l_addr[`ADDR_WIDTH-1:2] < MEMWORDS)
+			if(addr[`ADDR_WIDTH-1:2] < MEMWORDS)
 			begin
-				o_SData <= mem[l_addr[`ADDR_WIDTH-1:2]];
+				o_SData <= mem[addr[`ADDR_WIDTH-1:2]];
 			end
 			else
 				o_SData <= 32'hDEADDEAD;
@@ -165,11 +158,6 @@ begin
 			o_SResp <= `OCP_RESP_NULL;
 		end
 		endcase
-	end
-	else
-	begin
-		o_SData <= { (`DATA_WIDTH){1'b0} };
-		o_SResp <= `OCP_RESP_NULL;
 	end
 end
 

@@ -74,98 +74,119 @@ module tb_micro_uart();
 		@(posedge clk)
 		begin
 			/* Read char register */
-			MAddr = CHARREG;
-			MByteEn = 4'hf;
-			MCmd = `OCP_CMD_READ;
+			MAddr <= CHARREG;
+			MByteEn <= 4'hf;
+			MCmd <= `OCP_CMD_READ;
 		end
 
 		@(posedge clk)
 		begin
-			MCmd = `OCP_CMD_IDLE;
-		end
-
-		@(posedge clk)
-		begin
-			/* Write char register */
-			MAddr = CHARREG;
-			MData = "H";
-			MByteEn = 4'hf;
-			MCmd = `OCP_CMD_WRITE;
-		end
-
-		@(posedge clk)
-		begin
-			MCmd = `OCP_CMD_IDLE;
+			MAddr <= 0;
+			MData <= 0;
+			MByteEn <= 4'h0;
+			MCmd <= `OCP_CMD_IDLE;
 		end
 
 		@(posedge clk)
 		begin
 			/* Write char register */
-			MAddr = CHARREG;
-			MData = "e";
-			MByteEn = 4'hf;
-			MCmd = `OCP_CMD_WRITE;
+			MAddr <= CHARREG;
+			MData <= "H";
+			MByteEn <= 4'hf;
+			MCmd <= `OCP_CMD_WRITE;
 		end
 
 		@(posedge clk)
 		begin
-			MCmd = `OCP_CMD_IDLE;
-		end
-
-		@(posedge clk)
-		begin
-			/* Write char register */
-			MAddr = CHARREG;
-			MData = "l";
-			MByteEn = 4'hf;
-			MCmd = `OCP_CMD_WRITE;
-		end
-
-		@(posedge clk)
-		begin
-			MCmd = `OCP_CMD_IDLE;
+			MAddr <= 0;
+			MData <= 0;
+			MByteEn <= 4'h0;
+			MCmd <= `OCP_CMD_IDLE;
 		end
 
 		@(posedge clk)
 		begin
 			/* Write char register */
-			MAddr = CHARREG;
-			MData = "l";
-			MByteEn = 4'hf;
-			MCmd = `OCP_CMD_WRITE;
+			MAddr <= CHARREG;
+			MData <= "e";
+			MByteEn <= 4'hf;
+			MCmd <= `OCP_CMD_WRITE;
 		end
 
 		@(posedge clk)
 		begin
-			MCmd = `OCP_CMD_IDLE;
-		end
-
-		@(posedge clk)
-		begin
-			/* Write char register */
-			MAddr = CHARREG;
-			MData = "o";
-			MByteEn = 4'hf;
-			MCmd = `OCP_CMD_WRITE;
-		end
-
-		@(posedge clk)
-		begin
-			MCmd = `OCP_CMD_IDLE;
+			MAddr <= 0;
+			MData <= 0;
+			MByteEn <= 4'h0;
+			MCmd <= `OCP_CMD_IDLE;
 		end
 
 		@(posedge clk)
 		begin
 			/* Write char register */
-			MAddr = CHARREG;
-			MData = "\n";
-			MByteEn = 4'hf;
-			MCmd = `OCP_CMD_WRITE;
+			MAddr <= CHARREG;
+			MData <= "l";
+			MByteEn <= 4'hf;
+			MCmd <= `OCP_CMD_WRITE;
 		end
 
 		@(posedge clk)
 		begin
-			MCmd = `OCP_CMD_IDLE;
+			MAddr <= 0;
+			MData <= 0;
+			MByteEn <= 4'h0;
+			MCmd <= `OCP_CMD_IDLE;
+		end
+
+		@(posedge clk)
+		begin
+			/* Write char register */
+			MAddr <= CHARREG;
+			MData <= "l";
+			MByteEn <= 4'hf;
+			MCmd <= `OCP_CMD_WRITE;
+		end
+
+		@(posedge clk)
+		begin
+			MAddr <= 0;
+			MData <= 0;
+			MByteEn <= 4'h0;
+			MCmd <= `OCP_CMD_IDLE;
+		end
+
+		@(posedge clk)
+		begin
+			/* Write char register */
+			MAddr <= CHARREG;
+			MData <= "o";
+			MByteEn <= 4'hf;
+			MCmd <= `OCP_CMD_WRITE;
+		end
+
+		@(posedge clk)
+		begin
+			MAddr <= 0;
+			MData <= 0;
+			MByteEn <= 4'h0;
+			MCmd <= `OCP_CMD_IDLE;
+		end
+
+		@(posedge clk)
+		begin
+			/* Write char register */
+			MAddr <= CHARREG;
+			MData <= "\n";
+			MByteEn <= 4'hf;
+			MCmd <= `OCP_CMD_WRITE;
+		end
+
+		@(posedge clk)
+		begin
+			MAddr <= 0;
+			MData <= 0;
+			MByteEn <= 4'h0;
+			MCmd <= `OCP_CMD_IDLE;
 		end
 
 

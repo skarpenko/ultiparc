@@ -71,69 +71,84 @@ module tb_memory();
 		@(posedge clk)
 		begin
 			/* Write data to address 0 */
-			MAddr = 0;
-			MData = 32'hdeadbeef;
-			MByteEn = 4'hf;
-			MCmd = `OCP_CMD_WRITE;
+			MAddr <= 0;
+			MData <= 32'hdeadbeef;
+			MByteEn <= 4'hf;
+			MCmd <= `OCP_CMD_WRITE;
 		end
 
 		@(posedge clk)
 		begin
-			MCmd = `OCP_CMD_IDLE;
+			MAddr <= 0;
+			MData <= 0;
+			MByteEn <= 4'h0;
+			MCmd <= `OCP_CMD_IDLE;
 		end
 
 
 		@(posedge clk)
 		begin
 			/* Read data at address 0 */
-			MAddr = 0;
-			MByteEn = 4'hf;
-			MCmd = `OCP_CMD_READ;
+			MAddr <= 0;
+			MByteEn <= 4'hf;
+			MCmd <= `OCP_CMD_READ;
 		end
 
 		@(posedge clk)
 		begin
-			MCmd = `OCP_CMD_IDLE;
+			MAddr <= 0;
+			MData <= 0;
+			MByteEn <= 4'h0;
+			MCmd <= `OCP_CMD_IDLE;
 		end
 
 		@(posedge clk)
 		begin
 			/* Write data to address 0 with byte enables */
-			MAddr = 0;
-			MData = 32'hbeef_dead;
-			MByteEn = 4'h3;	/* Write two low bytes only */
-			MCmd = `OCP_CMD_WRITE;
+			MAddr <= 0;
+			MData <= 32'hbeef_dead;
+			MByteEn <= 4'h3;	/* Write two low bytes only */
+			MCmd <= `OCP_CMD_WRITE;
 		end
 
 		@(posedge clk)
 		begin
-			MCmd = `OCP_CMD_IDLE;
+			MAddr <= 0;
+			MData <= 0;
+			MByteEn <= 4'h0;
+			MCmd <= `OCP_CMD_IDLE;
 		end
 
 		@(posedge clk)
 		begin
 			/* Read data at address 0 */
-			MAddr = 0;
-			MByteEn = 4'hf;
-			MCmd = `OCP_CMD_READ;
+			MAddr <= 0;
+			MByteEn <= 4'hf;
+			MCmd <= `OCP_CMD_READ;
 		end
 
 		@(posedge clk)
 		begin
-			MCmd = `OCP_CMD_IDLE;
+			MAddr <= 0;
+			MData <= 0;
+			MByteEn <= 4'h0;
+			MCmd <= `OCP_CMD_IDLE;
 		end
 
 		@(posedge clk)
 		begin
 			/* Read data at address 4 */
-			MAddr = 4;
-			MByteEn = 4'hf;
-			MCmd = `OCP_CMD_READ;
+			MAddr <= 4;
+			MByteEn <= 4'hf;
+			MCmd <= `OCP_CMD_READ;
 		end
 
 		@(posedge clk)
 		begin
-			MCmd = `OCP_CMD_IDLE;
+			MAddr <= 0;
+			MData <= 0;
+			MByteEn <= 4'h0;
+			MCmd <= `OCP_CMD_IDLE;
 		end
 
 		#500 $finish;

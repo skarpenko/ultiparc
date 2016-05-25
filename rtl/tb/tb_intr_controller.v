@@ -80,15 +80,17 @@ module tb_intr_controller();
 		@(posedge clk)
 		begin
 			/* Unmask line 0 */
-			MAddr = IMASKREG;
-			MData = 32'h1;
-			MByteEn = 4'hf;
-			MCmd = `OCP_CMD_WRITE;
+			MAddr <= IMASKREG;
+			MData <= 32'h1;
+			MByteEn <= 4'hf;
+			MCmd <= `OCP_CMD_WRITE;
 		end
 
 		@(posedge clk)
 		begin
-			MCmd = `OCP_CMD_IDLE;
+			MAddr <= 0;
+			MData <= 0;
+			MCmd <= `OCP_CMD_IDLE;
 		end
 
 		#(2*PCLK)
@@ -96,11 +98,11 @@ module tb_intr_controller();
 		/* Generate interrupt on line 0 */
 		@(posedge clk)
 		begin
-			intr_vec[0] = 1;
+			intr_vec[0] <= 1;
 		end
 		@(posedge clk)
 		begin
-			intr_vec[0] = 0;
+			intr_vec[0] <= 0;
 		end
 
 		#(2*PCLK)
@@ -108,15 +110,17 @@ module tb_intr_controller();
 		@(posedge clk)
 		begin
 			/* Acknowledge */
-			MAddr = ISTATREG;
-			MData = 32'h1;
-			MByteEn = 4'hf;
-			MCmd = `OCP_CMD_WRITE;
+			MAddr <= ISTATREG;
+			MData <= 32'h1;
+			MByteEn <= 4'hf;
+			MCmd <= `OCP_CMD_WRITE;
 		end
 
 		@(posedge clk)
 		begin
-			MCmd = `OCP_CMD_IDLE;
+			MAddr <= 0;
+			MData <= 0;
+			MCmd <= `OCP_CMD_IDLE;
 		end
 
 		#(2*PCLK)
@@ -124,11 +128,11 @@ module tb_intr_controller();
 		/* Generate interrupt on line 1 */
 		@(posedge clk)
 		begin
-			intr_vec[1] = 1;
+			intr_vec[1] <= 1;
 		end
 		@(posedge clk)
 		begin
-			intr_vec[1] = 0;
+			intr_vec[1] <= 0;
 		end
 
 		#(2*PCLK)
@@ -136,14 +140,16 @@ module tb_intr_controller();
 		@(posedge clk)
 		begin
 			/* Read raw status */
-			MAddr = IRAWREG;
-			MByteEn = 4'hf;
-			MCmd = `OCP_CMD_READ;
+			MAddr <= IRAWREG;
+			MByteEn <= 4'hf;
+			MCmd <= `OCP_CMD_READ;
 		end
 
 		@(posedge clk)
 		begin
-			MCmd = `OCP_CMD_IDLE;
+			MAddr <= 0;
+			MData <= 0;
+			MCmd <= `OCP_CMD_IDLE;
 		end
 
 		#500 $finish;

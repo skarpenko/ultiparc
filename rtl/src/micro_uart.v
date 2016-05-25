@@ -66,68 +66,72 @@ wire [`ADDR_WIDTH-1:0]	i_MAddr;
 wire [2:0]		i_MCmd;
 wire [`DATA_WIDTH-1:0]	i_MData;
 wire [`BEN_WIDTH-1:0]	i_MByteEn;
-reg			o_SCmdAccept;
+wire			o_SCmdAccept;
 reg [`DATA_WIDTH-1:0]	o_SData;
 reg [1:0]		o_SResp;
 
 
-/* Latched address */
-reg [`ADDR_WIDTH-1:0] l_addr;
-/* Latched write data */
-reg [`DATA_WIDTH-1:0] l_wdata;
+/* Latched address and data */
+reg [`ADDR_WIDTH-1:0] addr;
+reg [`DATA_WIDTH-1:0] wdata;
 
 /* Bus FSM state */
 reg [2:0] bus_state;
 reg [2:0] bus_next_state;
 
 
+assign o_SCmdAccept = (i_MCmd == `OCP_CMD_IDLE || bus_state == IDLE) ? 1'b1 : 1'b0;
+
+
+/* Latch inputs */
+always @(posedge clk)
+begin
+	addr <= i_MAddr;
+	wdata <= i_MData;
+end
+
+
 /* Seq logic */
 always @(posedge clk or negedge nrst)
 	bus_state <= nrst ? bus_next_state : IDLE;
 
+
 /* Next state logic */
-always @(bus_state or i_MCmd)
+always @(*)
 begin
+	bus_next_state = IDLE;
+
 	if(bus_state == IDLE)
 	begin
-		o_SCmdAccept <= 1'b1;
 		case(i_MCmd)
-		`OCP_CMD_WRITE: begin
-			l_addr <= i_MAddr;
-			l_wdata <= i_MData;
-			bus_next_state <= WRITE;
-		end
-		`OCP_CMD_READ: begin
-			l_addr <= i_MAddr;
-			bus_next_state <= READ;
-		end
-		default: begin
-			bus_next_state <= IDLE;
-		end
+		`OCP_CMD_WRITE: bus_next_state = WRITE;
+		`OCP_CMD_READ: bus_next_state = READ;
+		default: bus_next_state = IDLE;
 		endcase
 	end
-	else
-	begin
-		o_SCmdAccept <= (i_MCmd == `OCP_CMD_IDLE) ? 1'b1 : 1'b0;
-		bus_next_state <= IDLE;
-	end
 end
+
 
 /* Output logic */
 always @(bus_state or negedge nrst)
 begin
-	if(nrst)
+	if(!nrst)
+	begin
+		o_SData <= { (`DATA_WIDTH){1'b0} };
+		o_SResp <= `OCP_RESP_NULL;
+	end
+	else
 	begin
 		case(bus_state)
 		WRITE: begin
-			if(l_addr == CHARREG)
+			if(addr == CHARREG)
 			begin
-				$write("%c", l_wdata[7:0]);
+				$write("%c", wdata[7:0]);
 			end
 			o_SResp <= `OCP_RESP_DVA;
 		end
 		READ: begin
-			if(l_addr == CHARREG)
+			if(addr == CHARREG)
 			begin
 				/* Ignored. Always 0. */
 				o_SData <= { (`DATA_WIDTH){1'b0} };
@@ -140,11 +144,6 @@ begin
 			o_SResp <= `OCP_RESP_NULL;
 		end
 		endcase
-	end
-	else
-	begin
-		o_SData <= { (`DATA_WIDTH){1'b0} };
-		o_SResp <= `OCP_RESP_NULL;
 	end
 end
 
