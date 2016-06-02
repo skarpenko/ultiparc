@@ -56,6 +56,49 @@ module tb_micro_uart();
 	always
 		#HCLK clk = !clk;
 
+	/* Issue bus read */
+	task bus_read;
+	input [`ADDR_WIDTH-1:0] addr;
+	begin
+		@(posedge clk)
+		begin
+			MAddr = addr;
+			MByteEn = 4'hf;
+			MCmd = `OCP_CMD_READ;
+		end
+
+		@(posedge clk)
+		begin
+			MAddr = 0;
+			MByteEn = 4'h0;
+			MCmd = `OCP_CMD_IDLE;
+		end
+	end
+	endtask
+
+	/* Issue bus write */
+	task bus_write;
+	input [`ADDR_WIDTH-1:0] addr;
+	input [`DATA_WIDTH-1:0] data;
+	begin
+		@(posedge clk)
+		begin
+			MAddr = addr;
+			MData = data;
+			MByteEn = 4'hf;
+			MCmd = `OCP_CMD_WRITE;
+		end
+
+		@(posedge clk)
+		begin
+			MAddr = 0;
+			MData = 0;
+			MByteEn = 4'h0;
+			MCmd = `OCP_CMD_IDLE;
+		end
+	end
+	endtask
+
 	initial
 	begin
 		/* Set tracing */
@@ -71,123 +114,17 @@ module tb_micro_uart();
 		#(10*PCLK) nrst = 1;
 
 		#(2*PCLK)
-		@(posedge clk)
-		begin
-			/* Read char register */
-			MAddr <= CHARREG;
-			MByteEn <= 4'hf;
-			MCmd <= `OCP_CMD_READ;
-		end
 
-		@(posedge clk)
-		begin
-			MAddr <= 0;
-			MData <= 0;
-			MByteEn <= 4'h0;
-			MCmd <= `OCP_CMD_IDLE;
-		end
+		/* Read char register */
+		#1 bus_read(CHARREG);
 
-		@(posedge clk)
-		begin
-			/* Write char register */
-			MAddr <= CHARREG;
-			MData <= "H";
-			MByteEn <= 4'hf;
-			MCmd <= `OCP_CMD_WRITE;
-		end
-
-		@(posedge clk)
-		begin
-			MAddr <= 0;
-			MData <= 0;
-			MByteEn <= 4'h0;
-			MCmd <= `OCP_CMD_IDLE;
-		end
-
-		@(posedge clk)
-		begin
-			/* Write char register */
-			MAddr <= CHARREG;
-			MData <= "e";
-			MByteEn <= 4'hf;
-			MCmd <= `OCP_CMD_WRITE;
-		end
-
-		@(posedge clk)
-		begin
-			MAddr <= 0;
-			MData <= 0;
-			MByteEn <= 4'h0;
-			MCmd <= `OCP_CMD_IDLE;
-		end
-
-		@(posedge clk)
-		begin
-			/* Write char register */
-			MAddr <= CHARREG;
-			MData <= "l";
-			MByteEn <= 4'hf;
-			MCmd <= `OCP_CMD_WRITE;
-		end
-
-		@(posedge clk)
-		begin
-			MAddr <= 0;
-			MData <= 0;
-			MByteEn <= 4'h0;
-			MCmd <= `OCP_CMD_IDLE;
-		end
-
-		@(posedge clk)
-		begin
-			/* Write char register */
-			MAddr <= CHARREG;
-			MData <= "l";
-			MByteEn <= 4'hf;
-			MCmd <= `OCP_CMD_WRITE;
-		end
-
-		@(posedge clk)
-		begin
-			MAddr <= 0;
-			MData <= 0;
-			MByteEn <= 4'h0;
-			MCmd <= `OCP_CMD_IDLE;
-		end
-
-		@(posedge clk)
-		begin
-			/* Write char register */
-			MAddr <= CHARREG;
-			MData <= "o";
-			MByteEn <= 4'hf;
-			MCmd <= `OCP_CMD_WRITE;
-		end
-
-		@(posedge clk)
-		begin
-			MAddr <= 0;
-			MData <= 0;
-			MByteEn <= 4'h0;
-			MCmd <= `OCP_CMD_IDLE;
-		end
-
-		@(posedge clk)
-		begin
-			/* Write char register */
-			MAddr <= CHARREG;
-			MData <= "\n";
-			MByteEn <= 4'hf;
-			MCmd <= `OCP_CMD_WRITE;
-		end
-
-		@(posedge clk)
-		begin
-			MAddr <= 0;
-			MData <= 0;
-			MByteEn <= 4'h0;
-			MCmd <= `OCP_CMD_IDLE;
-		end
+		/* Write char register */
+		#1 bus_write(CHARREG, "H");
+		#1 bus_write(CHARREG, "e");
+		#1 bus_write(CHARREG, "l");
+		#1 bus_write(CHARREG, "l");
+		#1 bus_write(CHARREG, "o");
+		#1 bus_write(CHARREG, "\n");
 
 
 		#500 $finish;

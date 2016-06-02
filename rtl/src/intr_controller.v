@@ -46,20 +46,20 @@
  *              [31:0] - set bits correspond to active interrupt lines.
  */
 module intr_controller(
-	input				clk,
-	input				nrst,
+	clk,
+	nrst,
 	/* Interrupts input */
-	input [31:0]			i_intr_vec,
+	i_intr_vec,
 	/* Interrupt output */
-	output				o_intr,
+	o_intr,
 	/* OCP interface */
-	input [`ADDR_WIDTH-1:0]		i_MAddr,
-	input [2:0]			i_MCmd,
-	input [`DATA_WIDTH-1:0]		i_MData,
-	input [`BEN_WIDTH-1:0]		i_MByteEn,
-	output				o_SCmdAccept,
-	output [`DATA_WIDTH-1:0]	o_SData,
-	output [1:0]			o_SResp
+	i_MAddr,
+	i_MCmd,
+	i_MData,
+	i_MByteEn,
+	o_SCmdAccept,
+	o_SData,
+	o_SResp
 );
 /* Bus interface FSM states */
 localparam [2:0] IDLE  = 3'b001;
@@ -72,22 +72,21 @@ localparam [`ADDR_WIDTH-1:0] IMASKREG = 32'h004;	/* Interrupts mask register */
 localparam [`ADDR_WIDTH-1:0] IRAWREG  = 32'h008;	/* Raw interrupts register */
 
 /* Inputs and outputs */
-wire			clk;
-wire			nrst;
-wire [31:0]		i_intr_vec;
-wire			o_intr;
-wire [`ADDR_WIDTH-1:0]	i_MAddr;
-wire [2:0]		i_MCmd;
-wire [`DATA_WIDTH-1:0]	i_MData;
-wire [`BEN_WIDTH-1:0]	i_MByteEn;
-wire			o_SCmdAccept;
-reg [`DATA_WIDTH-1:0]	o_SData;
-reg [1:0]		o_SResp;
+input wire			clk;
+input wire			nrst;
+input wire [31:0]		i_intr_vec;
+output wire			o_intr;
+input wire [`ADDR_WIDTH-1:0]	i_MAddr;
+input wire [2:0]		i_MCmd;
+input wire [`DATA_WIDTH-1:0]	i_MData;
+input wire [`BEN_WIDTH-1:0]	i_MByteEn;
+output wire			o_SCmdAccept;
+output reg [`DATA_WIDTH-1:0]	o_SData;
+output reg [1:0]		o_SResp;
 
 /* Internal registers */
 reg [31:0] int_mask;	/* Interrupt mask */
 reg [31:0] raw_int;	/* Raw interrupts */
-
 
 /* Latched address and data */
 reg [`ADDR_WIDTH-1:0] addr;

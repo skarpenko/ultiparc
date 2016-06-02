@@ -59,6 +59,49 @@ module tb_interval_timer();
 	always
 		#HCLK clk = !clk;
 
+	/* Issue bus read transaction */
+	task bus_read;
+	input [`ADDR_WIDTH-1:0] addr;
+	begin
+		@(posedge clk)
+		begin
+			MAddr = addr;
+			MByteEn = 4'hf;
+			MCmd = `OCP_CMD_READ;
+		end
+
+		@(posedge clk)
+		begin
+			MAddr = 0;
+			MByteEn = 4'h0;
+			MCmd = `OCP_CMD_IDLE;
+		end
+	end
+	endtask
+
+	/* Issue bus write transaction */
+	task bus_write;
+	input [`ADDR_WIDTH-1:0] addr;
+	input [`DATA_WIDTH-1:0] data;
+	begin
+		@(posedge clk)
+		begin
+			MAddr = addr;
+			MData = data;
+			MByteEn = 4'hf;
+			MCmd = `OCP_CMD_WRITE;
+		end
+
+		@(posedge clk)
+		begin
+			MAddr = 0;
+			MData = 0;
+			MByteEn = 4'h0;
+			MCmd = `OCP_CMD_IDLE;
+		end
+	end
+	endtask
+
 	initial
 	begin
 		/* Set tracing */
@@ -75,133 +118,33 @@ module tb_interval_timer();
 
 		#(2*PCLK)
 
-		@(posedge clk)
-		begin
-			/* Set counter value */
-			MAddr <= CNTRREG;
-			MData <= 32'h10;
-			MByteEn <= 4'hf;
-			MCmd <= `OCP_CMD_WRITE;
-		end
+		/* Set counter value */
+		#1 bus_write(CNTRREG, 32'h10);
 
-		@(posedge clk)
-		begin
-			MAddr <= 0;
-			MData <= 0;
-			MCmd <= `OCP_CMD_IDLE;
-		end
+		/* Start: enable = 1, reload = 1, imask = 1 */
+		#1 bus_write(CTRLREG, 32'h7);
 
-		@(posedge clk)
-		begin
-			/* Start: enable = 1, reload = 1, imask = 1 */
-			MAddr <= CTRLREG;
-			MData <= 32'h7;
-			MByteEn <= 4'hf;
-			MCmd <= `OCP_CMD_WRITE;
-		end
+		/* Read control register */
+		#1 bus_read(CTRLREG);
 
-		@(posedge clk)
-		begin
-			MAddr <= 0;
-			MData <= 0;
-			MCmd <= `OCP_CMD_IDLE;
-		end
+		/* Read counter register */
+		#1 bus_read(CNTRREG);
 
-		@(posedge clk)
-		begin
-			/* Read control register */
-			MAddr <= CTRLREG;
-			MByteEn <= 4'hf;
-			MCmd <= `OCP_CMD_READ;
-		end
+		/* Read current count (1) */
+		#1 bus_read(CURRREG);
 
-		@(posedge clk)
-		begin
-			MAddr <= 0;
-			MData <= 0;
-			MCmd <= `OCP_CMD_IDLE;
-		end
-
-		@(posedge clk)
-		begin
-			/* Read counter register */
-			MAddr <= CNTRREG;
-			MByteEn <= 4'hf;
-			MCmd <= `OCP_CMD_READ;
-		end
-
-		@(posedge clk)
-		begin
-			MAddr <= 0;
-			MData <= 0;
-			MCmd <= `OCP_CMD_IDLE;
-		end
-
-		@(posedge clk)
-		begin
-			/* Read current count (1) */
-			MAddr <= CURRREG;
-			MByteEn <= 4'hf;
-			MCmd <= `OCP_CMD_READ;
-		end
-
-		@(posedge clk)
-		begin
-			MAddr <= 0;
-			MData <= 0;
-			MCmd <= `OCP_CMD_IDLE;
-		end
-
-		@(posedge clk)
-		begin
-			/* Read current count (2) */
-			MAddr <= CURRREG;
-			MByteEn <= 4'hf;
-			MCmd <= `OCP_CMD_READ;
-		end
-
-		@(posedge clk)
-		begin
-			MAddr <= 0;
-			MData <= 0;
-			MCmd <= `OCP_CMD_IDLE;
-		end
+		/* Read current count (2) */
+		#1 bus_read(CURRREG);
 
 		#(40*PCLK)
 
-		@(posedge clk)
-		begin
-			/* Update counter value */
-			MAddr <= CNTRREG;
-			MData <= 32'h4;
-			MByteEn <= 4'hf;
-			MCmd <= `OCP_CMD_WRITE;
-		end
-
-		@(posedge clk)
-		begin
-			MAddr <= 0;
-			MData <= 0;
-			MCmd <= `OCP_CMD_IDLE;
-		end
+		/* Update counter value */
+		#1 bus_write(CNTRREG, 32'h4);
 
 		#(20*PCLK)
 
-		@(posedge clk)
-		begin
-			/* Start: enable = 1, reload = 0, imask = 0 */
-			MAddr <= CTRLREG;
-			MData <= 32'h1;
-			MByteEn <= 4'hf;
-			MCmd <= `OCP_CMD_WRITE;
-		end
-
-		@(posedge clk)
-		begin
-			MAddr <= 0;
-			MData <= 0;
-			MCmd <= `OCP_CMD_IDLE;
-		end
+		/* Start: enable = 1, reload = 0, imask = 0 */
+		#1 bus_write(CTRLREG, 32'h1);
 
 		#500 $finish;
 	end

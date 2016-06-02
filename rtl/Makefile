@@ -8,7 +8,8 @@ TESTBENCHES := \
 	tb_intr_controller \
 	tb_sim_control \
 	tb_micro_uart \
-	tb_memory
+	tb_memory \
+	tb_fabric
 
 
 TB ?=

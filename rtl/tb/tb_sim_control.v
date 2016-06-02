@@ -56,6 +56,49 @@ module tb_sim_control();
 	always
 		#HCLK clk = !clk;
 
+	/* Issue bus read */
+	task bus_read;
+	input [`ADDR_WIDTH-1:0] addr;
+	begin
+		@(posedge clk)
+		begin
+			MAddr = addr;
+			MByteEn = 4'hf;
+			MCmd = `OCP_CMD_READ;
+		end
+
+		@(posedge clk)
+		begin
+			MAddr = 0;
+			MByteEn = 4'h0;
+			MCmd = `OCP_CMD_IDLE;
+		end
+	end
+	endtask
+
+	/* Issue bus write */
+	task bus_write;
+	input [`ADDR_WIDTH-1:0] addr;
+	input [`DATA_WIDTH-1:0] data;
+	begin
+		@(posedge clk)
+		begin
+			MAddr = addr;
+			MData = data;
+			MByteEn = 4'hf;
+			MCmd = `OCP_CMD_WRITE;
+		end
+
+		@(posedge clk)
+		begin
+			MAddr = 0;
+			MData = 0;
+			MByteEn = 4'h0;
+			MCmd = `OCP_CMD_IDLE;
+		end
+	end
+	endtask
+
 	initial
 	begin
 		/* Set tracing */
@@ -71,56 +114,16 @@ module tb_sim_control();
 		#(10*PCLK) nrst = 1;
 
 		#(2*PCLK)
-		@(posedge clk)
-		begin
-			/* Write control register */
-			MAddr <= CTRLREG;
-			MData <= 32'hffff0;
-			MByteEn <= 4'hf;
-			MCmd <= `OCP_CMD_WRITE;
-		end
 
-		@(posedge clk)
-		begin
-			MAddr <= 0;
-			MData <= 0;
-			MByteEn <= 4'h0;
-			MCmd <= `OCP_CMD_IDLE;
-		end
+		/* Write control register */
+		#1 bus_write(CTRLREG, 32'h000f_fff0);
 
-		@(posedge clk)
-		begin
-			/* Read control register */
-			MAddr <= CTRLREG;
-			MByteEn <= 4'hf;
-			MCmd <= `OCP_CMD_READ;
-		end
+		/* Read control register */
+		#1 bus_read(CTRLREG);
 
-		@(posedge clk)
-		begin
-			MAddr <= 0;
-			MData <= 0;
-			MByteEn <= 4'h0;
-			MCmd <= `OCP_CMD_IDLE;
-		end
-
-		@(posedge clk)
-		begin
-			/* Write control register and finish simulation */
-			MAddr <= CTRLREG;
-			MData <= 32'h1;		/* Normal termination */
-			/*MData <= 32'h80000001;*/		/* Termination with error */
-			MByteEn <= 4'hf;
-			MCmd <= `OCP_CMD_WRITE;
-		end
-
-		@(posedge clk)
-		begin
-			MAddr <= 0;
-			MData <= 0;
-			MByteEn <= 4'h0;
-			MCmd <= `OCP_CMD_IDLE;
-		end
+		/* Write control register and finish simulation */
+		#1 bus_write(CTRLREG, 32'h0000_0001);	/* Normal termination */
+		/*#1 bus_write(CTRLREG, 32'h8000_0001);*/	/* Termination with error */
 
 		#500 $finish;
 	end

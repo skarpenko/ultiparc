@@ -53,6 +53,50 @@ module tb_memory();
 	always
 		#HCLK clk = !clk;
 
+	/* Issue bus read */
+	task bus_read;
+	input [`ADDR_WIDTH-1:0] addr;
+	begin
+		@(posedge clk)
+		begin
+			MAddr = addr;
+			MByteEn = 4'hf;
+			MCmd = `OCP_CMD_READ;
+		end
+
+		@(posedge clk)
+		begin
+			MAddr = 0;
+			MByteEn = 4'h0;
+			MCmd = `OCP_CMD_IDLE;
+		end
+	end
+	endtask
+
+	/* Issue bus write */
+	task bus_write;
+	input [`ADDR_WIDTH-1:0] addr;
+	input [`DATA_WIDTH-1:0] data;
+	input [`BEN_WIDTH-1:0] ben;
+	begin
+		@(posedge clk)
+		begin
+			MAddr = addr;
+			MData = data;
+			MByteEn = ben;
+			MCmd = `OCP_CMD_WRITE;
+		end
+
+		@(posedge clk)
+		begin
+			MAddr = 0;
+			MData = 0;
+			MByteEn = 4'h0;
+			MCmd = `OCP_CMD_IDLE;
+		end
+	end
+	endtask
+
 	initial
 	begin
 		/* Set tracing */
@@ -68,88 +112,22 @@ module tb_memory();
 		#(10*PCLK) nrst = 1;
 
 		#(2*PCLK)
-		@(posedge clk)
-		begin
-			/* Write data to address 0 */
-			MAddr <= 0;
-			MData <= 32'hdeadbeef;
-			MByteEn <= 4'hf;
-			MCmd <= `OCP_CMD_WRITE;
-		end
 
-		@(posedge clk)
-		begin
-			MAddr <= 0;
-			MData <= 0;
-			MByteEn <= 4'h0;
-			MCmd <= `OCP_CMD_IDLE;
-		end
+		/* Write data to address 0 */
+		#1 bus_write(32'h0000_0000, 32'hdead_beef, 4'hf);
 
+		/* Read data at address 0 */
+		#1 bus_read(32'h0000_0000);
 
-		@(posedge clk)
-		begin
-			/* Read data at address 0 */
-			MAddr <= 0;
-			MByteEn <= 4'hf;
-			MCmd <= `OCP_CMD_READ;
-		end
+		/* Write data to address 0 with byte enables (two low bytes only) */
+		#1 bus_write(32'h0000_0000, 32'hbeef_dead, 4'h3);
 
-		@(posedge clk)
-		begin
-			MAddr <= 0;
-			MData <= 0;
-			MByteEn <= 4'h0;
-			MCmd <= `OCP_CMD_IDLE;
-		end
+		/* Read data at address 0 */
+		#1 bus_read(32'h0000_0000);
 
-		@(posedge clk)
-		begin
-			/* Write data to address 0 with byte enables */
-			MAddr <= 0;
-			MData <= 32'hbeef_dead;
-			MByteEn <= 4'h3;	/* Write two low bytes only */
-			MCmd <= `OCP_CMD_WRITE;
-		end
+		/* Read data at address 4 */
+		#1 bus_read(32'h0000_0004);
 
-		@(posedge clk)
-		begin
-			MAddr <= 0;
-			MData <= 0;
-			MByteEn <= 4'h0;
-			MCmd <= `OCP_CMD_IDLE;
-		end
-
-		@(posedge clk)
-		begin
-			/* Read data at address 0 */
-			MAddr <= 0;
-			MByteEn <= 4'hf;
-			MCmd <= `OCP_CMD_READ;
-		end
-
-		@(posedge clk)
-		begin
-			MAddr <= 0;
-			MData <= 0;
-			MByteEn <= 4'h0;
-			MCmd <= `OCP_CMD_IDLE;
-		end
-
-		@(posedge clk)
-		begin
-			/* Read data at address 4 */
-			MAddr <= 4;
-			MByteEn <= 4'hf;
-			MCmd <= `OCP_CMD_READ;
-		end
-
-		@(posedge clk)
-		begin
-			MAddr <= 0;
-			MData <= 0;
-			MByteEn <= 4'h0;
-			MCmd <= `OCP_CMD_IDLE;
-		end
 
 		#500 $finish;
 	end

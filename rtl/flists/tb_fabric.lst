@@ -1,0 +1,13 @@
+# Fabric testbench
+
++define+TRACE_FILE="tb_fabric.vcd"
++timescale+1us/100ns
+src/fabric.v
+src/fabric_port.v
+src/fabric_port_demux.v
+src/memory.v
+src/interval_timer.v
+src/intr_controller.v
+src/micro_uart.v
+src/sim_control.v
+tb/tb_fabric.v

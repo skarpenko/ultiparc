@@ -44,18 +44,18 @@
  *    0x08  -  current count register (read only).
  */
 module interval_timer(
-	input				clk,
-	input				nrst,
+	clk,
+	nrst,
 	/* Interrupt output */
-	output				o_intr,
+	o_intr,
 	/* OCP interface */
-	input [`ADDR_WIDTH-1:0]		i_MAddr,
-	input [2:0]			i_MCmd,
-	input [`DATA_WIDTH-1:0]		i_MData,
-	input [`BEN_WIDTH-1:0]		i_MByteEn,
-	output				o_SCmdAccept,
-	output [`DATA_WIDTH-1:0]	o_SData,
-	output [1:0]			o_SResp
+	i_MAddr,
+	i_MCmd,
+	i_MData,
+	i_MByteEn,
+	o_SCmdAccept,
+	o_SData,
+	o_SResp
 );
 /* Bus interface FSM states */
 localparam [2:0] IDLE  = 3'b001;
@@ -73,16 +73,16 @@ localparam [`ADDR_WIDTH-1:0] CNTRREG = 32'h004;	/* Counter register */
 localparam [`ADDR_WIDTH-1:0] CURRREG = 32'h008;	/* Current counter */
 
 /* Inputs and outputs */
-wire			clk;
-wire			nrst;
-reg			o_intr;
-wire [`ADDR_WIDTH-1:0]	i_MAddr;
-wire [2:0]		i_MCmd;
-wire [`DATA_WIDTH-1:0]	i_MData;
-wire [`BEN_WIDTH-1:0]	i_MByteEn;
-wire			o_SCmdAccept;
-reg [`DATA_WIDTH-1:0]	o_SData;
-reg [1:0]		o_SResp;
+input wire			clk;
+input wire			nrst;
+output reg			o_intr;
+input wire [`ADDR_WIDTH-1:0]	i_MAddr;
+input wire [2:0]		i_MCmd;
+input wire [`DATA_WIDTH-1:0]	i_MData;
+input wire [`BEN_WIDTH-1:0]	i_MByteEn;
+output wire			o_SCmdAccept;
+output reg [`DATA_WIDTH-1:0]	o_SData;
+output reg [1:0]		o_SResp;
 
 /* Internal registers */
 reg [`DATA_WIDTH-1:0] initval;	/* Initial value */

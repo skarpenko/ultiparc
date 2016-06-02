@@ -56,7 +56,7 @@ SC_MODULE(ibus_adapt) {
 	sc_in<sc_uint<32> >   i_SData;
 	sc_in<sc_uint<2> >    i_SResp;
 
-	
+
 	SC_CTOR(ibus_adapt) {
 		SC_THREAD(ibus_proc);
 			sensitive << clk.pos() << rdc_i;
