@@ -66,16 +66,16 @@ module tb_intr_controller();
 	begin
 		@(posedge clk)
 		begin
-			MAddr = addr;
-			MByteEn = 4'hf;
-			MCmd = `OCP_CMD_READ;
+			MAddr <= addr;
+			MByteEn <= 4'hf;
+			MCmd <= `OCP_CMD_READ;
 		end
 
 		@(posedge clk)
 		begin
-			MAddr = 0;
-			MByteEn = 4'h0;
-			MCmd = `OCP_CMD_IDLE;
+			MAddr <= 0;
+			MByteEn <= 4'h0;
+			MCmd <= `OCP_CMD_IDLE;
 		end
 	end
 	endtask
@@ -87,18 +87,18 @@ module tb_intr_controller();
 	begin
 		@(posedge clk)
 		begin
-			MAddr = addr;
-			MData = data;
-			MByteEn = 4'hf;
-			MCmd = `OCP_CMD_WRITE;
+			MAddr <= addr;
+			MData <= data;
+			MByteEn <= 4'hf;
+			MCmd <= `OCP_CMD_WRITE;
 		end
 
 		@(posedge clk)
 		begin
-			MAddr = 0;
-			MData = 0;
-			MByteEn = 4'h0;
-			MCmd = `OCP_CMD_IDLE;
+			MAddr <= 0;
+			MData <= 0;
+			MByteEn <= 4'h0;
+			MCmd <= `OCP_CMD_IDLE;
 		end
 	end
 	endtask
@@ -109,11 +109,11 @@ module tb_intr_controller();
 	begin
 		@(posedge clk)
 		begin
-			intr_vec[line] = 1'b1;
+			intr_vec[line] <= 1'b1;
 		end
 		@(posedge clk)
 		begin
-			intr_vec[line] = 1'b0;
+			intr_vec[line] <= 1'b0;
 		end
 	end
 	endtask
@@ -136,27 +136,27 @@ module tb_intr_controller();
 		#(2*PCLK)
 
 		/* Unmask line 0 */
-		#1 bus_write(IMASKREG, 32'h1);
+		bus_write(IMASKREG, 32'h1);
 
 		#(2*PCLK)
 
 		/* Generate interrupt on line 0 */
-		#1 gen_intr(0);
+		gen_intr(0);
 
 		#(2*PCLK)
 
 		/* Acknowledge */
-		#1 bus_write(ISTATREG, 32'h1);
+		bus_write(ISTATREG, 32'h1);
 
 		#(2*PCLK)
 
 		/* Generate interrupt on line 1 */
-		#1 gen_intr(1);
+		gen_intr(1);
 
 		#(2*PCLK)
 
 		/* Read raw status */
-		#1 bus_read(IRAWREG);
+		bus_read(IRAWREG);
 
 
 		#500 $finish;

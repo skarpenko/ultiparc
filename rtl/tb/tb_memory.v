@@ -59,16 +59,16 @@ module tb_memory();
 	begin
 		@(posedge clk)
 		begin
-			MAddr = addr;
-			MByteEn = 4'hf;
-			MCmd = `OCP_CMD_READ;
+			MAddr <= addr;
+			MByteEn <= 4'hf;
+			MCmd <= `OCP_CMD_READ;
 		end
 
 		@(posedge clk)
 		begin
-			MAddr = 0;
-			MByteEn = 4'h0;
-			MCmd = `OCP_CMD_IDLE;
+			MAddr <= 0;
+			MByteEn <= 4'h0;
+			MCmd <= `OCP_CMD_IDLE;
 		end
 	end
 	endtask
@@ -81,18 +81,18 @@ module tb_memory();
 	begin
 		@(posedge clk)
 		begin
-			MAddr = addr;
-			MData = data;
-			MByteEn = ben;
-			MCmd = `OCP_CMD_WRITE;
+			MAddr <= addr;
+			MData <= data;
+			MByteEn <= ben;
+			MCmd <= `OCP_CMD_WRITE;
 		end
 
 		@(posedge clk)
 		begin
-			MAddr = 0;
-			MData = 0;
-			MByteEn = 4'h0;
-			MCmd = `OCP_CMD_IDLE;
+			MAddr <= 0;
+			MData <= 0;
+			MByteEn <= 4'h0;
+			MCmd <= `OCP_CMD_IDLE;
 		end
 	end
 	endtask
@@ -114,19 +114,19 @@ module tb_memory();
 		#(2*PCLK)
 
 		/* Write data to address 0 */
-		#1 bus_write(32'h0000_0000, 32'hdead_beef, 4'hf);
+		bus_write(32'h0000_0000, 32'hdead_beef, 4'hf);
 
 		/* Read data at address 0 */
-		#1 bus_read(32'h0000_0000);
+		bus_read(32'h0000_0000);
 
 		/* Write data to address 0 with byte enables (two low bytes only) */
-		#1 bus_write(32'h0000_0000, 32'hbeef_dead, 4'h3);
+		bus_write(32'h0000_0000, 32'hbeef_dead, 4'h3);
 
 		/* Read data at address 0 */
-		#1 bus_read(32'h0000_0000);
+		bus_read(32'h0000_0000);
 
 		/* Read data at address 4 */
-		#1 bus_read(32'h0000_0004);
+		bus_read(32'h0000_0004);
 
 
 		#500 $finish;

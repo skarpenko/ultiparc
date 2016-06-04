@@ -118,7 +118,7 @@ assign o_D_SCmdAccept = ((d_bus_state == IDLE || i_D_MCmd == `OCP_CMD_IDLE) ? 1'
 /* Return port number */
 function [PORT_BITS-2:0] port_no;
 	input [`ADDR_WIDTH-1:0] addr;
-	port_no = (addr[`ADDR_WIDTH-1] ? addr[`ADDR_WIDTH-2:`ADDR_WIDTH-PORT_BITS] : 0);
+	port_no = (addr[`ADDR_WIDTH-1] ? addr[`ADDR_WIDTH-2:`ADDR_WIDTH-PORT_BITS] + 1 : 0);
 endfunction
 
 
@@ -190,30 +190,16 @@ assign o_D_SResp = D_SResp & (d_bus_state == IDLE ? 2'b00 : 2'b11 );
 
 
 /* Latch inputs */
-always @(posedge clk or negedge nrst)
+always @(posedge clk)
 begin
-	if(!nrst)
-	begin
-		i_addr <= {(`ADDR_WIDTH){1'b0}};
-		i_cmd <= 3'b0;
-		i_data <= {(`DATA_WIDTH){1'b0}};
-		i_ben <= {(`BEN_WIDTH){1'b0}};
-		d_addr <= {(`ADDR_WIDTH){1'b0}};
-		d_cmd <= 3'b0;
-		d_data <= {(`DATA_WIDTH){1'b0}};
-		d_ben <= {(`BEN_WIDTH){1'b0}};
-	end
-	else
-	begin
-		i_addr <= i_I_MAddr;
-		i_cmd <= i_I_MCmd;
-		i_data <= i_I_MData;
-		i_ben <= i_I_MByteEn;
-		d_addr <= i_D_MAddr;
-		d_cmd <= i_D_MCmd;
-		d_data <= i_D_MData;
-		d_ben <= i_D_MByteEn;
-	end
+	i_addr <= i_I_MAddr;
+	i_cmd <= i_I_MCmd;
+	i_data <= i_I_MData;
+	i_ben <= i_I_MByteEn;
+	d_addr <= i_D_MAddr;
+	d_cmd <= i_D_MCmd;
+	d_data <= i_D_MData;
+	d_ben <= i_D_MByteEn;
 end
 
 

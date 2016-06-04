@@ -62,16 +62,16 @@ module tb_micro_uart();
 	begin
 		@(posedge clk)
 		begin
-			MAddr = addr;
-			MByteEn = 4'hf;
-			MCmd = `OCP_CMD_READ;
+			MAddr <= addr;
+			MByteEn <= 4'hf;
+			MCmd <= `OCP_CMD_READ;
 		end
 
 		@(posedge clk)
 		begin
-			MAddr = 0;
-			MByteEn = 4'h0;
-			MCmd = `OCP_CMD_IDLE;
+			MAddr <= 0;
+			MByteEn <= 4'h0;
+			MCmd <= `OCP_CMD_IDLE;
 		end
 	end
 	endtask
@@ -83,18 +83,18 @@ module tb_micro_uart();
 	begin
 		@(posedge clk)
 		begin
-			MAddr = addr;
-			MData = data;
-			MByteEn = 4'hf;
-			MCmd = `OCP_CMD_WRITE;
+			MAddr <= addr;
+			MData <= data;
+			MByteEn <= 4'hf;
+			MCmd <= `OCP_CMD_WRITE;
 		end
 
 		@(posedge clk)
 		begin
-			MAddr = 0;
-			MData = 0;
-			MByteEn = 4'h0;
-			MCmd = `OCP_CMD_IDLE;
+			MAddr <= 0;
+			MData <= 0;
+			MByteEn <= 4'h0;
+			MCmd <= `OCP_CMD_IDLE;
 		end
 	end
 	endtask
@@ -116,15 +116,15 @@ module tb_micro_uart();
 		#(2*PCLK)
 
 		/* Read char register */
-		#1 bus_read(CHARREG);
+		bus_read(CHARREG);
 
 		/* Write char register */
-		#1 bus_write(CHARREG, "H");
-		#1 bus_write(CHARREG, "e");
-		#1 bus_write(CHARREG, "l");
-		#1 bus_write(CHARREG, "l");
-		#1 bus_write(CHARREG, "o");
-		#1 bus_write(CHARREG, "\n");
+		bus_write(CHARREG, "H");
+		bus_write(CHARREG, "e");
+		bus_write(CHARREG, "l");
+		bus_write(CHARREG, "l");
+		bus_write(CHARREG, "o");
+		bus_write(CHARREG, "\n");
 
 
 		#500 $finish;

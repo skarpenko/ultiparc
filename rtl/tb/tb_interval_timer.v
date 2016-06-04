@@ -41,9 +41,9 @@ module tb_interval_timer();
 	localparam PCLK = 2*HCLK;	/* Clock period */
 
 	/* Timer Registers */
-	localparam [2:0] CTRLREG = 32'h000;	/* Control register */
-	localparam [2:0] CNTRREG = 32'h004;	/* Counter register */
-	localparam [2:0] CURRREG = 32'h008;	/* Current counter */
+	localparam [`ADDR_WIDTH-1:0] CTRLREG = 32'h000;	/* Control register */
+	localparam [`ADDR_WIDTH-1:0] CNTRREG = 32'h004;	/* Counter register */
+	localparam [`ADDR_WIDTH-1:0] CURRREG = 32'h008;	/* Current counter */
 
 	reg clk;
 	reg nrst;
@@ -65,16 +65,16 @@ module tb_interval_timer();
 	begin
 		@(posedge clk)
 		begin
-			MAddr = addr;
-			MByteEn = 4'hf;
-			MCmd = `OCP_CMD_READ;
+			MAddr <= addr;
+			MByteEn <= 4'hf;
+			MCmd <= `OCP_CMD_READ;
 		end
 
 		@(posedge clk)
 		begin
-			MAddr = 0;
-			MByteEn = 4'h0;
-			MCmd = `OCP_CMD_IDLE;
+			MAddr <= 0;
+			MByteEn <= 4'h0;
+			MCmd <= `OCP_CMD_IDLE;
 		end
 	end
 	endtask
@@ -86,18 +86,18 @@ module tb_interval_timer();
 	begin
 		@(posedge clk)
 		begin
-			MAddr = addr;
-			MData = data;
-			MByteEn = 4'hf;
-			MCmd = `OCP_CMD_WRITE;
+			MAddr <= addr;
+			MData <= data;
+			MByteEn <= 4'hf;
+			MCmd <= `OCP_CMD_WRITE;
 		end
 
 		@(posedge clk)
 		begin
-			MAddr = 0;
-			MData = 0;
-			MByteEn = 4'h0;
-			MCmd = `OCP_CMD_IDLE;
+			MAddr <= 0;
+			MData <= 0;
+			MByteEn <= 4'h0;
+			MCmd <= `OCP_CMD_IDLE;
 		end
 	end
 	endtask
@@ -119,32 +119,32 @@ module tb_interval_timer();
 		#(2*PCLK)
 
 		/* Set counter value */
-		#1 bus_write(CNTRREG, 32'h10);
+		bus_write(CNTRREG, 32'h10);
 
 		/* Start: enable = 1, reload = 1, imask = 1 */
-		#1 bus_write(CTRLREG, 32'h7);
+		bus_write(CTRLREG, 32'h7);
 
 		/* Read control register */
-		#1 bus_read(CTRLREG);
+		bus_read(CTRLREG);
 
 		/* Read counter register */
-		#1 bus_read(CNTRREG);
+		bus_read(CNTRREG);
 
 		/* Read current count (1) */
-		#1 bus_read(CURRREG);
+		bus_read(CURRREG);
 
 		/* Read current count (2) */
-		#1 bus_read(CURRREG);
+		bus_read(CURRREG);
 
 		#(40*PCLK)
 
 		/* Update counter value */
-		#1 bus_write(CNTRREG, 32'h4);
+		bus_write(CNTRREG, 32'h4);
 
 		#(20*PCLK)
 
 		/* Start: enable = 1, reload = 0, imask = 0 */
-		#1 bus_write(CTRLREG, 32'h1);
+		bus_write(CTRLREG, 32'h1);
 
 		#500 $finish;
 	end

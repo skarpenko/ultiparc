@@ -62,16 +62,16 @@ module tb_sim_control();
 	begin
 		@(posedge clk)
 		begin
-			MAddr = addr;
-			MByteEn = 4'hf;
-			MCmd = `OCP_CMD_READ;
+			MAddr <= addr;
+			MByteEn <= 4'hf;
+			MCmd <= `OCP_CMD_READ;
 		end
 
 		@(posedge clk)
 		begin
-			MAddr = 0;
-			MByteEn = 4'h0;
-			MCmd = `OCP_CMD_IDLE;
+			MAddr <= 0;
+			MByteEn <= 4'h0;
+			MCmd <= `OCP_CMD_IDLE;
 		end
 	end
 	endtask
@@ -83,18 +83,18 @@ module tb_sim_control();
 	begin
 		@(posedge clk)
 		begin
-			MAddr = addr;
-			MData = data;
-			MByteEn = 4'hf;
-			MCmd = `OCP_CMD_WRITE;
+			MAddr <= addr;
+			MData <= data;
+			MByteEn <= 4'hf;
+			MCmd <= `OCP_CMD_WRITE;
 		end
 
 		@(posedge clk)
 		begin
-			MAddr = 0;
-			MData = 0;
-			MByteEn = 4'h0;
-			MCmd = `OCP_CMD_IDLE;
+			MAddr <= 0;
+			MData <= 0;
+			MByteEn <= 4'h0;
+			MCmd <= `OCP_CMD_IDLE;
 		end
 	end
 	endtask
@@ -116,14 +116,14 @@ module tb_sim_control();
 		#(2*PCLK)
 
 		/* Write control register */
-		#1 bus_write(CTRLREG, 32'h000f_fff0);
+		bus_write(CTRLREG, 32'h000f_fff0);
 
 		/* Read control register */
-		#1 bus_read(CTRLREG);
+		bus_read(CTRLREG);
 
 		/* Write control register and finish simulation */
-		#1 bus_write(CTRLREG, 32'h0000_0001);	/* Normal termination */
-		/*#1 bus_write(CTRLREG, 32'h8000_0001);*/	/* Termination with error */
+		bus_write(CTRLREG, 32'h0000_0001);	/* Normal termination */
+		/* bus_write(CTRLREG, 32'h8000_0001);*/	/* Termination with error */
 
 		#500 $finish;
 	end
