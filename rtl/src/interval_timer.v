@@ -57,11 +57,6 @@ module interval_timer(
 	o_SData,
 	o_SResp
 );
-/* Bus interface FSM states */
-localparam [2:0] IDLE  = 3'b001;
-localparam [2:0] WRITE = 3'b010;
-localparam [2:0] READ  = 3'b100;
-
 /* Timer counter states */
 localparam [2:0] STOP   = 3'b001;
 localparam [2:0] RELOAD = 3'b010;
@@ -91,106 +86,78 @@ reg enable;			/* Timer enabled */
 reg imask;			/* Interrupt mask */
 reg reload;			/* Reload counter automatically */
 
-/* Latched address and data */
-reg [`ADDR_WIDTH-1:0] addr;
-reg [`DATA_WIDTH-1:0] wdata;
-
-/* Bus FSM state */
-reg [2:0] bus_state;
-reg [2:0] bus_next_state;
 
 /* Counter FSM state */
 reg [2:0] ctr_state;
 reg reload_en;		/* Force counter reload */
 
 
-assign o_SCmdAccept = (i_MCmd == `OCP_CMD_IDLE || bus_state == IDLE) ? 1'b1 : 1'b0;
+assign o_SCmdAccept = 1'b1;	/* Always ready to accept command */
 
 
-/* Latch address and data */
-always @(posedge clk)
+/* Bus logic */
+always @(i_MCmd)
 begin
-	addr <= i_MAddr;
-	wdata <= i_MData;
-end
-
-
-/* Seq logic */
-always @(posedge clk or negedge nrst)
-	bus_state <= nrst ? bus_next_state : IDLE;
-
-
-/* Next state logic */
-always @(*)
-begin
-	bus_next_state = IDLE;
-
-	if(bus_state == IDLE)
-	begin
-		case(i_MCmd)
-		`OCP_CMD_WRITE: bus_next_state = WRITE;
-		`OCP_CMD_READ: bus_next_state = READ;
-		default: bus_next_state = IDLE;
-		endcase
+	case(i_MCmd)
+	`OCP_CMD_WRITE: begin
+		o_SData = {(`DATA_WIDTH){1'b0}};
+		o_SResp = `OCP_RESP_DVA;
 	end
+	`OCP_CMD_READ: begin
+		if(i_MAddr == CTRLREG)
+		begin
+			o_SData = { {(`DATA_WIDTH-3){1'b0}},
+				reload, imask, enable };
+		end
+		else if(i_MAddr == CNTRREG)
+		begin
+			o_SData = { {(`DATA_WIDTH-32){1'b0}}, initval };
+		end
+		else if(i_MAddr == CURRREG)
+		begin
+			o_SData = { {(`DATA_WIDTH-32){1'b0}}, currval };
+		end
+		else
+			o_SData = 32'hDEADDEAD;
+		o_SResp = `OCP_RESP_DVA;
+	end
+	default: begin
+		o_SData = {(`DATA_WIDTH){1'b0}};
+		o_SResp = `OCP_RESP_NULL;
+	end
+	endcase
 end
 
 
-/* Output logic */
-always @(bus_state or negedge nrst)
+/* Configuration update */
+always @(posedge clk or negedge nrst)
 begin
 	if(!nrst)
 	begin
-		o_SData <= {(`DATA_WIDTH){1'b0}};
-		o_SResp <= `OCP_RESP_NULL;
 		enable <= 1'b0;
 		imask <= 1'b0;
 		initval <= {(`DATA_WIDTH){1'b0}};
 		reload <= 1'b0;
 		reload_en <= 1'b0;
 	end
-	else
+	else if(i_MCmd == `OCP_CMD_WRITE)
 	begin
 		/* Force reload if updating initial count value */
-		reload_en <= (bus_state == WRITE && addr == CNTRREG) ? 1'b1 : 1'b0;
+		reload_en <= i_MAddr == CNTRREG ? 1'b1 : 1'b0;
 
-		case(bus_state)
-		WRITE: begin
-			if(addr == CTRLREG)
-			begin
-				enable <= wdata[0];
-				imask <= wdata[1];
-				reload <= wdata[2];
-			end
-			else if(addr == CNTRREG)
-			begin
-				initval <= wdata;
-			end
-			o_SResp <= `OCP_RESP_DVA;
+		if(i_MAddr == CTRLREG)
+		begin
+			enable <= i_MData[0];
+			imask <= i_MData[1];
+			reload <= i_MData[2];
 		end
-		READ: begin
-			if(addr == CTRLREG)
-			begin
-				o_SData <= { {(`DATA_WIDTH-3){1'b0}},
-					reload, imask, enable };
-			end
-			else if(addr == CNTRREG)
-			begin
-				o_SData <= initval;
-			end
-			else if(addr == CURRREG)
-			begin
-				o_SData <= currval;
-			end
-			else
-				o_SData <= 32'hDEADDEAD;
-			o_SResp <= `OCP_RESP_DVA;
+		else if(i_MAddr == CNTRREG)
+		begin
+			initval <= i_MData[31:0];
 		end
-		default: begin
-			o_SResp <= `OCP_RESP_NULL;
-		end
-		endcase
 	end
+	else
+		reload_en <= 1'b0;
 end
 
 

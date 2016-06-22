@@ -146,6 +146,10 @@ module tb_interval_timer();
 		/* Start: enable = 1, reload = 0, imask = 0 */
 		bus_write(CTRLREG, 32'h1);
 
+		/* Update counter value */
+		bus_write(CNTRREG, 32'h8);
+
+
 		#500 $finish;
 	end
 

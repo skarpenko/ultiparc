@@ -61,11 +61,6 @@ module intr_controller(
 	o_SData,
 	o_SResp
 );
-/* Bus interface FSM states */
-localparam [2:0] IDLE  = 3'b001;
-localparam [2:0] WRITE = 3'b010;
-localparam [2:0] READ  = 3'b100;
-
 /* Register offsets */
 localparam [`ADDR_WIDTH-1:0] ISTATREG = 32'h000;	/* Interrupts status register */
 localparam [`ADDR_WIDTH-1:0] IMASKREG = 32'h004;	/* Interrupts mask register */
@@ -88,98 +83,76 @@ output reg [1:0]		o_SResp;
 reg [31:0] int_mask;	/* Interrupt mask */
 reg [31:0] raw_int;	/* Raw interrupts */
 
-/* Latched address and data */
-reg [`ADDR_WIDTH-1:0] addr;
-reg [`DATA_WIDTH-1:0] wdata;
-
-/* Bus FSM state */
-reg [2:0] bus_state;
-reg [2:0] bus_next_state;
-
-reg iack;	/* Interrupt acknowledge */
+reg iack;		/* Interrupt acknowledge */
+reg [31:0] iack_mask;	/* Interrupt acknowledge mask */
 
 
-assign o_SCmdAccept = (i_MCmd == `OCP_CMD_IDLE || bus_state == IDLE) ? 1'b1 : 1'b0;
+assign o_SCmdAccept = 1'b1;	/* Always ready to accept command */
 
 
-/* Latch address and data */
-always @(posedge clk)
+/* Bus logic */
+always @(i_MCmd)
 begin
-	addr <= i_MAddr;
-	wdata <= i_MData;
-end
-
-
-/* Seq logic */
-always @(posedge clk or negedge nrst)
-	bus_state <= nrst ? bus_next_state : IDLE;
-
-
-/* Next state logic */
-always @(*)
-begin
-	bus_next_state = IDLE;
-
-	if(bus_state == IDLE)
-	begin
-		case(i_MCmd)
-		`OCP_CMD_WRITE: bus_next_state = WRITE;
-		`OCP_CMD_READ: bus_next_state = READ;
-		default: bus_next_state = IDLE;
-		endcase
+	case(i_MCmd)
+	`OCP_CMD_WRITE: begin
+		o_SData = {(`DATA_WIDTH){1'b0}};
+		o_SResp = `OCP_RESP_DVA;
 	end
+	`OCP_CMD_READ: begin
+		if(i_MAddr == ISTATREG)
+		begin
+			o_SData = { {(`DATA_WIDTH-32){1'b0}},
+				int_mask & raw_int };
+		end
+		else if(i_MAddr == IMASKREG)
+		begin
+			o_SData = { {(`DATA_WIDTH-32){1'b0}}, int_mask };
+		end
+		else if(i_MAddr == IRAWREG)
+		begin
+			o_SData = { {(`DATA_WIDTH-32){1'b0}}, raw_int };
+		end
+		else
+			o_SData = 32'hDEADDEAD;
+		o_SResp = `OCP_RESP_DVA;
+	end
+	default: begin
+		o_SData = {(`DATA_WIDTH){1'b0}};
+		o_SResp = `OCP_RESP_NULL;
+	end
+	endcase
 end
 
 
-/* Output logic */
-always @(bus_state or negedge nrst)
+/* State/configurtion update */
+always @(posedge clk or negedge nrst)
 begin
 	if(!nrst)
 	begin
-		o_SData <= {(`DATA_WIDTH){1'b0}};
-		o_SResp <= `OCP_RESP_NULL;
 		int_mask <= 32'b0;
 		iack <= 1'b0;
+		iack_mask <= 32'b0;
 	end
-	else
+	else if(i_MCmd == `OCP_CMD_WRITE)
 	begin
 		/* Interrut acknowledge happens on write to interrupt status  */
-		iack <= (bus_state == WRITE && addr == ISTATREG) ? 1'b1 : 1'b0;
+		iack <= i_MAddr == ISTATREG ? 1'b1 : 1'b0;
 
-		case(bus_state)
-		WRITE: begin
-			if(addr == IMASKREG)
-			begin
-				int_mask <= wdata;
-			end
-			o_SResp <= `OCP_RESP_DVA;
+		if(i_MAddr == ISTATREG)
+		begin
+			iack_mask <= i_MData[31:0];
 		end
-		READ: begin
-			if(addr == ISTATREG)
-			begin
-				o_SData <= { {(`DATA_WIDTH-32){1'b0}},
-					int_mask & raw_int };
-			end
-			else if(addr == IMASKREG)
-			begin
-				o_SData <= int_mask;
-			end
-			else if(addr == IRAWREG)
-			begin
-				o_SData <= raw_int;
-			end
-			else
-				o_SData <= 32'hDEADDEAD;
-			o_SResp <= `OCP_RESP_DVA;
+		if(i_MAddr == IMASKREG)
+		begin
+			int_mask <= i_MData[31:0];
 		end
-		default: begin
-			o_SResp <= `OCP_RESP_NULL;
-		end
-		endcase
-	end
+	end else
+		iack <= 1'b0;
 end
 
+
 assign o_intr = |(int_mask & raw_int);
+
 
 /* Accept and acknowledge interrupts */
 always @(posedge clk or negedge nrst)
@@ -190,7 +163,7 @@ begin
 	end
 	else
 	begin
-		raw_int <= (iack ? raw_int & ~wdata : raw_int) | i_intr_vec;
+		raw_int <= (iack ? raw_int & ~iack_mask : raw_int) | i_intr_vec;
 	end
 end
 
