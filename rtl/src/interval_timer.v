@@ -96,7 +96,7 @@ assign o_SCmdAccept = 1'b1;	/* Always ready to accept command */
 
 
 /* Bus logic */
-always @(i_MCmd)
+always @(*)
 begin
 	case(i_MCmd)
 	`OCP_CMD_WRITE: begin

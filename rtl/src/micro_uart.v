@@ -51,11 +51,6 @@ module micro_uart(
 	o_SData,
 	o_SResp
 );
-/* Bus interface FSM states */
-localparam [2:0] IDLE  = 3'b001;
-localparam [2:0] WRITE = 3'b010;
-localparam [2:0] READ  = 3'b100;
-
 /* Register offsets */
 localparam [`ADDR_WIDTH-1:0] CHARREG = 32'h000;	/* Character register */
 
@@ -71,80 +66,36 @@ output reg [`DATA_WIDTH-1:0]	o_SData;
 output reg [1:0]		o_SResp;
 
 
-/* Latched address and data */
-reg [`ADDR_WIDTH-1:0] addr;
-reg [`DATA_WIDTH-1:0] wdata;
-
-/* Bus FSM state */
-reg [2:0] bus_state;
-reg [2:0] bus_next_state;
+assign o_SCmdAccept = 1'b1;	/* Always ready to accept command */
 
 
-assign o_SCmdAccept = (i_MCmd == `OCP_CMD_IDLE || bus_state == IDLE) ? 1'b1 : 1'b0;
-
-
-/* Latch inputs */
-always @(posedge clk)
-begin
-	addr <= i_MAddr;
-	wdata <= i_MData;
-end
-
-
-/* Seq logic */
-always @(posedge clk or negedge nrst)
-	bus_state <= nrst ? bus_next_state : IDLE;
-
-
-/* Next state logic */
+/* Bus logic */
 always @(*)
 begin
-	bus_next_state = IDLE;
-
-	if(bus_state == IDLE)
-	begin
-		case(i_MCmd)
-		`OCP_CMD_WRITE: bus_next_state = WRITE;
-		`OCP_CMD_READ: bus_next_state = READ;
-		default: bus_next_state = IDLE;
-		endcase
-	end
-end
-
-
-/* Output logic */
-always @(bus_state or negedge nrst)
-begin
-	if(!nrst)
-	begin
-		o_SData <= { (`DATA_WIDTH){1'b0} };
-		o_SResp <= `OCP_RESP_NULL;
-	end
-	else
-	begin
-		case(bus_state)
-		WRITE: begin
-			if(addr == CHARREG)
-			begin
-				$write("%c", wdata[7:0]);
-			end
-			o_SResp <= `OCP_RESP_DVA;
+	case(i_MCmd)
+	`OCP_CMD_WRITE: begin
+		if(i_MAddr == CHARREG)
+		begin
+			$write("%c", i_MData[7:0]);
 		end
-		READ: begin
-			if(addr == CHARREG)
-			begin
-				/* Ignored. Always 0. */
-				o_SData <= { (`DATA_WIDTH){1'b0} };
-			end
-			else
-				o_SData <= 32'hDEADDEAD;
-			o_SResp <= `OCP_RESP_DVA;
-		end
-		default: begin
-			o_SResp <= `OCP_RESP_NULL;
-		end
-		endcase
+		o_SData = { (`DATA_WIDTH){1'b0} };
+		o_SResp = `OCP_RESP_DVA;
 	end
+	`OCP_CMD_READ: begin
+		if(i_MAddr == CHARREG)
+		begin
+			/* Ignored. Always 0. */
+			o_SData = { (`DATA_WIDTH){1'b0} };
+		end
+		else
+			o_SData = 32'hDEADDEAD;
+		o_SResp = `OCP_RESP_DVA;
+	end
+	default: begin
+		o_SData = { (`DATA_WIDTH){1'b0} };
+		o_SResp = `OCP_RESP_NULL;
+	end
+	endcase
 end
 
 endmodule /* micro_uart */

@@ -49,11 +49,6 @@ module memory #(
 	o_SData,
 	o_SResp
 );
-/* Bus interface FSM states */
-localparam [2:0] IDLE  = 3'b001;
-localparam [2:0] WRITE = 3'b010;
-localparam [2:0] READ  = 3'b100;
-
 /* Inputs and outputs */
 input wire			clk;
 input wire			nrst;
@@ -67,15 +62,6 @@ output reg [1:0]		o_SResp;
 
 /* RAM */
 reg [`DATA_WIDTH-1:0] mem[0:MEMWORDS-1];
-
-/* Latched address, data and byte enable */
-reg [`ADDR_WIDTH-1:0] addr;
-reg [`DATA_WIDTH-1:0] wdata;
-reg [`BEN_WIDTH-1:0]  ben;
-
-/* Bus FSM state */
-reg [2:0] bus_state;
-reg [2:0] bus_next_state;
 
 
 integer i;
@@ -91,41 +77,11 @@ begin
 end
 
 
-assign o_SCmdAccept = (i_MCmd == `OCP_CMD_IDLE || bus_state == IDLE) ? 1'b1 : 1'b0;
+assign o_SCmdAccept = 1'b1;	/* Always accept command */
 
 
-/* Latch inputs */
-always @(posedge clk)
-begin
-	addr <= i_MAddr;
-	wdata <= i_MData;
-	ben <= i_MByteEn;
-end
-
-
-/* Seq logic */
+/* Bus logic */
 always @(posedge clk or negedge nrst)
-	bus_state <= nrst ? bus_next_state : IDLE;
-
-
-/* Next state logic */
-always @(*)
-begin
-	bus_next_state = IDLE;
-
-	if(bus_state == IDLE)
-	begin
-		case(i_MCmd)
-		`OCP_CMD_WRITE: bus_next_state = WRITE;
-		`OCP_CMD_READ: bus_next_state = READ;
-		default: bus_next_state = IDLE;
-		endcase
-	end
-end
-
-
-/* Output logic */
-always @(bus_state or negedge nrst)
 begin
 	if(!nrst)
 	begin
@@ -134,22 +90,22 @@ begin
 	end
 	else
 	begin
-		case(bus_state)
-		WRITE: begin
-			if(addr[`ADDR_WIDTH-1:2] < MEMWORDS)
+		case(i_MCmd)
+		`OCP_CMD_WRITE: begin
+			if(i_MAddr[`ADDR_WIDTH-1:2] < MEMWORDS)
 			begin
-				if(ben[0]) mem[addr[`ADDR_WIDTH-1:2]][7:0]   <= wdata[7:0];
-				if(ben[1]) mem[addr[`ADDR_WIDTH-1:2]][15:8]  <= wdata[15:8];
-				if(ben[2]) mem[addr[`ADDR_WIDTH-1:2]][23:16] <= wdata[23:16];
-				if(ben[3]) mem[addr[`ADDR_WIDTH-1:2]][31:24] <= wdata[31:24];
+				if(i_MByteEn[0]) mem[i_MAddr[`ADDR_WIDTH-1:2]][7:0]   <= i_MData[7:0];
+				if(i_MByteEn[1]) mem[i_MAddr[`ADDR_WIDTH-1:2]][15:8]  <= i_MData[15:8];
+				if(i_MByteEn[2]) mem[i_MAddr[`ADDR_WIDTH-1:2]][23:16] <= i_MData[23:16];
+				if(i_MByteEn[3]) mem[i_MAddr[`ADDR_WIDTH-1:2]][31:24] <= i_MData[31:24];
 				/* Note: Need to be modified if DATA_WIDTH/BEN_WIDTH changed. */
 			end
 			o_SResp <= `OCP_RESP_DVA;
 		end
-		READ: begin
-			if(addr[`ADDR_WIDTH-1:2] < MEMWORDS)
+		`OCP_CMD_READ: begin
+			if(i_MAddr[`ADDR_WIDTH-1:2] < MEMWORDS)
 			begin
-				o_SData <= mem[addr[`ADDR_WIDTH-1:2]];
+				o_SData <= mem[i_MAddr[`ADDR_WIDTH-1:2]];
 			end
 			else
 				o_SData <= 32'hDEADDEAD;

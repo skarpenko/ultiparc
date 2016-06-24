@@ -39,6 +39,10 @@
  *              [31]   - used to indicate error condition on model termination;
  *              [30:1] - ignored;
  *              [0]    - stop simulation if 1 written.
+ *    0x04  -  response delay register;
+ *             Bits:
+ *              [31:8] - ignored;
+ *              [7:0]  - cycles to delay.
  */
 module sim_control(
 	clk,
@@ -52,13 +56,9 @@ module sim_control(
 	o_SData,
 	o_SResp
 );
-/* Bus interface FSM states */
-localparam [2:0] IDLE  = 3'b001;
-localparam [2:0] WRITE = 3'b010;
-localparam [2:0] READ  = 3'b100;
-
 /* Register offsets */
 localparam [`ADDR_WIDTH-1:0] CTRLREG = 32'h000;	/* Control register */
+localparam [`ADDR_WIDTH-1:0] DELYREG = 32'h004;	/* Delay register */
 
 /* Inputs and outputs */
 input wire			clk;
@@ -72,88 +72,81 @@ output reg [`DATA_WIDTH-1:0]	o_SData;
 output reg [1:0]		o_SResp;
 
 
-/* Latched address and data */
-reg [`ADDR_WIDTH-1:0] addr;
-reg [`DATA_WIDTH-1:0] wdata;
-
-reg [`DATA_WIDTH-1:0] last_value; /* Last written value */
-
-/* Bus FSM state */
-reg [2:0] bus_state;
-reg [2:0] bus_next_state;
+reg [`DATA_WIDTH-1:0] last_value;	/* Last written value */
+reg [7:0] delay;			/* Amount of cycles to delay */
+reg [7:0] counter;			/* Current delay counter */
 
 
-assign o_SCmdAccept = (i_MCmd == `OCP_CMD_IDLE || bus_state == IDLE) ? 1'b1 : 1'b0;
+assign o_SCmdAccept = (i_MCmd == `OCP_CMD_IDLE || counter == 8'h00) ? 1'b1 : 1'b0;
 
 
-/* Latch inputs */
-always @(posedge clk)
-begin
-	addr <= i_MAddr;
-	wdata <= i_MData;
-end
-
-
-/* Seq logic */
+/* Ctl device logic */
 always @(posedge clk or negedge nrst)
-	bus_state <= nrst ? bus_next_state : IDLE;
-
-
-/* Next state logic */
-always @(*)
-begin
-	bus_next_state = IDLE;
-
-	if(bus_state == IDLE)
-	begin
-		case(i_MCmd)
-		`OCP_CMD_WRITE: bus_next_state = WRITE;
-		`OCP_CMD_READ: bus_next_state = READ;
-		default: bus_next_state = IDLE;
-		endcase
-	end
-end
-
-
-/* Output logic */
-always @(bus_state or negedge nrst)
 begin
 	if(!nrst)
 	begin
 		o_SData <= { (`DATA_WIDTH){1'b0} };
 		o_SResp <= `OCP_RESP_NULL;
+		delay <= 8'h00;
+		counter <= 8'h00;
+		last_value <= 32'h00;
 	end
-	else
+	else if(counter == 8'h00)
 	begin
-		case(bus_state)
-		WRITE: begin
-			if(addr == CTRLREG)
+		case(i_MCmd)
+		`OCP_CMD_WRITE: begin
+			if(i_MAddr == CTRLREG)
 			begin
-				last_value <= wdata;
-				if(wdata[0])
+				last_value <= i_MData;
+				if(i_MData[0])
 				begin
-					if(wdata[31])
+					if(i_MData[31])
 						$display("SIMULATION TERMINATED WITH ERRORS!");
 					else
 						$display("SIMULATION SUCCESSFULLY TERMINATED!");
 				end
 			end
-			o_SResp <= `OCP_RESP_DVA;
+			else if(i_MAddr == DELYREG)
+			begin
+				delay <= i_MData[7:0];
+			end
+
+			/* Respond if no delay */
+			if(delay == 8'h00)
+				o_SResp <= `OCP_RESP_DVA;
+			else
+				counter <= delay;
 		end
-		READ: begin
-			if(addr == CTRLREG)
+		`OCP_CMD_READ: begin
+			if(i_MAddr == CTRLREG)
 			begin
 				o_SData <= last_value;
 			end
+			else if(i_MAddr == DELYREG)
+			begin
+				o_SData <= { 24'h0, delay };
+			end
 			else
 				o_SData <= 32'hDEADDEAD;
-			o_SResp <= `OCP_RESP_DVA;
+
+			/* Respond if no delay */
+			if(delay == 8'h00)
+				o_SResp <= `OCP_RESP_DVA;
+			else
+				counter <= delay;
 		end
 		default: begin
 			o_SResp <= `OCP_RESP_NULL;
 		end
 		endcase
 	end
+	else if(counter == 8'h01)
+	begin
+		o_SResp <= `OCP_RESP_DVA;
+		counter <= 8'h00;
+	end
+	else
+		counter <= counter - 1;
 end
 
 endmodule /* sim_control */

@@ -42,6 +42,7 @@ module tb_sim_control();
 
 	/* Control device registers */
 	localparam [`ADDR_WIDTH-1:0] CTRLREG = 32'h000;	/* Control register */
+	localparam [`ADDR_WIDTH-1:0] DELYREG = 32'h004;	/* Delay register */
 
 	reg clk;
 	reg nrst;
@@ -120,6 +121,16 @@ module tb_sim_control();
 
 		/* Read control register */
 		bus_read(CTRLREG);
+
+		#(2*PCLK)
+
+		/* Write delay register */
+		bus_write(DELYREG, 32'h0000_0008);
+
+		/* Read delay register */
+		bus_read(DELYREG);
+
+		#(16*PCLK)
 
 		/* Write control register and finish simulation */
 		bus_write(CTRLREG, 32'h0000_0001);	/* Normal termination */
