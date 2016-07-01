@@ -96,23 +96,19 @@ input wire [1:0]		i_P_SResp;
 
 
 /* Bus interface FSM states */
-localparam [4:0] IDLE   = 5'b00001;	/* Idle state */
-localparam [4:0] RUN    = 5'b00010;	/* Start transaction */
-localparam [4:0] DWAIT  = 5'b00100;	/* Wait for slave data */
-localparam [4:0] CWAIT  = 5'b01000;	/* Conflict wait */
-localparam [4:0] BWAIT  = 5'b10000;	/* Wait for bus ready */
+localparam [2:0] BUS_IDLE = 3'b001;	/* Idle state */
+localparam [2:0] BUS_WAIT = 3'b010;	/* Wait for slave response */
+localparam [2:0] BUS_CONF = 3'b100;	/* Wait for conflict resolution */
 
 
-/* Bus FSM state */
-reg [6:0] i_bus_state;
-reg [6:0] i_bus_next_state;
-reg [6:0] d_bus_state;
-reg [6:0] d_bus_next_state;
+/* Bus FSM state registers */
+reg [2:0] i_bus_state;
+reg [2:0] d_bus_state;
 
 
 /* Command accept signals */
-assign o_I_SCmdAccept = ((i_bus_state == IDLE || i_I_MCmd == `OCP_CMD_IDLE) ? 1'b1 : 1'b0);
-assign o_D_SCmdAccept = ((d_bus_state == IDLE || i_D_MCmd == `OCP_CMD_IDLE) ? 1'b1 : 1'b0);
+assign o_I_SCmdAccept = ((i_bus_state == BUS_IDLE || i_I_MCmd == `OCP_CMD_IDLE) ? 1'b1 : 1'b0);
+assign o_D_SCmdAccept = ((d_bus_state == BUS_IDLE || i_D_MCmd == `OCP_CMD_IDLE) ? 1'b1 : 1'b0);
 
 
 /* Return port number */
@@ -130,7 +126,7 @@ function [`ADDR_WIDTH-1:0] decode_addr;
 endfunction
 
 
-/* Check for conflict */
+/* Check for address conflict */
 function confl;
 	input [`ADDR_WIDTH-1:0] i_addr;
 	input [2:0] i_cmd;
@@ -141,18 +137,6 @@ function confl;
 endfunction
 
 
-/* Latched instructions port inputs */
-reg [`ADDR_WIDTH-1:0]		i_addr;
-reg [2:0]			i_cmd;
-reg [`DATA_WIDTH-1:0]		i_data;
-reg [`BEN_WIDTH-1:0]		i_ben;
-
-/* Latched data port inputs */
-reg [`ADDR_WIDTH-1:0]		d_addr;
-reg [2:0]			d_cmd;
-reg [`DATA_WIDTH-1:0]		d_data;
-reg [`BEN_WIDTH-1:0]		d_ben;
-
 /* Internal instructions port connections */
 reg [`ADDR_WIDTH-1:0]		I_MAddr;
 reg [2:0]			I_MCmd;
@@ -161,6 +145,7 @@ reg [`BEN_WIDTH-1:0]		I_MByteEn;
 wire [`DATA_WIDTH-1:0]		I_SData;
 wire [1:0]			I_SResp;
 wire				I_SCmdAccept;
+
 
 /* Internal data port connections */
 reg [`ADDR_WIDTH-1:0]		D_MAddr;
@@ -172,173 +157,167 @@ wire [1:0]			D_SResp;
 wire				D_SCmdAccept;
 
 
+/* Output */
+assign o_I_SData = I_SData;
+assign o_I_SResp = I_SResp;
+assign o_D_SData = D_SData;
+assign o_D_SResp = D_SResp;
+
+
 reg i_busy;	/* Instruction fetch on the fly */
-reg d_busy;	/* Data fetch on the fly */
+reg d_busy;	/* Data read/write on the fly */
+
 
 wire select;
-
 assign select = (d_busy ? 1'b0 : 1'b1);	/* Select port */
 
 
-/* Force outputs to zero if in idle state */
-assign o_I_SData = I_SData & (i_bus_state == IDLE ? {(`DATA_WIDTH){1'b0}} :
-	{(`DATA_WIDTH){1'b1}} );
-assign o_I_SResp = I_SResp & (i_bus_state == IDLE ? 2'b00 : 2'b11 );
-assign o_D_SData = D_SData & (d_bus_state == IDLE ? {(`DATA_WIDTH){1'b0}} :
-	{(`DATA_WIDTH){1'b1}} );
-assign o_D_SResp = D_SResp & (d_bus_state == IDLE ? 2'b00 : 2'b11 );
+/* Latched instruction request */
+reg [`ADDR_WIDTH-1:0]		i_addr;
+reg [2:0]			i_cmd;
+reg [`DATA_WIDTH-1:0]		i_data;
+reg [`BEN_WIDTH-1:0]		i_ben;
 
 
-/* Latch inputs */
-always @(posedge clk)
-begin
-	i_addr <= i_I_MAddr;
-	i_cmd <= i_I_MCmd;
-	i_data <= i_I_MData;
-	i_ben <= i_I_MByteEn;
-	d_addr <= i_D_MAddr;
-	d_cmd <= i_D_MCmd;
-	d_data <= i_D_MData;
-	d_ben <= i_D_MByteEn;
-end
+/* Latched data request */
+reg [`ADDR_WIDTH-1:0]		d_addr;
+reg [2:0]			d_cmd;
+reg [`DATA_WIDTH-1:0]		d_data;
+reg [`BEN_WIDTH-1:0]		d_ben;
 
 
-/* Seq logic */
+/* Instructions port FSM  */
 always @(posedge clk or negedge nrst)
-begin
-	i_bus_state <= nrst ? i_bus_next_state : IDLE;
-	d_bus_state <= nrst ? d_bus_next_state : IDLE;
-end
-
-
-/* Next state logic for instructions port */
-always @(*)
-begin : instructions_port
-	i_bus_next_state = IDLE;
-
-	if(i_bus_state == IDLE && i_I_MCmd != `OCP_CMD_IDLE && port_no(i_I_MAddr) == PORT)
-		i_bus_next_state = RUN;
-	else if(i_bus_state == RUN && (confl(i_I_MAddr, i_I_MCmd, i_D_MAddr, i_D_MCmd) || d_busy || !i_busy))
-		i_bus_next_state = CWAIT;
-	else if(i_bus_state == RUN && I_SCmdAccept == 1'b0)
-		i_bus_next_state = BWAIT;
-	else if(i_bus_state == RUN)
-		i_bus_next_state = DWAIT;
-	else if(i_bus_state == CWAIT && !d_busy && i_busy && I_SCmdAccept == 1'b0)
-		i_bus_next_state = BWAIT;
-	else if(i_bus_state == CWAIT && !d_busy && i_busy)
-		i_bus_next_state = DWAIT;
-	else if(i_bus_state == CWAIT)
-		i_bus_next_state = CWAIT;
-	else if(i_bus_state == BWAIT && I_SCmdAccept == 1'b0)
-		i_bus_next_state = BWAIT;
-	else if(i_bus_state == BWAIT && i_P_SResp != `OCP_RESP_NULL)
-		i_bus_next_state = IDLE;
-	else if(i_bus_state == BWAIT)
-		i_bus_next_state = DWAIT;
-	else if(i_bus_state == DWAIT && i_P_SResp != `OCP_RESP_NULL)
-		i_bus_next_state = IDLE;
-	else if(i_bus_state == DWAIT)
-		i_bus_next_state = DWAIT;
-end
-
-
-/* Next state logic for data port */
-always @(*)
-begin : data_port
-	d_bus_next_state = IDLE;
-
-	if(d_bus_state == IDLE && i_D_MCmd != `OCP_CMD_IDLE && port_no(i_D_MAddr) == PORT)
-		d_bus_next_state = RUN;
-	else if(d_bus_state == RUN && (i_busy || !d_busy))
-		d_bus_next_state = CWAIT;
-	else if(d_bus_state == RUN && D_SCmdAccept == 1'b0)
-		d_bus_next_state = BWAIT;
-	else if(d_bus_state == RUN)
-		d_bus_next_state = DWAIT;
-	else if(d_bus_state == CWAIT && !i_busy && d_busy && D_SCmdAccept == 1'b0)
-		d_bus_next_state = BWAIT;
-	else if(d_bus_state == CWAIT && !i_busy && d_busy)
-		d_bus_next_state = DWAIT;
-	else if(d_bus_state == CWAIT)
-		d_bus_next_state = CWAIT;
-	else if(d_bus_state == BWAIT && D_SCmdAccept == 1'b0)
-		d_bus_next_state = BWAIT;
-	else if(d_bus_state == BWAIT && i_P_SResp != `OCP_RESP_NULL)
-		d_bus_next_state = IDLE;
-	else if(d_bus_state == BWAIT)
-		d_bus_next_state = DWAIT;
-	else if(d_bus_state == DWAIT && i_P_SResp != `OCP_RESP_NULL)
-		d_bus_next_state = IDLE;
-	else if(d_bus_state == DWAIT)
-		d_bus_next_state = DWAIT;
-end
-
-
-/* Output logic for instructions port */
-always @(i_bus_state or d_busy)
-begin
-	if(i_bus_state == IDLE)
+begin : instructions_port_fsm
+	if(!nrst)
 	begin
 		I_MAddr <= {(`ADDR_WIDTH){1'b0}};
 		I_MCmd <= 3'b0;
 		I_MData <= {(`DATA_WIDTH){1'b0}};
 		I_MByteEn <= {(`BEN_WIDTH){1'b0}};
+		i_addr <= {(`ADDR_WIDTH){1'b0}};
+		i_cmd <= 3'b0;
+		i_data <= {(`DATA_WIDTH){1'b0}};
+		i_ben <= {(`BEN_WIDTH){1'b0}};
 		i_busy <= 1'b0;
+		i_bus_state <= BUS_IDLE;
 	end
-	else if(i_bus_state == RUN)
+	else
 	begin
-		I_MAddr <= decode_addr(i_addr);
-		I_MCmd <= i_cmd;
-		I_MData <= i_data;
-		I_MByteEn <= i_ben;
-		if(!confl(i_addr, i_cmd, d_addr, d_cmd) && !d_busy)
-			i_busy <= 1'b1;
-	end
-	else if(i_bus_state == CWAIT)
-	begin
-		i_busy <= (!d_busy ? 1'b1 : 1'b0);
-	end
-	else if(i_bus_state == DWAIT)
-	begin
-		I_MAddr <= {(`ADDR_WIDTH){1'b0}};
-		I_MCmd <= 3'b0;
-		I_MData <= {(`DATA_WIDTH){1'b0}};
-		I_MByteEn <= {(`BEN_WIDTH){1'b0}};
+		case(i_bus_state)
+		BUS_IDLE: begin
+			if(i_I_MCmd != `OCP_CMD_IDLE && port_no(i_I_MAddr) == PORT)
+			begin
+				if(confl(i_I_MAddr, i_I_MCmd, i_D_MAddr, i_D_MCmd) || d_busy)
+				begin
+					i_addr <= i_I_MAddr;
+					i_cmd <= i_I_MCmd;
+					i_data <= i_I_MData;
+					i_ben <= i_I_MByteEn;
+					i_bus_state <= BUS_CONF;
+				end
+				else
+				begin
+					I_MAddr <= decode_addr(i_I_MAddr);
+					I_MCmd <= i_I_MCmd;
+					I_MData <= i_I_MData;
+					I_MByteEn <= i_I_MByteEn;
+					i_busy <= 1'b1;
+					i_bus_state <= BUS_WAIT;
+				end
+			end
+		end
+		BUS_WAIT: begin
+			if(I_SCmdAccept != 1'b0)
+			begin
+				I_MCmd <= `OCP_CMD_IDLE;
+				if(I_SResp != `OCP_RESP_NULL)
+				begin
+					i_busy <= 1'b0;
+					i_bus_state <= BUS_IDLE;
+				end
+			end
+		end
+		BUS_CONF: begin
+			if(!confl(i_addr, i_cmd, i_D_MAddr, i_D_MCmd) && !d_busy)
+			begin
+				I_MAddr <= decode_addr(i_addr);
+				I_MCmd <= i_cmd;
+				I_MData <= i_data;
+				I_MByteEn <= i_ben;
+				i_busy <= 1'b1;
+				i_bus_state <= BUS_WAIT;
+			end
+		end
+		endcase
 	end
 end
 
 
-/* Output logic for data port */
-always @(d_bus_state or i_busy)
-begin
-	if(d_bus_state == IDLE)
+/* Data port FSM  */
+always @(posedge clk or negedge nrst)
+begin : data_port_fsm
+	if(!nrst)
 	begin
 		D_MAddr <= {(`ADDR_WIDTH){1'b0}};
 		D_MCmd <= 3'b0;
 		D_MData <= {(`DATA_WIDTH){1'b0}};
 		D_MByteEn <= {(`BEN_WIDTH){1'b0}};
+		d_addr <= {(`ADDR_WIDTH){1'b0}};
+		d_cmd <= 3'b0;
+		d_data <= {(`DATA_WIDTH){1'b0}};
+		d_ben <= {(`BEN_WIDTH){1'b0}};
 		d_busy <= 1'b0;
+		d_bus_state <= BUS_IDLE;
 	end
-	else if(d_bus_state == RUN)
+	else
 	begin
-		D_MAddr <= decode_addr(d_addr);
-		D_MCmd <= d_cmd;
-		D_MData <= d_data;
-		D_MByteEn <= d_ben;
-		if(!i_busy)
-			d_busy <= 1'b1;
-	end
-	else if(d_bus_state == CWAIT)
-	begin
-		d_busy <= (!i_busy ? 1'b1 : 1'b0);
-	end
-	else if(d_bus_state == DWAIT)
-	begin
-		D_MAddr <= {(`ADDR_WIDTH){1'b0}};
-		D_MCmd <= 3'b0;
-		D_MData <= {(`DATA_WIDTH){1'b0}};
-		D_MByteEn <= {(`BEN_WIDTH){1'b0}};
+		case(d_bus_state)
+		BUS_IDLE: begin
+			if(i_D_MCmd != `OCP_CMD_IDLE && port_no(i_D_MAddr) == PORT)
+			begin
+				if(i_busy)
+				begin
+					d_addr <= i_D_MAddr;
+					d_cmd <= i_D_MCmd;
+					d_data <= i_D_MData;
+					d_ben <= i_D_MByteEn;
+					d_bus_state <= BUS_CONF;
+				end
+				else
+				begin
+					D_MAddr <= decode_addr(i_D_MAddr);
+					D_MCmd <= i_D_MCmd;
+					D_MData <= i_D_MData;
+					D_MByteEn <= i_D_MByteEn;
+					d_busy <= 1'b1;
+					d_bus_state <= BUS_WAIT;
+				end
+			end
+		end
+		BUS_WAIT: begin
+			if(D_SCmdAccept != 1'b0)
+			begin
+				D_MCmd <= `OCP_CMD_IDLE;
+				if(D_SResp != `OCP_RESP_NULL)
+				begin
+					d_busy <= 1'b0;
+					d_bus_state <= BUS_IDLE;
+				end
+			end
+		end
+		BUS_CONF: begin
+			if(!i_busy)
+			begin
+				D_MAddr <= decode_addr(d_addr);
+				D_MCmd <= d_cmd;
+				D_MData <= d_data;
+				D_MByteEn <= d_ben;
+				d_busy <= 1'b1;
+				d_bus_state <= BUS_WAIT;
+			end
+		end
+		endcase
 	end
 end
 

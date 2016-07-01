@@ -271,6 +271,8 @@ module tb_fabric();
 
 		wait_pos_clk();
 		wait_pos_clk();
+		wait_pos_clk();
+		wait_pos_clk();
 
 		/* Simultaneous access conflict */
 		id_bus_read(32'h0000_0000, 32'h0000_0004);
