@@ -9,7 +9,8 @@ TESTBENCHES := \
 	tb_sim_control \
 	tb_micro_uart \
 	tb_memory \
-	tb_fabric
+	tb_fabric \
+	tb_sys_top
 
 
 TB ?=

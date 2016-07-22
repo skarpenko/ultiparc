@@ -24,84 +24,20 @@
  */
 
 /*
- * CPU top level
+ * CPU common defines
  */
 
-`include "cpu_common.vh"
-`include "cpu_const.vh"
+`ifndef _CPU_COMMON_VH_
+`define _CPU_COMMON_VH_
 
 
-/* CPU */
-module cpu_top(
-	clk,
-	nrst,
-	/* Interrupt input */
-	i_intr,
-	/* I-Port */
-	o_IAddr,
-	o_IRdC,
-	i_IData,
-	i_IRdy,
-	i_IErr,
-	/* D-Port */
-	o_DAddr,
-	o_DCmd,
-	o_DRnW,
-	o_DBen,
-	o_DData,
-	i_DData,
-	i_DRdy,
-	i_DErr
-);
-input wire clk;
-input wire nrst;
-/* Interrupt input */
-input wire i_intr;
-/* I-Port */
-output reg [`CPU_ADDR_WIDTH-1:0]	o_IAddr;
-output reg				o_IRdC;
-input wire [`CPU_DATA_WIDTH-1:0]	i_IData;
-input wire				i_IRdy;
-input wire				i_IErr;
-/* D-Port */
-output reg [`CPU_ADDR_WIDTH-1:0]	o_DAddr;
-output reg				o_DCmd;
-output reg				o_DRnW;
-output reg [`CPU_BEN_WIDTH-1:0]		o_DBen;
-output reg [`CPU_DATA_WIDTH-1:0]	o_DData;
-input wire [`CPU_DATA_WIDTH-1:0]	i_DData;
-input wire				i_DRdy;
-input wire				i_DErr;
+`define CPU_ADDR_WIDTH	32			/* Address width */
+`define CPU_DATA_WIDTH	32			/* Data width */
+`define CPU_BEN_WIDTH	(`CPU_DATA_WIDTH/8)	/* Byte enable width */
+`define CPU_INSTR_WIDTH	32			/* Instruction width */
+`define CPU_REG_WIDTH	32			/* Registers width */
+`define CPU_ADDR_SIZE	(`CPU_ADDR_WIDTH/8)	/* Address size */
+`define CPU_INSTR_SIZE	(`CPU_INSTR_WIDTH/8)	/* Instruction size */
 
 
-/* tbd */
-always @(posedge clk or negedge nrst)
-begin
-	if(!nrst)
-	begin
-		o_IAddr <= 0;
-		o_IRdC <= 0;
-		o_DAddr <= 0;
-		o_DCmd <= 0;
-		o_DRnW <= 0;
-		o_DBen <= 0;
-		o_DData <= 0;
-	end
-	else if(o_IRdC == 1'b0)
-	begin
-		o_IRdC <= 1'b1;
-		o_DBen <= 4'hf;
-		o_DCmd <= 1'b1;
-	end
-	else
-	begin
-		o_IRdC <= 1'b0;
-		o_DBen <= 4'hf;
-		o_DCmd <= 1'b0;
-	end
-end
-
-
-
-
-endmodule /* cpu_top */
+`endif /* _CPU_COMMON_VH_ */

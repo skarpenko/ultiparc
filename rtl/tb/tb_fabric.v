@@ -416,6 +416,7 @@ module tb_fabric();
 		.o_SResp(P_SResp[0])
 	);
 
+
 	/* Instantiate micro UART */
 	micro_uart uart(
 		.clk(clk),

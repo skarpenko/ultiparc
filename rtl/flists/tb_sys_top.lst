@@ -1,0 +1,19 @@
+# System top testbench
+
++define+TRACE_FILE="tb_sys_top.vcd"
++define+MEMORY_IMAGE="tb/tb_memory.hex"
++incdir+src/cpu/
++timescale+1us/100ns
+src/fabric.v
+src/fabric_port.v
+src/fabric_port_demux.v
+src/memory.v
+src/interval_timer.v
+src/intr_controller.v
+src/micro_uart.v
+src/sim_control.v
+src/ibus2ocp.v
+src/dbus2ocp.v
+src/sys_top.v
+src/cpu/cpu_top.v
+tb/tb_sys_top.v

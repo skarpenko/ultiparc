@@ -24,84 +24,49 @@
  */
 
 /*
- * CPU top level
+ * Testbench for system top
  */
 
-`include "cpu_common.vh"
-`include "cpu_const.vh"
+`include "common.vh"
+`include "ocp_const.vh"
 
 
-/* CPU */
-module cpu_top(
-	clk,
-	nrst,
-	/* Interrupt input */
-	i_intr,
-	/* I-Port */
-	o_IAddr,
-	o_IRdC,
-	i_IData,
-	i_IRdy,
-	i_IErr,
-	/* D-Port */
-	o_DAddr,
-	o_DCmd,
-	o_DRnW,
-	o_DBen,
-	o_DData,
-	i_DData,
-	i_DRdy,
-	i_DErr
-);
-input wire clk;
-input wire nrst;
-/* Interrupt input */
-input wire i_intr;
-/* I-Port */
-output reg [`CPU_ADDR_WIDTH-1:0]	o_IAddr;
-output reg				o_IRdC;
-input wire [`CPU_DATA_WIDTH-1:0]	i_IData;
-input wire				i_IRdy;
-input wire				i_IErr;
-/* D-Port */
-output reg [`CPU_ADDR_WIDTH-1:0]	o_DAddr;
-output reg				o_DCmd;
-output reg				o_DRnW;
-output reg [`CPU_BEN_WIDTH-1:0]		o_DBen;
-output reg [`CPU_DATA_WIDTH-1:0]	o_DData;
-input wire [`CPU_DATA_WIDTH-1:0]	i_DData;
-input wire				i_DRdy;
-input wire				i_DErr;
+`ifndef TRACE_FILE
+`define TRACE_FILE "trace.vcd"
+`endif
 
 
-/* tbd */
-always @(posedge clk or negedge nrst)
-begin
-	if(!nrst)
+module tb_sys_top();
+	localparam HCLK = 5;
+	localparam PCLK = 2*HCLK;	/* Clock period */
+
+	reg clk;
+	reg nrst;
+
+	always
+		#HCLK clk = !clk;
+
+
+	initial
 	begin
-		o_IAddr <= 0;
-		o_IRdC <= 0;
-		o_DAddr <= 0;
-		o_DCmd <= 0;
-		o_DRnW <= 0;
-		o_DBen <= 0;
-		o_DData <= 0;
+		/* Set tracing */
+		$dumpfile(`TRACE_FILE);
+		$dumpvars(0, tb_sys_top);
+
+		clk = 1;
+		nrst = 0;
+		#(10*PCLK) nrst = 1;
+
+
+		#500 $finish;
 	end
-	else if(o_IRdC == 1'b0)
-	begin
-		o_IRdC <= 1'b1;
-		o_DBen <= 4'hf;
-		o_DCmd <= 1'b1;
-	end
-	else
-	begin
-		o_IRdC <= 1'b0;
-		o_DBen <= 4'hf;
-		o_DCmd <= 1'b0;
-	end
-end
 
 
+	/* Instantiate system top */
+	sys_top sys(
+		.clk(clk),
+		.nrst(nrst)
+	);
 
 
-endmodule /* cpu_top */
+endmodule /* tb_sys_top */
