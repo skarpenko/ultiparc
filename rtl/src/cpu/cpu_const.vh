@@ -31,11 +31,11 @@
 `define _CPU_CONST_VH_
 
 
-/* Data memory access type */
-`define CPU_DMEMA_NONE		2'b00	/* None */
-`define CPU_DMEMA_BYTE		2'b01	/* Load/store byte */
-`define CPU_DMEMA_HWORD		2'b10	/* Load/store halfword */
-`define CPU_DMEMA_WORD		2'b11	/* Load/store word */
+/* Load-store unit commands */
+`define CPU_LSU_IDLE		2'b00	/* Idle state */
+`define CPU_LSU_BYTE		2'b01	/* Load/store byte */
+`define CPU_LSU_HWORD		2'b10	/* Load/store halfword */
+`define CPU_LSU_WORD		2'b11	/* Load/store word */
 
 
 `endif /* _CPU_CONST_VH_ */

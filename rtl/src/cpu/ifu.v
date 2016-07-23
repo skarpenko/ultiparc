@@ -24,84 +24,114 @@
  */
 
 /*
- * CPU top level
+ * Instruction fetch unit
  */
 
 `include "cpu_common.vh"
 `include "cpu_const.vh"
 
 
-/* CPU */
-module cpu_top(
+/* IFU */
+module ifu(
 	clk,
 	nrst,
-	/* Interrupt input */
-	i_intr,
-	/* I-Port */
+	/* Internal signals */
+	addr,
+	instr_dat,
+	rd_cmd,
+	busy,
+	err_align,
+	err_bus,
+	/* I-Bus */
 	o_IAddr,
 	o_IRdC,
 	i_IData,
 	i_IRdy,
-	i_IErr,
-	/* D-Port */
-	o_DAddr,
-	o_DCmd,
-	o_DRnW,
-	o_DBen,
-	o_DData,
-	i_DData,
-	i_DRdy,
-	i_DErr
+	i_IErr
 );
+/* I-Bus FSM states */
+localparam READY = 1'b0;	/* Ready to accept response */
+localparam WAIT  = 1'b1;	/* Wait for response */
+
+/* Inputs */
 input wire				clk;
 input wire				nrst;
-/* Interrupt input */
-input wire				i_intr;
-/* I-Port */
+/* Internal CPU interface */
+input wire [`CPU_ADDR_WIDTH-1:0]	addr;
+output reg [`CPU_INSTR_WIDTH-1:0]	instr_dat;
+input wire				rd_cmd;
+output wire				busy;
+output wire				err_align;
+output reg				err_bus;
+/* I-Bus interface */
 output reg [`CPU_ADDR_WIDTH-1:0]	o_IAddr;
 output reg				o_IRdC;
-input wire [`CPU_DATA_WIDTH-1:0]	i_IData;
+input wire [`CPU_INSTR_WIDTH-1:0]	i_IData;
 input wire				i_IRdy;
 input wire				i_IErr;
-/* D-Port */
-output reg [`CPU_ADDR_WIDTH-1:0]	o_DAddr;
-output reg				o_DCmd;
-output reg				o_DRnW;
-output reg [`CPU_BEN_WIDTH-1:0]		o_DBen;
-output reg [`CPU_DATA_WIDTH-1:0]	o_DData;
-input wire [`CPU_DATA_WIDTH-1:0]	i_DData;
-input wire				i_DRdy;
-input wire				i_DErr;
 
 
-/* tbd */
-always @(posedge clk or negedge nrst)
+assign err_align = (rd_cmd == 1'b1 && addr[1:0] != 2'b0);
+assign busy = (!err_align && rd_cmd) || state;
+
+
+reg state;	/* Instruction fetch FSM state */
+
+
+always @(*)
 begin
-	if(!nrst)
+	o_IAddr = 32'b0;
+	o_IRdC = 1'b0;
+
+	/* Issue command to I-Bus if no error */
+	if(!err_align && rd_cmd == 1'b1)
 	begin
-		o_IAddr <= 0;
-		o_IRdC <= 0;
-		o_DAddr <= 0;
-		o_DCmd <= 0;
-		o_DRnW <= 0;
-		o_DBen <= 0;
-		o_DData <= 0;
-	end
-	else if(o_IRdC == 1'b0)
-	begin
-		o_IRdC <= 1'b1;
-		o_DBen <= 4'hf;
-		o_DCmd <= 1'b1;
-	end
-	else
-	begin
-		o_IRdC <= 1'b0;
-		o_DBen <= 4'hf;
-		o_DCmd <= 1'b0;
+		o_IAddr = addr;
+		o_IRdC = 1'b1;
 	end
 end
 
 
+/* I-Bus response wait FSM */
+always @(posedge clk or negedge nrst)
+begin
+	if(!nrst)
+	begin
+		state <= READY;
+		instr_dat <= 32'b0;
+		err_bus <= 1'b0;
+	end
+	else
+	begin
+		err_bus <= 1'b0;
 
+		/*
+		 * Set response if available on current clock,
+		 * otherwise switch to wait state.
+		 */
+		if(state == READY && !err_align && rd_cmd)
+		begin
+			if(i_IErr)
+				err_bus <= 1'b1;
+			else if(i_IRdy)
+				instr_dat <= i_IData;
+			else
+				state <= WAIT;
+		end
+		else if(state == WAIT)
+		begin
+			if(i_IErr)
+			begin
+				err_bus <= 1'b1;
+				state <= 1'b0;
+			end
+			else if(i_IRdy)
+			begin
+				instr_dat <= i_IData;
+				state <= READY;
+			end
+		end
+	end
+end
 
-endmodule /* cpu_top */
+endmodule /* ifu */
