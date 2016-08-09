@@ -199,6 +199,9 @@ begin
 		begin
 			ben <= o_DBen;
 
+			/* Set response if available on current clock,
+			 * otherwise switch to wait.
+			 */
 			if(i_DErr)
 				err_bus <= 1'b1;
 			else if(i_DRdy)
