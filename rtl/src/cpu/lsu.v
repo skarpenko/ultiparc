@@ -149,6 +149,7 @@ begin
 end
 
 
+/* Shift data after load according to byte enable mask */
 function [`CPU_DATA_WIDTH-1:0] shift_sdata;
 input [`CPU_DATA_WIDTH-1:0] sdata;
 input [`CPU_BEN_WIDTH-1:0] ben;
@@ -179,7 +180,7 @@ end
 endfunction
 
 
-reg [`CPU_BEN_WIDTH-1:0] ben;
+reg [`CPU_BEN_WIDTH-1:0] ben; /* Latched byte enable mask */
 
 always @(posedge clk or negedge nrst)
 begin

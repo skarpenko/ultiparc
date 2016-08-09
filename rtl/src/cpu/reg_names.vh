@@ -24,21 +24,46 @@
  */
 
 /*
- * CPU common defines
+ * Register names
  */
 
-`ifndef _CPU_COMMON_VH_
-`define _CPU_COMMON_VH_
+`ifndef _REG_NAMES_VH_
+`define _REG_NAMES_VH_
 
 
-`define CPU_ADDR_WIDTH	32			/* Address width */
-`define CPU_DATA_WIDTH	32			/* Data width */
-`define CPU_BEN_WIDTH	(`CPU_DATA_WIDTH/8)	/* Byte enable width */
-`define CPU_INSTR_WIDTH	32			/* Instruction width */
-`define CPU_REG_WIDTH	32			/* Registers width */
-`define CPU_REGNO_WIDTH	5			/* Register number width (0-31) */
-`define CPU_ADDR_SIZE	(`CPU_ADDR_WIDTH/8)	/* Address size */
-`define CPU_INSTR_SIZE	(`CPU_INSTR_WIDTH/8)	/* Instruction size */
+/* General purpose registers */
+localparam [4:0] R0  = 5'd0;
+localparam [4:0] R1  = 5'd1;
+localparam [4:0] R2  = 5'd2;
+localparam [4:0] R3  = 5'd3;
+localparam [4:0] R4  = 5'd4;
+localparam [4:0] R5  = 5'd5;
+localparam [4:0] R6  = 5'd6;
+localparam [4:0] R7  = 5'd7;
+localparam [4:0] R8  = 5'd8;
+localparam [4:0] R9  = 5'd9;
+localparam [4:0] R10 = 5'd10;
+localparam [4:0] R11 = 5'd11;
+localparam [4:0] R12 = 5'd12;
+localparam [4:0] R13 = 5'd13;
+localparam [4:0] R14 = 5'd14;
+localparam [4:0] R15 = 5'd15;
+localparam [4:0] R16 = 5'd16;
+localparam [4:0] R17 = 5'd17;
+localparam [4:0] R18 = 5'd18;
+localparam [4:0] R19 = 5'd19;
+localparam [4:0] R20 = 5'd20;
+localparam [4:0] R21 = 5'd21;
+localparam [4:0] R22 = 5'd22;
+localparam [4:0] R23 = 5'd23;
+localparam [4:0] R24 = 5'd24;
+localparam [4:0] R25 = 5'd25;
+localparam [4:0] R26 = 5'd26;
+localparam [4:0] R27 = 5'd27;
+localparam [4:0] R28 = 5'd28;
+localparam [4:0] R29 = 5'd29;
+localparam [4:0] R30 = 5'd30;
+localparam [4:0] R31 = 5'd31;
 
 
-`endif /* _CPU_COMMON_VH_ */
+`endif /* _REG_NAMES_VH_ */
