@@ -38,4 +38,23 @@
 `define CPU_LSU_WORD		2'b11	/* Load/store word */
 
 
+/* ALU operations */
+`define CPU_ALUOP_ADD		4'b0000	/* Addition  */
+`define CPU_ALUOP_SUB		4'b0001	/* Subtraction */
+`define CPU_ALUOP_SLL		4'b0010	/* Shift Left Logical */
+`define CPU_ALUOP_SRL		4'b0011	/* Shift Right Logical */
+`define CPU_ALUOP_SRA		4'b0100	/* Shift Right Arithmetic */
+`define CPU_ALUOP_AND		4'b0101	/* And */
+`define CPU_ALUOP_OR		4'b0110	/* Or */
+`define CPU_ALUOP_XOR		4'b0111	/* Xor */
+`define CPU_ALUOP_NOR		4'b1000	/* Nor */
+`define CPU_ALUOP_SLT		4'b1001	/* Set Less Than (signed) */
+`define CPU_ALUOP_SLTU		4'b1010	/* Set Less Than (unsigned) */
+`define CPU_ALUOP_RESVD1	4'b1011	/* Reserved */
+`define CPU_ALUOP_RESVD2	4'b1100	/* Reserved */
+`define CPU_ALUOP_RESVD3	4'b1101	/* Reserved */
+`define CPU_ALUOP_RESVD4	4'b1110	/* Reserved */
+`define CPU_ALUOP_RESVD5	4'b1111	/* Reserved */
+
+
 `endif /* _CPU_CONST_VH_ */

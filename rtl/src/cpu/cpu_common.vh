@@ -39,6 +39,8 @@
 `define CPU_REGNO_WIDTH	5			/* Register number width (0-31) */
 `define CPU_ADDR_SIZE	(`CPU_ADDR_WIDTH/8)	/* Address size */
 `define CPU_INSTR_SIZE	(`CPU_INSTR_WIDTH/8)	/* Instruction size */
+`define CPU_LSUOP_WIDTH	2			/* LSU operation width */
+`define CPU_ALUOP_WIDTH	4			/* ALU operation width */
 
 
 `endif /* _CPU_COMMON_VH_ */
