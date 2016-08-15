@@ -74,8 +74,6 @@ assign ovflow =  (a[`CPU_REG_WIDTH-1] & b_mux[`CPU_REG_WIDTH-1]) ^
 
 always @(*)
 begin
-	result = {(`CPU_REG_WIDTH){1'b0}};
-
 	case(alu_op)
 	`CPU_ALUOP_ADD:  result = a_plus_b;
 	`CPU_ALUOP_SUB:  result = a_plus_b;
@@ -90,6 +88,7 @@ begin
 		{{(`CPU_REG_WIDTH-1){1'b0}}, 1'b1} : {(`CPU_REG_WIDTH){1'b0}});
 	`CPU_ALUOP_SLTU: result = ($unsigned(a) < $unsigned(b) ?
 		{{(`CPU_REG_WIDTH-1){1'b0}}, 1'b1} : {(`CPU_REG_WIDTH){1'b0}});
+	default: result = {(`CPU_REG_WIDTH){1'b0}};
 	endcase
 end
 
