@@ -41,7 +41,7 @@ module alu(
 	zero,
 	neg
 );
-/* Inpus */
+/* Inputs */
 input wire [`CPU_ALUOP_WIDTH-1:0] alu_op;
 input wire [`CPU_REG_WIDTH-1:0] a;
 input wire [`CPU_REG_WIDTH-1:0] b;
