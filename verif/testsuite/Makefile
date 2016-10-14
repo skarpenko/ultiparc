@@ -14,8 +14,17 @@ all: $(TESTSUITES)
 
 
 .PHONY: runtests
-runtests: $(TESTSUITES)
-	perl run_tests.pl
+runtests: runtests_slm
+
+
+.PHONY: runtests_slm
+runtests_slm: $(TESTSUITES)
+	perl run_tests.pl slm
+
+
+.PHONY: runtests_rtl
+runtests_rtl: $(TESTSUITES)
+	perl run_tests.pl rtl
 
 
 .PHONY: clean
