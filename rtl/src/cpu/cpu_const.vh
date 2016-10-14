@@ -57,4 +57,76 @@
 `define CPU_ALUOP_RESVD5	4'b1111	/* Reserved */
 
 
+/* Operation codes */
+`define CPU_OP_SPECIAL		6'b000000
+`define CPU_OP_COP0		6'b010000
+`define CPU_OP_REGIMM		6'b000001
+`define CPU_OP_J		6'b000010
+`define CPU_OP_JAL		6'b000011
+`define CPU_OP_BEQ		6'b000100
+`define CPU_OP_BNE		6'b000101
+`define CPU_OP_BLEZ		6'b000110
+`define CPU_OP_BGTZ		6'b000111
+`define CPU_OP_ADDI		6'b001000
+`define CPU_OP_ADDIU		6'b001001
+`define CPU_OP_SLTI		6'b001010
+`define CPU_OP_SLTIU		6'b001011
+`define CPU_OP_ANDI		6'b001100
+`define CPU_OP_ORI		6'b001101
+`define CPU_OP_XORI		6'b001110
+`define CPU_OP_LUI		6'b001111
+`define CPU_OP_LB		6'b100000
+`define CPU_OP_LH		6'b100001
+`define CPU_OP_LW		6'b100011
+`define CPU_OP_LBU		6'b100100
+`define CPU_OP_LHU		6'b100101
+`define CPU_OP_SB		6'b101000
+`define CPU_OP_SH		6'b101001
+`define CPU_OP_SW		6'b101011
+
+
+/* Function codes */
+`define CPU_FUNC_SLL		6'b000000
+`define CPU_FUNC_SRL		6'b000010
+`define CPU_FUNC_SRA		6'b000011
+`define CPU_FUNC_SLLV		6'b000100
+`define CPU_FUNC_SRLV		6'b000110
+`define CPU_FUNC_SRAV		6'b000111
+`define CPU_FUNC_JR		6'b001000
+`define CPU_FUNC_JALR		6'b001001
+`define CPU_FUNC_SYSCALL	6'b001100
+`define CPU_FUNC_BREAK		6'b001101
+`define CPU_FUNC_MFHI		6'b010000
+`define CPU_FUNC_MTHI		6'b010001
+`define CPU_FUNC_MFLO		6'b010010
+`define CPU_FUNC_MTLO		6'b010011
+`define CPU_FUNC_MULT		6'b011000
+`define CPU_FUNC_MULTU		6'b011001
+`define CPU_FUNC_DIV		6'b011010
+`define CPU_FUNC_DIVU		6'b011011
+`define CPU_FUNC_ADD		6'b100000
+`define CPU_FUNC_ADDU		6'b100001
+`define CPU_FUNC_SUB		6'b100010
+`define CPU_FUNC_SUBU		6'b100011
+`define CPU_FUNC_AND		6'b100100
+`define CPU_FUNC_OR		6'b100101
+`define CPU_FUNC_XOR		6'b100110
+`define CPU_FUNC_NOR		6'b100111
+`define CPU_FUNC_SLT		6'b101010
+`define CPU_FUNC_SLTU		6'b101011
+
+
+/* REGIMM function codes */
+`define CPU_REGIMM_BLTZ		5'b00000
+`define CPU_REGIMM_BGEZ		5'b00001
+`define CPU_REGIMM_BLTZAL	5'b10000
+`define CPU_REGIMM_BGEZAL	5'b10001
+
+
+/* Coprocessor 0 function codes */
+`define CPU_COP0_MF		5'b00000
+`define CPU_COP0_MT		5'b00100
+`define CPU_COP0_RFE		5'b10000
+
+
 `endif /* _CPU_CONST_VH_ */

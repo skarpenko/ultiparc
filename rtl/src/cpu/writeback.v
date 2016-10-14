@@ -24,48 +24,60 @@
  */
 
 /*
- * Testbench for system top
+ * Writeback pipeline stage
  */
 
-`include "common.vh"
-`include "ocp_const.vh"
+`include "cpu_common.vh"
+`include "cpu_const.vh"
 
 
-`ifndef TRACE_FILE
-`define TRACE_FILE "trace.vcd"
-`endif
+/* Writeback stage */
+module writeback(
+	clk,
+	nrst,
+	/* CU signals */
+	i_exec_stall,
+	i_mem_stall,
+	i_fetch_stall,
+	/* Data for writeback */
+	i_dst_gpr,
+	i_dst_gpr_v,
+	o_rd,
+	o_rd_data
+);
+/* Inputs */
+input wire				clk;
+input wire				nrst;
+/* CU signals */
+input wire				i_exec_stall;
+input wire				i_mem_stall;
+input wire				i_fetch_stall;
+/* Input from memory access stage */
+input wire [`CPU_REGNO_WIDTH-1:0]	i_dst_gpr;
+input wire [`CPU_DATA_WIDTH-1:0]	i_dst_gpr_v;
+/* Output for write to register file */
+output reg [`CPU_REGNO_WIDTH-1:0]	o_rd;
+output reg [`CPU_REG_WIDTH-1:0]		o_rd_data;
 
 
-module tb_sys_top();
-	localparam HCLK = 5;
-	localparam PCLK = 2*HCLK;	/* Clock period */
 
-	reg clk;
-	reg nrst;
-
-	always
-		#HCLK clk = !clk;
+wire core_stall;
+assign core_stall = i_exec_stall || i_mem_stall || i_fetch_stall;
 
 
-	initial
+always @(posedge clk or negedge nrst)
+begin
+	if(!nrst)
 	begin
-		/* Set tracing */
-		$dumpfile(`TRACE_FILE);
-		$dumpvars(0, tb_sys_top);
-
-		clk = 1;
-		nrst = 0;
-		#(10*PCLK) nrst = 1;
-
-		/* #500 $finish; */
+		o_rd <= 0;
+		o_rd_data <= 0;
 	end
+	else if(!core_stall)
+	begin
+		o_rd <= i_dst_gpr;
+		o_rd_data <= i_dst_gpr_v;
+	end
+end
 
 
-	/* Instantiate system top */
-	sys_top sys(
-		.clk(clk),
-		.nrst(nrst)
-	);
-
-
-endmodule /* tb_sys_top */
+endmodule /* writeback */

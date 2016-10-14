@@ -104,6 +104,7 @@ begin
 						$display("SIMULATION TERMINATED WITH ERRORS!");
 					else
 						$display("SIMULATION SUCCESSFULLY TERMINATED!");
+					$finish;
 				end
 			end
 			else if(i_MAddr == DELYREG)

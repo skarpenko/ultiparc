@@ -24,48 +24,62 @@
  */
 
 /*
- * Testbench for system top
+ * Forwarding unit
  */
 
-`include "common.vh"
-`include "ocp_const.vh"
+`include "cpu_common.vh"
+`include "cpu_const.vh"
 
 
-`ifndef TRACE_FILE
-`define TRACE_FILE "trace.vcd"
-`endif
+/* Forwarding unit */
+module fwdu(
+	rs,
+	rs_data,
+	rt,
+	rt_data,
+	rd_p3,
+	rd_data_p3,
+	rd_p4,
+	rd_data_p4,
+	rs_data_p2,
+	rt_data_p2
+);
+/* rs and rt read at decode stage */
+input wire [`CPU_REGNO_WIDTH-1:0]	rs;
+input wire [`CPU_REG_WIDTH-1:0]		rs_data;
+input wire [`CPU_REGNO_WIDTH-1:0]	rt;
+input wire [`CPU_REG_WIDTH-1:0]		rt_data;
+/* Destination at memory stage */
+input wire [`CPU_REGNO_WIDTH-1:0]	rd_p3;
+input wire [`CPU_REG_WIDTH-1:0]		rd_data_p3;
+/* Destination at writeback stage */
+input wire [`CPU_REGNO_WIDTH-1:0]	rd_p4;
+input wire [`CPU_REG_WIDTH-1:0]		rd_data_p4;
+/* Forwarded values of rs and rt */
+output reg [`CPU_REG_WIDTH-1:0]		rs_data_p2;
+output reg [`CPU_REG_WIDTH-1:0]		rt_data_p2;
 
 
-module tb_sys_top();
-	localparam HCLK = 5;
-	localparam PCLK = 2*HCLK;	/* Clock period */
-
-	reg clk;
-	reg nrst;
-
-	always
-		#HCLK clk = !clk;
-
-
-	initial
-	begin
-		/* Set tracing */
-		$dumpfile(`TRACE_FILE);
-		$dumpvars(0, tb_sys_top);
-
-		clk = 1;
-		nrst = 0;
-		#(10*PCLK) nrst = 1;
-
-		/* #500 $finish; */
-	end
+always @(*)
+begin
+	if(rs && rs == rd_p3)
+		rs_data_p2 = rd_data_p3;
+	else if(rs && rs == rd_p4)
+		rs_data_p2 = rd_data_p4;
+	else
+		rs_data_p2 = rs_data;
+end
 
 
-	/* Instantiate system top */
-	sys_top sys(
-		.clk(clk),
-		.nrst(nrst)
-	);
+always @(*)
+begin
+	if(rt && rt == rd_p3)
+		rt_data_p2 = rd_data_p3;
+	else if(rt && rt == rd_p4)
+		rt_data_p2 = rd_data_p4;
+	else
+		rt_data_p2 = rt_data;
+end
 
 
-endmodule /* tb_sys_top */
+endmodule /* fwdu */
