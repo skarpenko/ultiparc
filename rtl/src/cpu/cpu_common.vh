@@ -42,5 +42,7 @@
 `define CPU_LSUOP_WIDTH	2			/* LSU operation width */
 `define CPU_ALUOP_WIDTH	4			/* ALU operation width */
 
+`define CPU_RESET_ADDR	32'h0000_0000		/* Reset vector address */
+
 
 `endif /* _CPU_COMMON_VH_ */

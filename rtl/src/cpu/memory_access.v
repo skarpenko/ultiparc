@@ -95,7 +95,7 @@ assign core_stall = i_exec_stall || o_mem_stall || i_fetch_stall;
 
 assign o_mem_stall = lsu_busy;
 
-reg [2:0] lsu_op;
+reg [4:0] lsu_op;
 reg [`CPU_DATA_WIDTH-1:0] result;
 
 

@@ -50,13 +50,14 @@ module fetch(
 	i_err_align,
 	i_err_bus
 );
+localparam [`CPU_INSTR_WIDTH-1:0] NOP = 32'h0000_0000;
 /* Inputs */
 input wire				clk;
 input wire				nrst;
 /* CU signals */
 input wire [`CPU_ADDR_WIDTH-1:0]	i_pc;
 input wire				i_j_valid;
-output reg [`CPU_INSTR_WIDTH-1:0]	o_instr;
+output wire [`CPU_INSTR_WIDTH-1:0]	o_instr;
 input wire				i_exec_stall;
 input wire				i_mem_stall;
 output wire				o_fetch_stall;
@@ -74,6 +75,11 @@ wire core_stall;
 
 assign core_stall = i_exec_stall || i_mem_stall || o_fetch_stall;
 assign o_fetch_stall = i_busy;
+
+reg nullify;
+reg [`CPU_INSTR_WIDTH-1:0] instr;
+
+assign o_instr = nullify ? NOP : instr;
 
 
 always @(posedge clk or negedge nrst)
@@ -94,25 +100,22 @@ begin
 	end
 end
 
-reg skip;
 
 always @(posedge clk or negedge nrst)
 begin
 	if(!nrst)
 	begin
-		o_instr <= 32'b0; /* nop */
-		skip <= 1'b0;
+		instr <= NOP;
+		nullify <= 1'b0;
 	end
 	else if(i_j_valid)
 	begin
-		o_instr <= 32'b0; /* nop */
-//		skip <= 1'b1;
-		skip <= skip | i_j_valid;
+		nullify <= 1'b1;
 	end
 	else if(!core_stall)
 	begin
-		o_instr <= skip ? 32'b0 : i_instr_dat;
-		skip <= 1'b0;
+		instr <= !nullify ? i_instr_dat : NOP;
+		nullify <= 1'b0;
 	end
 end
 

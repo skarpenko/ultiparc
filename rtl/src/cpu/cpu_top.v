@@ -266,7 +266,8 @@ decode decode(
 	.i_exec_stall(exec_stall),
 	.i_mem_stall(mem_stall),
 	.i_fetch_stall(fetch_stall),
-	.i_drop(drop_p2),
+/*	.i_drop(drop_p2), */
+	.i_drop(1'b0),
 	/* Decoded instr */
 	.o_op(op_p1),
 	.o_dst_gpr(dst_gpr_p1),
@@ -364,16 +365,16 @@ always @(posedge clk or negedge nrst)
 begin
 	if(!nrst)
 	begin
-		pc_next <= 0;
-		pc_p0 <= 0;	/* TODO: default addr */
-		pc_p1 <= 0;
-		pc_p2 <= 0;
-		pc_p3 <= 0;
-		pc_p4 <= 0;
+		pc_next <= `CPU_RESET_ADDR;
+		pc_p0 <= `CPU_RESET_ADDR;
+		pc_p1 <= `CPU_RESET_ADDR;
+		pc_p2 <= `CPU_RESET_ADDR;
+		pc_p3 <= `CPU_RESET_ADDR;
+		pc_p4 <= `CPU_RESET_ADDR;
 	end
 	else if(!core_stall)
 	begin
-		pc_next <= j_addr_valid_p2 ? j_addr_p2 : pc_next + 4;
+		pc_next <= j_addr_valid_p2 ? j_addr_p2 : pc_next + `CPU_INSTR_SIZE;
 		pc_p0 <= pc_next;
 		pc_p1 <= pc_p0;
 		pc_p2 <= pc_p1;

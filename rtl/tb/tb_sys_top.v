@@ -50,8 +50,11 @@ module tb_sys_top();
 	initial
 	begin
 		/* Set tracing */
-		$dumpfile(`TRACE_FILE);
-		$dumpvars(0, tb_sys_top);
+		if(!$test$plusargs("NOTRACE"))
+		begin
+			$dumpfile(`TRACE_FILE);
+			$dumpvars(0, tb_sys_top);
+		end
 
 		clk = 1;
 		nrst = 0;

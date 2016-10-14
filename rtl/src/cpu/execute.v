@@ -173,19 +173,19 @@ begin
 		else if(i_op == `CPU_OP_SPECIAL && i_func == `CPU_FUNC_SLLV)
 		begin
 			a <= i_src2_gpr_v;
-			b <= { 27'b0, i_src2_gpr_v[4:0] };
+			b <= { 27'b0, i_src1_gpr_v[4:0] };
 			alu_op <= `CPU_ALUOP_SLL;
 		end
 		else if(i_op == `CPU_OP_SPECIAL && i_func == `CPU_FUNC_SRLV)
 		begin
 			a <= i_src2_gpr_v;
-			b <= { 27'b0, i_src2_gpr_v[4:0] };
+			b <= { 27'b0, i_src1_gpr_v[4:0] };
 			alu_op <= `CPU_ALUOP_SRL;
 		end
 		else if(i_op == `CPU_OP_SPECIAL && i_func == `CPU_FUNC_SRAV)
 		begin
 			a <= i_src2_gpr_v;
-			b <= { 27'b0, i_src2_gpr_v[4:0] };
+			b <= { 27'b0, i_src1_gpr_v[4:0] };
 			alu_op <= `CPU_ALUOP_SRA;
 		end
 		else if(i_op == `CPU_OP_SPECIAL && i_func == `CPU_FUNC_JR)
@@ -443,7 +443,7 @@ begin
 		begin
 			o_dst_gpr <= i_regimm; //XXX:
 			r_mux <= 1'b1;
-			result <= { i_src3_ze_v[15:0], 16'b0 /*i_src2_gpr_v[15:0]*/ }; //XXX:
+			result <= { i_src3_ze_v[15:0], 16'b0 };
 		end
 		else if(i_op == `CPU_OP_LB)
 		begin

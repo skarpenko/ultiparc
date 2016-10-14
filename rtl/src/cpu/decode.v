@@ -92,7 +92,6 @@ begin
 	begin
 		instr <= 32'b0;
 		pc_high <= 4'b0;
-		drop <= 1'b0;
 	end
 	else if(i_drop)
 	begin
@@ -103,7 +102,6 @@ begin
 	begin
 		instr <= i_instr;
 		pc_high <= i_pc[31:28];
-//		$display("pc = %08x, instr = %08x\n", i_pc, i_instr);
 	end
 end
 

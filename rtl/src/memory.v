@@ -67,13 +67,23 @@ reg [`DATA_WIDTH-1:0] mem[0:MEMWORDS-1];
 integer i;
 /* Preinit memory */
 initial
-begin
+begin : memory_init
+	reg [65536*8-1:0] filepath;
+
 	for(i=0; i<MEMWORDS; i=i+1) begin
 		mem[i] = 0;
 	end
+
+	if($value$plusargs("MEMORY_FILE=%s", filepath))
+	begin
+		$readmemh(filepath, mem);
+	end
+	else
+	begin
 `ifdef MEMORY_IMAGE
-	$readmemh(`MEMORY_IMAGE, mem);
+		$readmemh(`MEMORY_IMAGE, mem);
 `endif
+	end
 end
 
 
