@@ -46,8 +46,12 @@ all: $(TARGETS)
 	$(GCC_PREFIX)objcopy -O binary $< $@
 
 
-%.hex: %.elf
-	$(GCC_PREFIX)objcopy -O verilog $< $@
+#%.hex: %.elf
+#	$(GCC_PREFIX)objcopy -O verilog $< $@
+
+
+%.hex: %.bin
+	perl -e 'print "\@00000000\n"; while(read(STDIN, my $$b, 4)) { printf "%08x\n", unpack "I", $$b; }' < $< > $@
 
 
 %.dump: %.elf
