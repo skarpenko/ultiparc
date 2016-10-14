@@ -141,6 +141,7 @@ test_entry:
 	li $t1, 0xE3E2E1E0
 	sw $t1, 0($t0)
 	lw $t2, 0($t0)
+	nop
 	bne $t1, $t2, test_failed
 	nop
 
@@ -149,6 +150,7 @@ test_entry:
 	li $t1, 0xE1E0
 	sh $t1, 0($t0)
 	lw $t2, 0($t0)
+	nop
 	bne $t1, $t2, test_failed
 	nop
 	li $t1, 0xE3E2
@@ -163,6 +165,7 @@ test_entry:
 	li $t1, 0xE0
 	sb $t1, 0($t0)
 	lw $t2, 0($t0)
+	nop
 	bne $t1, $t2, test_failed
 	nop
 	li $t1, 0xE1
