@@ -6,7 +6,7 @@ use Term::ANSIColor qw(:constants);
 
 
 my $sys_model_bin = "$ENV{'ULTIPARC_HOME'}/slm/sys_model/sys_model.elf";
-my $sys_model_rtl = "$ENV{'ULTIPARC_HOME'}/rtl/tb_sys_top +NOTRACE";
+my $sys_model_rtl = "vvp -n $ENV{'ULTIPARC_HOME'}/rtl/tb_sys_top +NOTRACE";
 my $max_name = 40;
 
 
