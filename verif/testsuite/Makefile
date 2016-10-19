@@ -14,16 +14,20 @@ all: $(TESTSUITES)
 
 
 .PHONY: runtests
-runtests: runtests_slm
+runtests: runtests_slm runtests_rtl
 
 
 .PHONY: runtests_slm
 runtests_slm: $(TESTSUITES)
+	@echo
+	@echo "Running SLM tests..."
 	perl run_tests.pl slm
 
 
 .PHONY: runtests_rtl
 runtests_rtl: $(TESTSUITES)
+	@echo
+	@echo "Running RTL tests..."
 	perl run_tests.pl rtl
 
 
