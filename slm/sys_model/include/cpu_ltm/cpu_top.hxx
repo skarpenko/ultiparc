@@ -79,6 +79,9 @@ SC_MODULE(cpu_top) {
 		m_except = EX_NONE;
 		m_delay_slot = false;
 		m_interrupt = false;
+		m_ld_delay_slot = false;
+		m_ld_dst_reg = 0;
+		m_ld_data = 0;
 	}
 
 public:
@@ -1692,6 +1695,10 @@ private:
 
 	bool m_delay_slot;		// Instruction in delay slot need to be executed
 	bool m_interrupt;		// Hardware interrupt occurred
+
+	bool m_ld_delay_slot;		// Load delay slot (data isn't available for next instruction)
+	uint32_t m_ld_dst_reg;		// Load destination register
+	uint32_t m_ld_data;		// Loaded data
 };
 
 
@@ -2737,7 +2744,10 @@ inline void cpu_top::instr_lb(uint32_t instr)
 
 	uint32_t addr = rd_gpreg(iw.i.rs) + sign_extend16(iw.i.imm);
 	uint32_t data = sign_extend8( load_byte(addr) );
-	wr_gpreg(iw.i.rt, data);
+
+	m_ld_delay_slot = true;
+	m_ld_dst_reg = iw.i.rt;
+	m_ld_data = data;
 }
 
 
@@ -2753,7 +2763,10 @@ inline void cpu_top::instr_lh(uint32_t instr)
 	}
 
 	uint32_t data = sign_extend16( load_halfword(addr) );
-	wr_gpreg(iw.i.rt, data);
+
+	m_ld_delay_slot = true;
+	m_ld_dst_reg = iw.i.rt;
+	m_ld_data = data;
 }
 
 
@@ -2769,7 +2782,10 @@ inline void cpu_top::instr_lw(uint32_t instr)
 	}
 
 	uint32_t data = load_word(addr);
-	wr_gpreg(iw.i.rt, data);
+
+	m_ld_delay_slot = true;
+	m_ld_dst_reg = iw.i.rt;
+	m_ld_data = data;
 }
 
 
@@ -2780,7 +2796,10 @@ inline void cpu_top::instr_lbu(uint32_t instr)
 
 	uint32_t addr = rd_gpreg(iw.i.rs) + sign_extend16(iw.i.imm);
 	uint32_t data = zero_extend8( load_byte(addr) );
-	wr_gpreg(iw.i.rt, data);
+
+	m_ld_delay_slot = true;
+	m_ld_dst_reg = iw.i.rt;
+	m_ld_data = data;
 }
 
 
@@ -2796,7 +2815,10 @@ inline void cpu_top::instr_lhu(uint32_t instr)
 	}
 
 	uint32_t data = zero_extend16( load_halfword(addr) );
-	wr_gpreg(iw.i.rt, data);
+
+	m_ld_delay_slot = true;
+	m_ld_dst_reg = iw.i.rt;
+	m_ld_data = data;
 }
 
 
@@ -3097,6 +3119,12 @@ inline void cpu_top::execute(uint32_t instr, bool dslot)
 	instruction iw;
 	iw.word = instr;
 
+	// Get load delay slot state
+	bool ld_delay_slot = m_ld_delay_slot;
+	uint32_t ld_dst_reg = m_ld_dst_reg;
+	uint32_t ld_data = m_ld_data;
+	m_ld_delay_slot = false; // clear
+
 	switch(iw.r.op) {
 		case 0:
 			exec_special(instr, dslot);
@@ -3136,6 +3164,11 @@ inline void cpu_top::execute(uint32_t instr, bool dslot)
 		default:
 			m_except = EX_RSVD_INSTR;
 			break;
+	}
+
+	// Write register if there is pending update
+	if(ld_delay_slot) {
+		wr_gpreg(ld_dst_reg, ld_data);
 	}
 }
 

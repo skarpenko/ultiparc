@@ -137,9 +137,11 @@ test_entry:
 	/* Check data in memory. Should be unchanged. */
 	la $t0, test_data
 	lw $t1, 0($t0)
+	nop
 	bne $t1, $zero, test_failed
 	nop
 	lw $t1, 4($t0)
+	nop
 	bne $t1, $zero, test_failed
 	nop
 

@@ -137,6 +137,7 @@ test_entry:
 	/* Load to register with following reads */
 	la $t1, test_data
 	lw $t0, 0($t1)
+	nop
 	addu $t1, $t0, $a1
 	sll $t2, $t0, 1
 	sll $t3, $t0, 2
@@ -151,6 +152,7 @@ test_entry:
 	la $t1, test_data
 	lw $t0, 4($t1)
 	lw $t0, 0($t1)
+	nop
 	addu $t1, $t0, $a1
 	sll $t2, $t0, 1
 	sll $t3, $t0, 2

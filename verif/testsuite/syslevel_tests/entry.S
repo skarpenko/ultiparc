@@ -219,11 +219,14 @@ __exception_entry:
 
 	/* Restore HI/LO pair */
 	lw $k0, 4*CPU_REG_SIZE($sp)
+	nop
 	mthi $k0
 	lw $k0, 3*CPU_REG_SIZE($sp)
+	nop
 	mtlo $k0
 	/* Restore previous status register  */
 	lw $k0, 1*CPU_REG_SIZE($sp)
+	nop
 	mtc0 $k0, $PSR
 	/* Load return address */
 	lw $k0, 2*CPU_REG_SIZE($sp)
