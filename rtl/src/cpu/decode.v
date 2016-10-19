@@ -43,18 +43,22 @@ module decode(
 	i_fetch_stall,
 	i_drop,
 	/* Decoded instr */
-	o_op,
-	o_dst_gpr,
-	o_src1_gpr,
-	o_src2_gpr,
-	o_src3_se_v,
-	o_src3_ze_v,
-	o_src3_sh16_v,
-	o_src3_j_v,
-	o_src3_broff_v,
-	o_shamt,
-	o_func
+	o_rd_no,
+	o_rs_no,
+	o_rt_no,
+	o_imm,
+	o_alu_op,
+	o_alu_inpt,
+	o_alu_ovf_ex,
+	o_jump,
+	o_jump_link,
+	o_imuldiv_op,
+	o_lsu_op,
+	o_lsu_lns,
+	o_lsu_ext
 );
+`include "reg_names.vh"
+`include "decode_const.vh"
 /* Inputs */
 input wire				clk;
 input wire				nrst;
@@ -66,26 +70,250 @@ input wire				i_mem_stall;
 input wire				i_fetch_stall;
 input wire				i_drop;
 /* Decoded instr */
-output wire [5:0] o_op;
-output wire [`CPU_REGNO_WIDTH-1:0]	o_dst_gpr;
-output wire [`CPU_REGNO_WIDTH-1:0]	o_src1_gpr;
-output wire [`CPU_REGNO_WIDTH-1:0]	o_src2_gpr;
-output wire [`CPU_DATA_WIDTH-1:0]	o_src3_se_v;
-output wire [`CPU_DATA_WIDTH-1:0]	o_src3_ze_v;
-output wire [`CPU_DATA_WIDTH-1:0]	o_src3_sh16_v;
-output wire [`CPU_ADDR_WIDTH-1:0]	o_src3_j_v;
-output wire [`CPU_ADDR_WIDTH-1:0]	o_src3_broff_v;
-output wire [4:0]			o_shamt;
-output wire [5:0]			o_func;
+output reg [`CPU_REGNO_WIDTH-1:0]	o_rd_no;
+output wire [`CPU_REGNO_WIDTH-1:0]	o_rs_no;
+output wire [`CPU_REGNO_WIDTH-1:0]	o_rt_no;
+output reg [`CPU_DATA_WIDTH-1:0]	o_imm;
+output reg [`CPU_ALUOP_WIDTH-1:0]	o_alu_op;
+output reg [4:0]			o_alu_inpt;
+output wire				o_alu_ovf_ex;
+output reg [4:0]			o_jump;
+output wire				o_jump_link;
+output wire [1:0]			o_imuldiv_op;
+output reg [`CPU_LSUOP_WIDTH-1:0]	o_lsu_op;
+output reg				o_lsu_lns;
+output reg				o_lsu_ext;
 
 
 wire core_stall;
 assign core_stall = i_exec_stall || i_mem_stall || i_fetch_stall;
 
+assign o_imuldiv_op = 2'b0;	/*TBD:*/
 
 reg [`CPU_INSTR_WIDTH-1:0] instr;
 reg [3:0] pc_high;
 
+
+/* Instruction fields */
+wire [5:0]			op;	/* Opcode */
+wire [`CPU_REGNO_WIDTH-1:0]	rd;	/* Destination register */
+wire [`CPU_REGNO_WIDTH-1:0]	rs;	/* Source register 1 */
+wire [`CPU_REGNO_WIDTH-1:0]	rt;	/* Source register 2 */
+wire [`CPU_REGNO_WIDTH-1:0]	regimm;	/* REGIMM function */
+wire [4:0]			shamt;	/* Shift amount */
+wire [5:0]			func;	/* Function */
+
+assign op	= instr[31:26];
+assign rd	= instr[15:11];
+assign rs	= instr[25:21];
+assign rt	= instr[20:16];
+assign regimm	= instr[20:16];
+assign shamt	= instr[10:6];
+assign func	= instr[5:0];
+
+assign o_rs = (op == `CPU_OP_J || op == `CPU_OP_JAL || op == `CPU_OP_LUI) ? R0 : rs;
+assign o_rt = rt;
+
+
+/* Immediate values */
+wire [`CPU_DATA_WIDTH-1:0]	sign_ext;	/* Sign extended immediate */
+wire [`CPU_DATA_WIDTH-1:0]	zero_ext;	/* Zero extended immediate */
+wire [`CPU_DATA_WIDTH-1:0]	upper_imm;	/* Upper immediate (for LUI) */
+wire [`CPU_DATA_WIDTH-1:0]	jump_target;	/* Unconditional jump target address */
+wire [`CPU_DATA_WIDTH-1:0]	branch_offset;	/* Conditional branch offset */
+wire [`CPU_DATA_WIDTH-1:0]	shift_amount;	/* Shift amount (for shift operations) */
+
+assign sign_ext		= { {16{instr[15]}}, instr[15:0] };
+assign zero_ext		= { 16'b0, instr[15:0] };
+assign upper_imm	= { instr[15:0], 16'b0 };
+assign jump_target	= { pc_high, instr[25:0], 2'b0 };
+assign branch_offset	= { {14{instr[15]}}, instr[15:0], 2'b0 };
+assign shift_amount	= { 27'b0, shamt };
+
+
+/* Decode destination register */
+always @(*)
+begin
+	case(op)
+	`CPU_OP_SPECIAL: o_rd = (i_func == `CPU_FUNC_JR ? R0 : rd);
+	/***/
+	`CPU_OP_REGIMM, `CPU_OP_J, `CPU_OP_BEQ, `CPU_OP_BNE, `CPU_OP_BLEZ,
+	`CPU_OP_BGTZ, `CPU_OP_SB, `CPU_OP_SH, `CPU_OP_SW: o_rd = R0;
+	/***/
+	`CPU_OP_JAL: o_rd = R31;
+	/***/
+	`CPU_OP_ADDI, `CPU_OP_ADDIU, `CPU_OP_SLTI, `CPU_OP_SLTIU, `CPU_OP_ANDI,
+	`CPU_OP_ORI, `CPU_OP_XORI, `CPU_OP_LUI, `CPU_OP_LB, `CPU_OP_LH, `CPU_OP_LW,
+	`CPU_OP_LBU, `CPU_OP_LHU: o_rd = rt;
+	/***/
+	default: o_rd = rd;
+	endcase
+end
+
+
+/* Decode immediate value type to use */
+always @(*)
+begin
+	case(op)
+	`CPU_OP_SPECIAL: o_imm = shift_amount;
+	/***/
+	`CPU_OP_LUI: o_imm = upper_imm;
+	/***/
+	`CPU_OP_J, `CPU_OP_JAL: o_imm = jump_target;
+	/***/
+	`CPU_OP_ANDI, `CPU_OP_ORI, `CPU_OP_XORI: o_imm = zero_ext;
+	/***/
+	`CPU_OP_REGIMM, `CPU_OP_BEQ, `CPU_OP_BNE, `CPU_OP_BLEZ,
+	`CPU_OP_BGTZ: o_imm = branch_offset;
+	/***/
+	default: o_imm = sign_ext;
+	endcase
+end
+
+
+/* Decode ALU operation */
+always @(*)
+begin
+	if(op == `CPU_OP_SPECIAL && (func == `CPU_FUNC_SLL || func == `CPU_FUNC_SLLV)
+		o_alu_op = `CPU_ALUOP_SLL;
+	else if(op == `CPU_OP_SPECIAL && (func == `CPU_FUNC_SRL || func == `CPU_FUNC_SRLV)
+		o_alu_op = `CPU_ALUOP_SRL;
+	else if(op == `CPU_OP_SPECIAL && (func == `CPU_FUNC_SRA || func == `CPU_FUNC_SRAV)
+		o_alu_op = `CPU_ALUOP_SRA;
+	else if(op == `CPU_OP_SPECIAL && (func == `CPU_FUNC_SUB || func == `CPU_FUNC_SUBU)
+		o_alu_op = `CPU_ALUOP_SUB;
+	else if((op == `CPU_OP_SPECIAL && func == `CPU_FUNC_AND) || (op == `CPU_OP_ANDI))
+		o_alu_op = `CPU_ALUOP_AND;
+	else if((op == `CPU_OP_SPECIAL && func == `CPU_FUNC_OR) || (op == `CPU_OP_ORI))
+		o_alu_op = `CPU_ALUOP_OR;
+	else if((op == `CPU_OP_SPECIAL && func == `CPU_FUNC_XOR) || (op == `CPU_OP_XORI))
+		o_alu_op = `CPU_ALUOP_XOR;
+	else if((op == `CPU_OP_SPECIAL && func == `CPU_FUNC_SLT) || (op == `CPU_OP_SLTI))
+		o_alu_op = `CPU_ALUOP_SLT;
+	else if((op == `CPU_OP_SPECIAL && func == `CPU_FUNC_SLTU) || (op == `CPU_OP_SLTIU))
+		o_alu_op = `CPU_ALUOP_SLTU;
+	else if(op == `CPU_OP_SPECIAL && func == `CPU_FUNC_NOR)
+		o_alu_op = `CPU_ALUOP_NOR;
+	else
+		o_alu_op = `CPU_ALUOP_ADD;
+end
+
+
+/* Decode ALU inputs type */
+always @(*)
+begin
+	case(op)
+	`CPU_OP_SPECIAL: begin
+		case(func)
+		`CPU_FUNC_SLL, `CPU_FUNC_SRL, `CPU_FUNC_SRA: o_alu_inpt = DECODE_ALU_INPT_RTIMM;
+		`CPU_FUNC_SLLV, `CPU_FUNC_SRLV, `CPU_FUNC_SRAV: o_alu_inpt = DECODE_ALU_INPT_RTRS;
+		default: o_alu_inpt = DECODE_ALU_INPT_RSRT;
+		endcase
+	end
+	/***/
+	`CPU_OP_REGIMM, `CPU_OP_BEQ, `CPU_OP_BNE, `CPU_OP_BLEZ,
+	`CPU_OP_BGTZ: o_alu_inpt = DECODE_ALU_INPT_PCIMM;
+	/***/
+	`CPU_OP_J, `CPU_OP_JAL, `CPU_OP_LUI, `CPU_OP_ADDI, `CPU_OP_ADDIU,
+	`CPU_OP_SLTI, `CPU_OP_SLTIU, `CPU_OP_ANDI, `CPU_OP_ORI, `CPU_OP_XORI,
+	`CPU_OP_LB, `CPU_OP_LH, `CPU_OP_LW, `CPU_OP_LBU, `CPU_OP_LHU,
+	`CPU_OP_SB, `CPU_OP_SH, `CPU_OP_SW: o_alu_inpt = DECODE_ALU_INPT_RSIMM;
+	/***/
+	default: o_alu_inpt = DECODE_ALU_INPT_RSRT;
+	endcase
+end
+
+
+/* Determine if integer overflow exception can be generated */
+assign o_alu_ovf_ex = (op == `CPU_OP_SPECIAL && (func == `CPU_FUNC_ADD || func == `CPU_FUNC_SUB) ||
+	op == `CPU_OP_ADDI) ? 1'b1 : 1'b0;
+
+
+/* Decode jump type */
+always @(*)
+begin
+	if(op == `CPU_OP_SPECIAL && (func == `CPU_FUNC_JR || func == `CPU_FUNC_JALR))
+		o_jump = DECODE_JUMPT_JR;
+	else if(op == `CPU_OP_REGIMM && (regimm == `CPU_REGIMM_BLTZ || regimm == `CPU_REGIMM_BLTZAL))
+		o_jump = DECODE_JUMPT_BLTZ;
+	else if(op == `CPU_OP_REGIMM && (regimm == `CPU_REGIMM_BGEZ || regimm == `CPU_REGIMM_BGEZAL))
+		o_jump = DECODE_JUMPT_BGEZ;
+	else if(op == `CPU_OP_J || op == `CPU_OP_JAL)
+		o_jump = DECODE_JUMPT_J;
+	else if(op == `CPU_OP_BEQ)
+		o_jump = DECODE_JUMPT_BEQ;
+	else if(op == `CPU_OP_BNE)
+		o_jump = DECODE_JUMPT_BNE;
+	else if(op == `CPU_OP_BLEZ)
+		o_jump = DECODE_JUMPT_BLEZ;
+	else if(op == `CPU_OP_BGTZ)
+		o_jump = DECODE_JUMPT_BGTZ;
+	else
+		o_jump = DECODE_JUMPT_NONE;
+end
+
+
+/* Determine if jump and link required */
+assign o_jump_link = (op == `CPU_OP_SPECIAL && func == `CPU_FUNC_JALR) ||
+	(op == `CPU_OP_REGIMM && regimm == `CPU_REGIMM_BLTZAL) ||
+	(op == `CPU_OP_REGIMM && regimm == `CPU_REGIMM_BGEZAL) ||
+	(op == `CPU_OP_JAL) ? 1'b1 : 1'b0;
+
+
+/* Decode LSU operation */
+always @(*)
+begin
+	o_lsu_op = `CPU_LSU_IDLE;
+	o_lsu_lns = 1'b0;
+	o_lsu_ext = 1'b0;
+
+	if(i_op == `CPU_OP_LB)
+	begin
+		o_lsu_op = `CPU_LSU_BYTE;
+		o_lsu_lns = 1'b1;
+		o_lsu_ext = 1'b1;
+	end
+	else if(i_op == `CPU_OP_LH)
+	begin
+		o_lsu_op = `CPU_LSU_HWORD;
+		o_lsu_lns = 1'b1;
+		o_lsu_ext = 1'b1;
+	end
+	else if(i_op == `CPU_OP_LW)
+	begin
+		o_lsu_op = `CPU_LSU_WORD;
+		o_lsu_lns = 1'b1;
+		o_lsu_ext = 1'b1;
+	end
+	else if(i_op == `CPU_OP_LBU)
+	begin
+		o_lsu_op = `CPU_LSU_BYTE;
+		o_lsu_lns = 1'b1;
+	end
+	else if(i_op == `CPU_OP_LHU)
+	begin
+		o_lsu_op = `CPU_LSU_HWORD;
+		o_lsu_lns = 1'b1;
+	end
+	else if(i_op == `CPU_OP_SB)
+	begin
+		o_lsu_op = `CPU_LSU_BYTE;
+		o_lsu_lns = 1'b0;
+	end
+	else if(i_op == `CPU_OP_SH)
+	begin
+		o_lsu_op = `CPU_LSU_HWORD;
+		o_lsu_lns = 1'b0;
+	end
+	else if(i_op == `CPU_OP_SW)
+	begin
+		o_lsu_op = `CPU_LSU_WORD;
+		o_lsu_lns = 1'b0;
+	end
+end
+
+
+/* Sequential logic part */
 always @(posedge clk or negedge nrst)
 begin
 	if(!nrst)
@@ -104,21 +332,6 @@ begin
 		pc_high <= i_pc[31:28];
 	end
 end
-
-
-assign o_op		= instr[31:26];	/* opcode */
-assign o_dst_gpr	= instr[15:11];	/* rd */
-assign o_src1_gpr	= instr[25:21];	/* rs */
-assign o_src2_gpr	= instr[20:16];	/* rt */
-assign o_shamt		= instr[10:6];	/* shift amount */
-assign o_func		= instr[5:0];	/* function */
-
-
-assign o_src3_se_v	= { {16{instr[15]}}, instr[15:0] };		/* Sign extended immediate */
-assign o_src3_ze_v	= { 16'b0, instr[15:0] };			/* Zero extended immediate */
-assign o_src3_sh16_v	= { instr[15:0], 16'b0 };			/* Shifted left immediate */
-assign o_src3_j_v	= { pc_high, instr[25:0], 2'b0 };		/* Jump target address */
-assign o_src3_broff_v	= { {14{instr[15]}}, instr[15:0], 2'b0 };	/* Branch offset */
 
 
 endmodule /* decode */
