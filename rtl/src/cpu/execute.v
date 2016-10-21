@@ -93,10 +93,10 @@ input wire [`CPU_LSUOP_WIDTH-1:0]	i_lsu_op;
 input wire				i_lsu_lns;
 input wire				i_lsu_ext;
 /* Stage output */
-output reg [`CPU_REGNO_WIDTH-1:0]	o_rd_no;
-output reg [`CPU_REG_WIDTH-1:0]		o_alu_result;
+output wire [`CPU_REGNO_WIDTH-1:0]	o_rd_no;
+output wire [`CPU_REG_WIDTH-1:0]	o_alu_result;
 output wire [`CPU_ADDR_WIDTH-1:0]	o_jump_addr;
-output reg				o_jump_valid;
+output wire				o_jump_valid;
 output reg [`CPU_LSUOP_WIDTH-1:0]	o_lsu_op;
 output reg				o_lsu_lns;
 output reg				o_lsu_ext;
@@ -108,15 +108,14 @@ assign core_stall = o_exec_stall || i_mem_stall || i_fetch_stall;
 
 assign o_exec_stall = 1'b0;
 
-
-reg jump_instr;
-reg branch_taken;
-reg branch_link;
-reg [`CPU_REGNO_WIDTH-1:0] rd_no;
-reg [`CPU_ADDR_WIDTH-1:0] pc_p0;
-
-
 assign o_jump_addr = alu_result;
+
+
+reg jump_instr;				/* Current operation is jump */
+reg branch_taken;			/* Set if branch taken */
+reg branch_link;			/* Branch requires link */
+reg [`CPU_REGNO_WIDTH-1:0] rd_no;	/* Captured destination register number */
+reg [`CPU_ADDR_WIDTH-1:0] pc_p0;	/* Captured PC of instruction after delay slot */
 
 
 /* ALU interconnect */
@@ -129,9 +128,12 @@ wire				zero;
 wire				neg;
 
 
+/* Capture destination register */
 always @(posedge clk or negedge nrst)
 begin
 	if(!nrst)
+		rd_no <= {(`CPU_REG_WIDTH){1'b0}};
+	else if(i_drop)
 		rd_no <= {(`CPU_REG_WIDTH){1'b0}};
 	else if(!core_stall)
 		rd_no <= i_rd_no;
@@ -186,17 +188,22 @@ begin
 		o_lsu_ext <= 1'b0;
 		o_mem_data <= {(`CPU_DATA_WIDTH){1'b0}};
 	end
+	else if(i_drop)
+	begin
+		o_lsu_op <= `CPU_LSU_IDLE;
+	end
 	else if(!core_stall)
 	begin
 		o_lsu_op <= i_lsu_op;
 		o_lsu_lns <= i_lsu_lns;
 		o_lsu_ext <= i_lsu_ext;
-		/*if(i_lsu_op != `CPU_LSU_IDLE) */o_mem_data <= i_rt_val;
+		if(i_lsu_op != `CPU_LSU_IDLE) /* Pass only when needed */
+			o_mem_data <= i_rt_val;
 	end
 end
 
 
-/* Calculate branch */
+/* Evaluate branch */
 always @(posedge clk or negedge nrst)
 begin
 	if(!nrst)
@@ -205,6 +212,11 @@ begin
 		branch_link <= 1'b0;
 		jump_instr <= 1'b0;
 		pc_p0 <= {(`CPU_ADDR_WIDTH){1'b0}};
+	end
+	else if(i_drop)
+	begin
+		branch_taken <= 1'b0;
+		jump_instr <= 1'b0;
 	end
 	else if(!core_stall)
 	begin
@@ -227,30 +239,9 @@ end
 
 
 /* Set outputs */
-always @(*)
-begin
-	if(jump_instr)
-	begin
-		if(branch_taken)
-		begin
-			o_rd_no = rd_no;
-			o_alu_result = branch_link ? pc_p0 : alu_result;
-			o_jump_valid = branch_taken;
-		end
-		else
-		begin
-			o_rd_no = R0;
-			o_alu_result = branch_link ? pc_p0 : alu_result;
-			o_jump_valid = branch_taken;
-		end
-	end
-	else
-	begin
-			o_rd_no = rd_no;
-			o_alu_result = alu_result;
-			o_jump_valid = branch_taken;
-	end
-end
+assign o_rd_no = jump_instr && !branch_taken ? R0 : rd_no;
+assign o_jump_valid = branch_taken;
+assign o_alu_result = jump_instr && branch_link ? pc_p0 : alu_result;
 
 
 /* ALU instance */

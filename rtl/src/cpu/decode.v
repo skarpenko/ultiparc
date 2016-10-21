@@ -60,6 +60,7 @@ module decode(
 );
 `include "reg_names.vh"
 `include "decode_const.vh"
+localparam [`CPU_INSTR_WIDTH-1:0] NOP = 32'h0000_0000;
 /* Inputs */
 input wire				clk;
 input wire				nrst;
@@ -92,8 +93,8 @@ assign core_stall = i_exec_stall || i_mem_stall || i_fetch_stall;
 
 assign o_imuldiv_op = 2'b0;	/*TBD:*/
 
-reg [`CPU_INSTR_WIDTH-1:0] instr;
-reg [3:0] pc_high;
+reg [`CPU_INSTR_WIDTH-1:0] instr;	/* Instruction word */
+reg [3:0] pc_high;			/* High four bits of PC */
 
 
 /* Instruction fields */
@@ -273,8 +274,8 @@ assign o_jump_link = (op == `CPU_OP_SPECIAL && func == `CPU_FUNC_JALR) ||
 always @(*)
 begin
 	o_lsu_op = `CPU_LSU_IDLE;
-	o_lsu_lns = 1'b0;
-	o_lsu_ext = 1'b0;
+	o_lsu_lns = 1'b0;	/* LnW */
+	o_lsu_ext = 1'b0;	/* Sign/zero extension (1/0) */
 
 	if(op == `CPU_OP_LB)
 	begin
@@ -327,12 +328,12 @@ always @(posedge clk or negedge nrst)
 begin
 	if(!nrst)
 	begin
-		instr <= 32'b0;
+		instr <= NOP;
 		pc_high <= 4'b0;
 	end
 	else if(i_drop)
 	begin
-		instr <= 32'b0;
+		instr <= NOP;
 		pc_high <= 4'b0;
 	end
 	if(!core_stall)

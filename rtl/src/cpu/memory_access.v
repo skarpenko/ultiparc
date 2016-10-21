@@ -60,12 +60,13 @@ module memory_access(
 	o_rd_val
 );
 `include "reg_names.vh"
-localparam [3:0] MUX_RD_ALU		= 4'b0000;
-localparam [3:0] MUX_RD_BYTE_SE		= 4'b1000;
-localparam [3:0] MUX_RD_BYTE_ZE		= 4'b1001;
-localparam [3:0] MUX_RD_HWORD_SE	= 4'b1010;
-localparam [3:0] MUX_RD_HWORD_ZE	= 4'b1011;
-localparam [3:0] MUX_RD_WORD		= 4'b1100;
+/* Destination result */
+localparam [3:0] MUX_RD_ALU		= 4'b0000;	/* ALU result */
+localparam [3:0] MUX_RD_BYTE_SE		= 4'b1000;	/* Sign-extended byte */
+localparam [3:0] MUX_RD_BYTE_ZE		= 4'b1001;	/* Zero-extended byte */
+localparam [3:0] MUX_RD_HWORD_SE	= 4'b1010;	/* Sign-extended halfword */
+localparam [3:0] MUX_RD_HWORD_ZE	= 4'b1011;	/* Zero-extended halfword */
+localparam [3:0] MUX_RD_WORD		= 4'b1100;	/* Word */
 /* Inputs */
 input wire				clk;
 input wire				nrst;
@@ -100,10 +101,13 @@ assign core_stall = i_exec_stall || o_mem_stall || i_fetch_stall;
 
 assign o_mem_stall = lsu_busy;
 
-reg [3:0] lsu_mux;
+
+reg [3:0] lsu_mux;	/* Destination result MUX */
 
 reg [`CPU_REG_WIDTH-1:0] alu_result;
 
+
+/* LSU operation */
 always @(posedge clk or negedge nrst)
 begin
 	if(!nrst)
@@ -146,6 +150,7 @@ begin
 end
 
 
+/* Set outputs */
 always @(*)
 begin
 	case(lsu_mux)

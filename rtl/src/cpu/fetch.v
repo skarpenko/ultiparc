@@ -84,6 +84,7 @@ reg [`CPU_INSTR_WIDTH-1:0] instr;
 assign o_instr = nullify ? NOP : instr;
 
 
+/* IFU operation */
 always @(posedge clk or negedge nrst)
 begin
 	if(!nrst)
@@ -103,6 +104,7 @@ begin
 end
 
 
+/* IFU response */
 always @(posedge clk or negedge nrst)
 begin
 	if(!nrst)

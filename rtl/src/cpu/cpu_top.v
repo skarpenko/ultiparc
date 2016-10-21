@@ -371,6 +371,7 @@ writeback writeback(
 );
 
 
+/* Program counter */
 always @(posedge clk or negedge nrst)
 begin
 	if(!nrst)
