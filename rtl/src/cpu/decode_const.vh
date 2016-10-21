@@ -27,9 +27,6 @@
  * Decode stage constants
  */
 
-`ifndef _DECODE_CONST_VH_
-`define _DECODE_CONST_VH_
-
 
 /* ALU inputs type */
 localparam [4:0] DECODE_ALU_INPT_RSRT	= 5'b00001;
@@ -49,6 +46,3 @@ localparam [4:0] DECODE_JUMPT_BEQ	= 5'b11010;
 localparam [4:0] DECODE_JUMPT_BNE	= 5'b11011;
 localparam [4:0] DECODE_JUMPT_BLEZ	= 5'b11100;
 localparam [4:0] DECODE_JUMPT_BGTZ	= 5'b11101;
-
-
-`endif /* _DECODE_CONST_VH_ */

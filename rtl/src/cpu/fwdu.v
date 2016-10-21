@@ -37,48 +37,48 @@ module fwdu(
 	rs_data,
 	rt,
 	rt_data,
+	rd_p2,
+	rd_data_p2,
 	rd_p3,
 	rd_data_p3,
-	rd_p4,
-	rd_data_p4,
-	rs_data_p2,
-	rt_data_p2
+	rs_data_p1,
+	rt_data_p1
 );
 /* rs and rt read at decode stage */
 input wire [`CPU_REGNO_WIDTH-1:0]	rs;
 input wire [`CPU_REG_WIDTH-1:0]		rs_data;
 input wire [`CPU_REGNO_WIDTH-1:0]	rt;
 input wire [`CPU_REG_WIDTH-1:0]		rt_data;
+/* Destination at execute stage */
+input wire [`CPU_REGNO_WIDTH-1:0]	rd_p2;
+input wire [`CPU_REG_WIDTH-1:0]		rd_data_p2;
 /* Destination at memory stage */
 input wire [`CPU_REGNO_WIDTH-1:0]	rd_p3;
 input wire [`CPU_REG_WIDTH-1:0]		rd_data_p3;
-/* Destination at writeback stage */
-input wire [`CPU_REGNO_WIDTH-1:0]	rd_p4;
-input wire [`CPU_REG_WIDTH-1:0]		rd_data_p4;
 /* Forwarded values of rs and rt */
-output reg [`CPU_REG_WIDTH-1:0]		rs_data_p2;
-output reg [`CPU_REG_WIDTH-1:0]		rt_data_p2;
+output reg [`CPU_REG_WIDTH-1:0]		rs_data_p1;
+output reg [`CPU_REG_WIDTH-1:0]		rt_data_p1;
 
 
 always @(*)
 begin
-	if(rs && rs == rd_p3)
-		rs_data_p2 = rd_data_p3;
-	else if(rs && rs == rd_p4)
-		rs_data_p2 = rd_data_p4;
+	if(rs && rs == rd_p2)
+		rs_data_p1 = rd_data_p2;
+	else if(rs && rs == rd_p3)
+		rs_data_p1 = rd_data_p3;
 	else
-		rs_data_p2 = rs_data;
+		rs_data_p1 = rs_data;
 end
 
 
 always @(*)
 begin
-	if(rt && rt == rd_p3)
-		rt_data_p2 = rd_data_p3;
-	else if(rt && rt == rd_p4)
-		rt_data_p2 = rd_data_p4;
+	if(rt && rt == rd_p2)
+		rt_data_p1 = rd_data_p2;
+	else if(rt && rt == rd_p3)
+		rt_data_p1 = rd_data_p3;
 	else
-		rt_data_p2 = rt_data;
+		rt_data_p1 = rt_data;
 end
 
 

@@ -37,11 +37,12 @@ module decode(
 	nrst,
 	/* CU signals */
 	i_pc,
-	i_instr,
 	i_exec_stall,
 	i_mem_stall,
 	i_fetch_stall,
 	i_drop,
+	/* Fetched instruction */
+	i_instr,
 	/* Decoded instr */
 	o_rd_no,
 	o_rs_no,
@@ -64,11 +65,12 @@ input wire				clk;
 input wire				nrst;
 /* CU signals */
 input wire [`CPU_ADDR_WIDTH-1:0]	i_pc;
-input wire [`CPU_INSTR_WIDTH-1:0]	i_instr;
 input wire				i_exec_stall;
 input wire				i_mem_stall;
 input wire				i_fetch_stall;
 input wire				i_drop;
+/* Fetched instruction */
+input wire [`CPU_INSTR_WIDTH-1:0]	i_instr;
 /* Decoded instr */
 output reg [`CPU_REGNO_WIDTH-1:0]	o_rd_no;
 output wire [`CPU_REGNO_WIDTH-1:0]	o_rs_no;
@@ -111,8 +113,8 @@ assign regimm	= instr[20:16];
 assign shamt	= instr[10:6];
 assign func	= instr[5:0];
 
-assign o_rs = (op == `CPU_OP_J || op == `CPU_OP_JAL || op == `CPU_OP_LUI) ? R0 : rs;
-assign o_rt = rt;
+assign o_rs_no = (op == `CPU_OP_J || op == `CPU_OP_JAL || op == `CPU_OP_LUI) ? R0 : rs;
+assign o_rt_no = (op == `CPU_OP_SPECIAL && (func == `CPU_FUNC_JR || func == `CPU_FUNC_JALR)) ? R0 : rt;
 
 
 /* Immediate values */
@@ -135,18 +137,25 @@ assign shift_amount	= { 27'b0, shamt };
 always @(*)
 begin
 	case(op)
-	`CPU_OP_SPECIAL: o_rd = (i_func == `CPU_FUNC_JR ? R0 : rd);
+	`CPU_OP_SPECIAL: o_rd_no = (func == `CPU_FUNC_JR ? R0 : rd);
 	/***/
-	`CPU_OP_REGIMM, `CPU_OP_J, `CPU_OP_BEQ, `CPU_OP_BNE, `CPU_OP_BLEZ,
-	`CPU_OP_BGTZ, `CPU_OP_SB, `CPU_OP_SH, `CPU_OP_SW: o_rd = R0;
+	`CPU_OP_REGIMM: begin
+		case(regimm)
+		`CPU_REGIMM_BLTZAL, `CPU_REGIMM_BGEZAL: o_rd_no = R31;
+		default:  o_rd_no = R0;
+		endcase
+	end
 	/***/
-	`CPU_OP_JAL: o_rd = R31;
+	`CPU_OP_J, `CPU_OP_BEQ, `CPU_OP_BNE, `CPU_OP_BLEZ,
+	`CPU_OP_BGTZ, `CPU_OP_SB, `CPU_OP_SH, `CPU_OP_SW: o_rd_no = R0;
+	/***/
+	`CPU_OP_JAL: o_rd_no = R31;
 	/***/
 	`CPU_OP_ADDI, `CPU_OP_ADDIU, `CPU_OP_SLTI, `CPU_OP_SLTIU, `CPU_OP_ANDI,
 	`CPU_OP_ORI, `CPU_OP_XORI, `CPU_OP_LUI, `CPU_OP_LB, `CPU_OP_LH, `CPU_OP_LW,
-	`CPU_OP_LBU, `CPU_OP_LHU: o_rd = rt;
+	`CPU_OP_LBU, `CPU_OP_LHU: o_rd_no = rt;
 	/***/
-	default: o_rd = rd;
+	default: o_rd_no = rd;
 	endcase
 end
 
@@ -174,13 +183,13 @@ end
 /* Decode ALU operation */
 always @(*)
 begin
-	if(op == `CPU_OP_SPECIAL && (func == `CPU_FUNC_SLL || func == `CPU_FUNC_SLLV)
+	if(op == `CPU_OP_SPECIAL && (func == `CPU_FUNC_SLL || func == `CPU_FUNC_SLLV))
 		o_alu_op = `CPU_ALUOP_SLL;
-	else if(op == `CPU_OP_SPECIAL && (func == `CPU_FUNC_SRL || func == `CPU_FUNC_SRLV)
+	else if(op == `CPU_OP_SPECIAL && (func == `CPU_FUNC_SRL || func == `CPU_FUNC_SRLV))
 		o_alu_op = `CPU_ALUOP_SRL;
-	else if(op == `CPU_OP_SPECIAL && (func == `CPU_FUNC_SRA || func == `CPU_FUNC_SRAV)
+	else if(op == `CPU_OP_SPECIAL && (func == `CPU_FUNC_SRA || func == `CPU_FUNC_SRAV))
 		o_alu_op = `CPU_ALUOP_SRA;
-	else if(op == `CPU_OP_SPECIAL && (func == `CPU_FUNC_SUB || func == `CPU_FUNC_SUBU)
+	else if(op == `CPU_OP_SPECIAL && (func == `CPU_FUNC_SUB || func == `CPU_FUNC_SUBU))
 		o_alu_op = `CPU_ALUOP_SUB;
 	else if((op == `CPU_OP_SPECIAL && func == `CPU_FUNC_AND) || (op == `CPU_OP_ANDI))
 		o_alu_op = `CPU_ALUOP_AND;
@@ -267,45 +276,45 @@ begin
 	o_lsu_lns = 1'b0;
 	o_lsu_ext = 1'b0;
 
-	if(i_op == `CPU_OP_LB)
+	if(op == `CPU_OP_LB)
 	begin
 		o_lsu_op = `CPU_LSU_BYTE;
 		o_lsu_lns = 1'b1;
 		o_lsu_ext = 1'b1;
 	end
-	else if(i_op == `CPU_OP_LH)
+	else if(op == `CPU_OP_LH)
 	begin
 		o_lsu_op = `CPU_LSU_HWORD;
 		o_lsu_lns = 1'b1;
 		o_lsu_ext = 1'b1;
 	end
-	else if(i_op == `CPU_OP_LW)
+	else if(op == `CPU_OP_LW)
 	begin
 		o_lsu_op = `CPU_LSU_WORD;
 		o_lsu_lns = 1'b1;
 		o_lsu_ext = 1'b1;
 	end
-	else if(i_op == `CPU_OP_LBU)
+	else if(op == `CPU_OP_LBU)
 	begin
 		o_lsu_op = `CPU_LSU_BYTE;
 		o_lsu_lns = 1'b1;
 	end
-	else if(i_op == `CPU_OP_LHU)
+	else if(op == `CPU_OP_LHU)
 	begin
 		o_lsu_op = `CPU_LSU_HWORD;
 		o_lsu_lns = 1'b1;
 	end
-	else if(i_op == `CPU_OP_SB)
+	else if(op == `CPU_OP_SB)
 	begin
 		o_lsu_op = `CPU_LSU_BYTE;
 		o_lsu_lns = 1'b0;
 	end
-	else if(i_op == `CPU_OP_SH)
+	else if(op == `CPU_OP_SH)
 	begin
 		o_lsu_op = `CPU_LSU_HWORD;
 		o_lsu_lns = 1'b0;
 	end
-	else if(i_op == `CPU_OP_SW)
+	else if(op == `CPU_OP_SW)
 	begin
 		o_lsu_op = `CPU_LSU_WORD;
 		o_lsu_lns = 1'b0;

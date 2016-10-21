@@ -40,10 +40,10 @@ module writeback(
 	i_mem_stall,
 	i_fetch_stall,
 	/* Data for writeback */
-	i_dst_gpr,
-	i_dst_gpr_v,
-	o_rd,
-	o_rd_data
+	i_rd_no,
+	i_rd_val,
+	o_rd_no,
+	o_rd_val
 );
 /* Inputs */
 input wire				clk;
@@ -53,11 +53,11 @@ input wire				i_exec_stall;
 input wire				i_mem_stall;
 input wire				i_fetch_stall;
 /* Input from memory access stage */
-input wire [`CPU_REGNO_WIDTH-1:0]	i_dst_gpr;
-input wire [`CPU_DATA_WIDTH-1:0]	i_dst_gpr_v;
+input wire [`CPU_REGNO_WIDTH-1:0]	i_rd_no;
+input wire [`CPU_REG_WIDTH-1:0]		i_rd_val;
 /* Output for write to register file */
-output reg [`CPU_REGNO_WIDTH-1:0]	o_rd;
-output reg [`CPU_REG_WIDTH-1:0]		o_rd_data;
+output reg [`CPU_REGNO_WIDTH-1:0]	o_rd_no;
+output reg [`CPU_REG_WIDTH-1:0]		o_rd_val;
 
 
 
@@ -69,13 +69,13 @@ always @(posedge clk or negedge nrst)
 begin
 	if(!nrst)
 	begin
-		o_rd <= 0;
-		o_rd_data <= 0;
+		o_rd_no <= {(`CPU_REGNO_WIDTH){1'b0}};
+		o_rd_val <= {(`CPU_REG_WIDTH){1'b0}};
 	end
 	else if(!core_stall)
 	begin
-		o_rd <= i_dst_gpr;
-		o_rd_data <= i_dst_gpr_v;
+		o_rd_no <= i_rd_no;
+		o_rd_val <= i_rd_val;
 	end
 end
 

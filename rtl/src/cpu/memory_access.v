@@ -49,20 +49,23 @@ module memory_access(
 	lsu_err_align,
 	lsu_err_bus,
 	/* Result of execute stage */
-	i_op,
-	i_dst_gpr,
-	i_result,
+	i_rd_no,
+	i_alu_result,
+	i_lsu_op,
+	i_lsu_lns,
+	i_lsu_ext,
 	i_mem_data,
 	/* Data for writeback */
-	o_dst_gpr,
-	o_dst_gpr_v
+	o_rd_no,
+	o_rd_val
 );
-localparam [4:0] LSU_OTHER	= 5'b00000;
-localparam [4:0] LSU_LD		= 5'b00001;
-localparam [4:0] LSU_LD_BZE	= 5'b00010;
-localparam [4:0] LSU_LD_HZE	= 5'b00100;
-localparam [4:0] LSU_LD_BSE	= 5'b01000;
-localparam [4:0] LSU_LD_HSE	= 5'b10000;
+`include "reg_names.vh"
+localparam [3:0] MUX_RD_ALU		= 4'b0000;
+localparam [3:0] MUX_RD_BYTE_SE		= 4'b1000;
+localparam [3:0] MUX_RD_BYTE_ZE		= 4'b1001;
+localparam [3:0] MUX_RD_HWORD_SE	= 4'b1010;
+localparam [3:0] MUX_RD_HWORD_ZE	= 4'b1011;
+localparam [3:0] MUX_RD_WORD		= 4'b1100;
 /* Inputs */
 input wire				clk;
 input wire				nrst;
@@ -80,13 +83,15 @@ input wire				lsu_busy;
 input wire				lsu_err_align;
 input wire				lsu_err_bus;
 /* Input from execute stage */
-input wire [5:0]			i_op;
-input wire [`CPU_REGNO_WIDTH-1:0]	i_dst_gpr;
-input wire [`CPU_DATA_WIDTH-1:0]	i_result;
+input wire [`CPU_REGNO_WIDTH-1:0]	i_rd_no;
+input wire [`CPU_REG_WIDTH-1:0]		i_alu_result;
+input wire [`CPU_LSUOP_WIDTH-1:0]	i_lsu_op;
+input wire				i_lsu_lns;
+input wire				i_lsu_ext;
 input wire [`CPU_DATA_WIDTH-1:0]	i_mem_data;
 /* Output for writeback */
-output reg [`CPU_REGNO_WIDTH-1:0]	o_dst_gpr;
-output reg [`CPU_DATA_WIDTH-1:0]	o_dst_gpr_v;
+output reg [`CPU_REGNO_WIDTH-1:0]	o_rd_no;
+output reg [`CPU_REG_WIDTH-1:0]		o_rd_val;
 
 
 
@@ -95,93 +100,47 @@ assign core_stall = i_exec_stall || o_mem_stall || i_fetch_stall;
 
 assign o_mem_stall = lsu_busy;
 
-reg [4:0] lsu_op;
-reg [`CPU_DATA_WIDTH-1:0] result;
+reg [3:0] lsu_mux;
 
+reg [`CPU_REG_WIDTH-1:0] alu_result;
 
 always @(posedge clk or negedge nrst)
 begin
 	if(!nrst)
 	begin
-		o_dst_gpr <= 0;
-		lsu_op <= LSU_OTHER;
-
-		lsu_addr <= 0;
-		lsu_wdata <= 0;
-		lsu_cmd <= 0;
-		lsu_rnw <= 0;
-		result <= 0;
+		lsu_addr <= {(`CPU_ADDR_WIDTH){1'b0}};
+		lsu_wdata <= {(`CPU_DATA_WIDTH){1'b0}};
+		lsu_cmd <= `CPU_LSU_IDLE;
+		lsu_rnw <= 1'b0;
+		lsu_mux <= MUX_RD_ALU;
+		alu_result <= {(`CPU_REG_WIDTH){1'b0}};
 	end
 	else
 	begin
 		lsu_cmd <= `CPU_LSU_IDLE;
-//		lsu_op <= LSU_OTHER;
 		if(!core_stall)
 		begin
-//			lsu_cmd <= `CPU_LSU_IDLE;
-			lsu_op <= LSU_OTHER;
-			case(i_op)
-			`CPU_OP_LB: begin
-				lsu_addr <= i_result;
-				lsu_cmd <= `CPU_LSU_BYTE;
-				lsu_rnw <= 1'b1;
-				lsu_op <= LSU_LD_BSE;
-				o_dst_gpr <= i_dst_gpr;
-			end
-			`CPU_OP_LH: begin
-				lsu_addr <= i_result;
-				lsu_cmd <= `CPU_LSU_HWORD;
-				lsu_rnw <= 1'b1;
-				lsu_op <= LSU_LD_HSE;
-				o_dst_gpr <= i_dst_gpr;
-			end
-			`CPU_OP_LW: begin
-				lsu_addr <= i_result;
-				lsu_cmd <= `CPU_LSU_WORD;
-				lsu_rnw <= 1'b1;
-				lsu_op <= LSU_LD;
-				o_dst_gpr <= i_dst_gpr;
-			end
-			`CPU_OP_LBU: begin
-				lsu_addr <= i_result;
-				lsu_cmd <= `CPU_LSU_BYTE;
-				lsu_rnw <= 1'b1;
-				lsu_op <= LSU_LD_BZE;
-				o_dst_gpr <= i_dst_gpr;
-			end
-			`CPU_OP_LHU: begin
-				lsu_addr <= i_result;
-				lsu_cmd <= `CPU_LSU_HWORD;
-				lsu_rnw <= 1'b1;
-				lsu_op <= LSU_LD_HZE;
-				o_dst_gpr <= i_dst_gpr;
-			end
-			`CPU_OP_SB: begin
-				lsu_addr <= i_result;
-				lsu_wdata <= i_mem_data;
-				lsu_cmd <= `CPU_LSU_BYTE;
-				lsu_rnw <= 1'b0;
-				o_dst_gpr <= 0; //XXX: ?
-			end
-			`CPU_OP_SH: begin
-				lsu_addr <= i_result;
-				lsu_wdata <= i_mem_data;
-				lsu_cmd <= `CPU_LSU_HWORD;
-				lsu_rnw <= 1'b0;
-				o_dst_gpr <= 0; //XXX: ?
-			end
-			`CPU_OP_SW: begin
-				lsu_addr <= i_result;
-				lsu_wdata <= i_mem_data;
-				lsu_cmd <= `CPU_LSU_WORD;
-				lsu_rnw <= 1'b0;
-				o_dst_gpr <= 0; //XXX: ?
-			end
-			default: begin
-				o_dst_gpr <= i_dst_gpr;
-				result <= i_result;
-			end
-			endcase
+			o_rd_no <= i_rd_no;
+
+			alu_result <= i_alu_result;
+
+			lsu_addr <= i_alu_result;
+			lsu_wdata <= i_mem_data;
+			lsu_cmd <= i_lsu_op;
+			lsu_rnw <= i_lsu_lns;
+
+			if(i_lsu_op == `CPU_LSU_BYTE && i_lsu_ext == 1'b1)
+				lsu_mux <= MUX_RD_BYTE_SE;
+			else if(i_lsu_op == `CPU_LSU_BYTE && i_lsu_ext == 1'b0)
+				lsu_mux <= MUX_RD_BYTE_ZE;
+			else if(i_lsu_op == `CPU_LSU_HWORD && i_lsu_ext == 1'b1)
+				lsu_mux <= MUX_RD_HWORD_SE;
+			else if(i_lsu_op == `CPU_LSU_HWORD && i_lsu_ext == 1'b0)
+				lsu_mux <= MUX_RD_HWORD_ZE;
+			else if(i_lsu_op == `CPU_LSU_WORD)
+				lsu_mux <= MUX_RD_WORD;
+			else
+				lsu_mux <= MUX_RD_ALU;
 		end
 	end
 end
@@ -189,19 +148,14 @@ end
 
 always @(*)
 begin
-	if(lsu_op)
-	begin
-		case(lsu_op)
-		LSU_LD_BZE: o_dst_gpr_v = { 24'b0, lsu_rdata[7:0] };
-		LSU_LD_HZE: o_dst_gpr_v = { 16'b0, lsu_rdata[15:0] };
-		LSU_LD_BSE: o_dst_gpr_v = { {24{lsu_rdata[7]}}, lsu_rdata[7:0] };
-		LSU_LD_HSE: o_dst_gpr_v = { {16{lsu_rdata[15]}}, lsu_rdata[15:0] };
-		default: o_dst_gpr_v = lsu_rdata;
-		endcase
-	end
-	else
-		o_dst_gpr_v = result;
+	case(lsu_mux)
+	MUX_RD_BYTE_SE: o_rd_val = { {24{lsu_rdata[7]}}, lsu_rdata[7:0] };
+	MUX_RD_BYTE_ZE: o_rd_val = { 24'b0, lsu_rdata[7:0] };
+	MUX_RD_HWORD_SE: o_rd_val = { {16{lsu_rdata[15]}}, lsu_rdata[15:0] };
+	MUX_RD_HWORD_ZE: o_rd_val = { 16'b0, lsu_rdata[15:0] };
+	MUX_RD_WORD: o_rd_val = lsu_rdata;
+	default: o_rd_val = alu_result;
+	endcase
 end
-
 
 endmodule /* memory_access */

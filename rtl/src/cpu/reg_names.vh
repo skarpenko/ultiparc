@@ -27,9 +27,6 @@
  * Register names
  */
 
-`ifndef _REG_NAMES_VH_
-`define _REG_NAMES_VH_
-
 
 /* General purpose registers */
 localparam [4:0] R0  = 5'd0;
@@ -64,6 +61,3 @@ localparam [4:0] R28 = 5'd28;
 localparam [4:0] R29 = 5'd29;
 localparam [4:0] R30 = 5'd30;
 localparam [4:0] R31 = 5'd31;
-
-
-`endif /* _REG_NAMES_VH_ */

@@ -118,42 +118,48 @@ wire				mem_stall;
 wire				fetch_stall;
 assign core_stall = fetch_stall || exec_stall || mem_stall;
 
-wire drop_p2;
 
 
+/* Fetch stage output */
 wire [`CPU_INSTR_WIDTH-1:0]	instr_p0;
 
 
-wire [5:0]			op_p1;
-wire [`CPU_REGNO_WIDTH-1:0]	dst_gpr_p1;
-wire [`CPU_REGNO_WIDTH-1:0]	src1_gpr_p1;
-wire [`CPU_REGNO_WIDTH-1:0]	src2_gpr_p1;
-wire [`CPU_DATA_WIDTH-1:0]	src3_se_v_p1;
-wire [`CPU_DATA_WIDTH-1:0]	src3_ze_v_p1;
-wire [`CPU_DATA_WIDTH-1:0]	src3_sh16_v_p1;
-wire [`CPU_ADDR_WIDTH-1:0]	src3_j_v_p1;
-wire [`CPU_ADDR_WIDTH-1:0]	src3_broff_v_p1;
-wire [4:0]			shamt_p1;
-wire [5:0]			func_p1;
+/* Decode stage output */
+wire [`CPU_REGNO_WIDTH-1:0]	rd_no_p1;
+wire [`CPU_REGNO_WIDTH-1:0]	rs_no_p1;
+wire [`CPU_REGNO_WIDTH-1:0]	rt_no_p1;
+wire [`CPU_DATA_WIDTH-1:0]	imm_p1;
+wire [`CPU_ALUOP_WIDTH-1:0]	alu_op_p1;
+wire [4:0]			alu_inpt_p1;
+wire				alu_ovf_ex_p1;
+wire [4:0]			jump_p1;
+wire				jump_link_p1;
+wire [1:0]			imuldiv_op_p1;
+wire [`CPU_LSUOP_WIDTH-1:0]	lsu_op_p1;
+wire				lsu_lns_p1;
+wire				lsu_ext_p1;
+
+assign rf_rs = rs_no_p1;
+assign rf_rt = rt_no_p1;
+
+wire [`CPU_REG_WIDTH-1:0]	rs_val_p1;
+wire [`CPU_REG_WIDTH-1:0]	rt_val_p1;
 
 
-assign rf_rs = src1_gpr_p1;
-assign rf_rt = src2_gpr_p1;
-
-
-wire [`CPU_REG_WIDTH-1:0]	src1_gpr_v_p2;
-wire [`CPU_REG_WIDTH-1:0]	src2_gpr_v_p2;
-
-wire [5:0]			op_p2;
-wire [`CPU_REGNO_WIDTH-1:0]	dst_gpr_p2;
-wire [`CPU_DATA_WIDTH-1:0]	result_p2;
+/* Execute stage output */
+wire [`CPU_REGNO_WIDTH-1:0]	rd_no_p2;
+wire [`CPU_REG_WIDTH-1:0]	alu_result_p2;
+wire [`CPU_ADDR_WIDTH-1:0]	jump_addr_p2;
+wire				jump_valid_p2;
+wire [`CPU_LSUOP_WIDTH-1:0]	lsu_op_p2;
+wire				lsu_lns_p2;
+wire				lsu_ext_p2;
 wire [`CPU_DATA_WIDTH-1:0]	mem_data_p2;
-wire				j_addr_valid_p2;
-wire [`CPU_ADDR_WIDTH-1:0]	j_addr_p2;
 
 
-wire [`CPU_REGNO_WIDTH-1:0]	dst_gpr_p3;
-wire [`CPU_DATA_WIDTH-1:0]	dst_gpr_v_p3;
+/* Memory access stage output */
+wire [`CPU_REGNO_WIDTH-1:0]	rd_no_p3;
+wire [`CPU_REG_WIDTH-1:0]	rd_val_p3;
 
 
 
@@ -215,20 +221,16 @@ lsu lsu(
 
 /** Forwarding Unit **/
 fwdu fwdu(
-	.rs(src1_gpr_p1),
+	.rs(rs_no_p1),
 	.rs_data(rf_rs_data),
-	.rt(src2_gpr_p1),
+	.rt(rt_no_p1),
 	.rt_data(rf_rt_data),
-//	.rd_p3(dst_gpr_p3),
-//	.rd_data_p3(dst_gpr_v_p3),
-	.rd_p3(dst_gpr_p2),
-	.rd_data_p3(result_p2),
-//	.rd_p4(rf_rd),
-//	.rd_data_p4(rf_rd_data),
-	.rd_p4(dst_gpr_p3),
-	.rd_data_p4(dst_gpr_v_p3),
-	.rs_data_p2(src1_gpr_v_p2),
-	.rt_data_p2(src2_gpr_v_p2)
+	.rd_p2(rd_no_p2),
+	.rd_data_p2(alu_result_p2),
+	.rd_p3(rd_no_p3),
+	.rd_data_p3(rd_val_p3),
+	.rs_data_p1(rs_val_p1),
+	.rt_data_p1(rt_val_p1)
 );
 
 
@@ -241,8 +243,7 @@ fetch fetch(
 	.nrst(nrst),
 	/* Control signals */
 	.i_pc(pc_next),
-	.i_j_valid(j_addr_valid_p2),
-	.o_instr(instr_p0),
+	.i_jump_valid(jump_valid_p2),
 	.i_exec_stall(exec_stall),
 	.i_mem_stall(mem_stall),
 	.o_fetch_stall(fetch_stall),
@@ -252,7 +253,9 @@ fetch fetch(
 	.o_rd_cmd(ifu_rd_cmd),
 	.i_busy(ifu_busy),
 	.i_err_align(ifu_err_align),
-	.i_err_bus(ifu_err_bus)
+	.i_err_bus(ifu_err_bus),
+	/* Fetched instruction */
+	.o_instr(instr_p0)
 );
 
 
@@ -262,24 +265,26 @@ decode decode(
 	.nrst(nrst),
 	/* Control signals */
 	.i_pc(pc_p1),
-	.i_instr(instr_p0),
 	.i_exec_stall(exec_stall),
 	.i_mem_stall(mem_stall),
 	.i_fetch_stall(fetch_stall),
-/*	.i_drop(drop_p2), */
 	.i_drop(1'b0),
-	/* Decoded instr */
-	.o_op(op_p1),
-	.o_dst_gpr(dst_gpr_p1),
-	.o_src1_gpr(src1_gpr_p1),
-	.o_src2_gpr(src2_gpr_p1),
-	.o_src3_se_v(src3_se_v_p1),
-	.o_src3_ze_v(src3_ze_v_p1),
-	.o_src3_sh16_v(src3_sh16_v_p1),
-	.o_src3_j_v(src3_j_v_p1),
-	.o_src3_broff_v(src3_broff_v_p1),
-	.o_shamt(shamt_p1),
-	.o_func(func_p1)
+	/* Fetched instruction */
+	.i_instr(instr_p0),
+	/* Decoded instruction */
+	.o_rd_no(rd_no_p1),
+	.o_rs_no(rs_no_p1),
+	.o_rt_no(rt_no_p1),
+	.o_imm(imm_p1),
+	.o_alu_op(alu_op_p1),
+	.o_alu_inpt(alu_inpt_p1),
+	.o_alu_ovf_ex(alu_ovf_ex_p1),
+	.o_jump(jump_p1),
+	.o_jump_link(jump_link_p1),
+	.o_imuldiv_op(imuldiv_op_p1),
+	.o_lsu_op(lsu_op_p1),
+	.o_lsu_lns(lsu_lns_p1),
+	.o_lsu_ext(lsu_ext_p1)
 );
 
 
@@ -293,27 +298,30 @@ execute execute(
 	.o_exec_stall(exec_stall),
 	.i_mem_stall(mem_stall),
 	.i_fetch_stall(fetch_stall),
-	.o_drop(drop_p2),
-	/* Decoded instr */
-	.i_op(op_p1),
-	.i_dst_gpr(dst_gpr_p1),
-	.i_src1_gpr_v(src1_gpr_v_p2),
-	.i_src2_gpr_v(src2_gpr_v_p2),
-	.i_src3_se_v(src3_se_v_p1),
-	.i_src3_ze_v(src3_ze_v_p1),
-	.i_src3_sh16_v(src3_sh16_v_p1),
-	.i_src3_j_v(src3_j_v_p1),
-	.i_src3_broff_v(src3_broff_v_p1),
-	.i_shamt(shamt_p1),
-	.i_func(func_p1),
-	.i_regimm(src2_gpr_p1),
+	.i_drop(1'b0),
+	/* Decoded instruction */
+	.i_rd_no(rd_no_p1),
+	.i_rs_val(rs_val_p1),
+	.i_rt_val(rt_val_p1),
+	.i_imm(imm_p1),
+	.i_alu_op(alu_op_p1),
+	.i_alu_inpt(alu_inpt_p1),
+	.i_alu_ovf_ex(alu_ovf_ex_p1),
+	.i_jump(jump_p1),
+	.i_jump_link(jump_link_p1),
+	.i_imuldiv_op(imuldiv_op_p1),
+	.i_lsu_op(lsu_op_p1),
+	.i_lsu_lns(lsu_lns_p1),
+	.i_lsu_ext(lsu_ext_p1),
 	/* Stage output */
-	.o_op(op_p2),
-	.o_dst_gpr(dst_gpr_p2),
-	.o_result(result_p2),
-	.o_mem_data(mem_data_p2),
-	.o_j_addr_valid(j_addr_valid_p2),
-	.o_j_addr(j_addr_p2)
+	.o_rd_no(rd_no_p2),
+	.o_alu_result(alu_result_p2),
+	.o_jump_addr(jump_addr_p2),
+	.o_jump_valid(jump_valid_p2),
+	.o_lsu_op(lsu_op_p2),
+	.o_lsu_lns(lsu_lns_p2),
+	.o_lsu_ext(lsu_ext_p2),
+	.o_mem_data(mem_data_p2)
 );
 
 
@@ -321,7 +329,7 @@ execute execute(
 memory_access memory_access(
 	.clk(clk),
 	.nrst(nrst),
-	/* CU signals */
+	/* Control signals */
 	.i_exec_stall(exec_stall),
 	.o_mem_stall(mem_stall),
 	.i_fetch_stall(fetch_stall),
@@ -335,13 +343,15 @@ memory_access memory_access(
 	.lsu_err_align(lsu_err_align),
 	.lsu_err_bus(lsu_err_bus),
 	/* Result of execute stage */
-	.i_op(op_p2),
-	.i_dst_gpr(dst_gpr_p2),
-	.i_result(result_p2),
+	.i_rd_no(rd_no_p2),
+	.i_alu_result(alu_result_p2),
+	.i_lsu_op(lsu_op_p2),
+	.i_lsu_lns(lsu_lns_p2),
+	.i_lsu_ext(lsu_ext_p2),
 	.i_mem_data(mem_data_p2),
 	/* Data for writeback */
-	.o_dst_gpr(dst_gpr_p3),
-	.o_dst_gpr_v(dst_gpr_v_p3)
+	.o_rd_no(rd_no_p3),
+	.o_rd_val(rd_val_p3)
 );
 
 
@@ -349,15 +359,15 @@ memory_access memory_access(
 writeback writeback(
 	.clk(clk),
 	.nrst(nrst),
-	/* CU signals */
+	/* Control signals */
 	.i_exec_stall(exec_stall),
 	.i_mem_stall(mem_stall),
 	.i_fetch_stall(fetch_stall),
 	/* Data for writeback */
-	.i_dst_gpr(dst_gpr_p3),
-	.i_dst_gpr_v(dst_gpr_v_p3),
-	.o_rd(rf_rd),
-	.o_rd_data(rf_rd_data)
+	.i_rd_no(rd_no_p3),
+	.i_rd_val(rd_val_p3),
+	.o_rd_no(rf_rd),
+	.o_rd_val(rf_rd_data)
 );
 
 
@@ -374,7 +384,7 @@ begin
 	end
 	else if(!core_stall)
 	begin
-		pc_next <= j_addr_valid_p2 ? j_addr_p2 : pc_next + `CPU_INSTR_SIZE;
+		pc_next <= jump_valid_p2 ? jump_addr_p2 : pc_next + `CPU_INSTR_SIZE;
 		pc_p0 <= pc_next;
 		pc_p1 <= pc_p0;
 		pc_p2 <= pc_p1;

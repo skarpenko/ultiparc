@@ -41,28 +41,33 @@ module execute(
 	o_exec_stall,
 	i_mem_stall,
 	i_fetch_stall,
-	o_drop,
+	i_drop,
 	/* Decoded instr */
-	i_op,
-	i_dst_gpr,
-	i_src1_gpr_v,
-	i_src2_gpr_v,
-	i_src3_se_v,
-	i_src3_ze_v,
-	i_src3_sh16_v,
-	i_src3_j_v,
-	i_src3_broff_v,
-	i_shamt,
-	i_func,
-	i_regimm,
+	i_rd_no,
+	i_rs_val,
+	i_rt_val,
+	i_imm,
+	i_alu_op,
+	i_alu_inpt,
+	i_alu_ovf_ex,
+	i_jump,
+	i_jump_link,
+	i_imuldiv_op,
+	i_lsu_op,
+	i_lsu_lns,
+	i_lsu_ext,
 	/* Stage output */
-	o_op,
-	o_dst_gpr,
-	o_result,
-	o_mem_data,
-	o_j_addr_valid,
-	o_j_addr
+	o_rd_no,
+	o_alu_result,
+	o_jump_addr,
+	o_jump_valid,
+	o_lsu_op,
+	o_lsu_lns,
+	o_lsu_ext,
+	o_mem_data
 );
+`include "reg_names.vh"
+`include "decode_const.vh"
 /* Inputs */
 input wire				clk;
 input wire				nrst;
@@ -72,27 +77,30 @@ input wire [`CPU_ADDR_WIDTH-1:0]	i_pc_p1;
 output wire				o_exec_stall;
 input wire				i_mem_stall;
 input wire				i_fetch_stall;
-output reg				o_drop;
+input wire				i_drop;
 /* Decoded instr */
-input wire [5:0]			i_op;
-input wire [`CPU_REGNO_WIDTH-1:0]	i_dst_gpr;
-input wire [`CPU_REG_WIDTH-1:0]		i_src1_gpr_v;
-input wire [`CPU_REG_WIDTH-1:0]		i_src2_gpr_v;
-input wire [`CPU_DATA_WIDTH-1:0]	i_src3_se_v;
-input wire [`CPU_DATA_WIDTH-1:0]	i_src3_ze_v;
-input wire [`CPU_DATA_WIDTH-1:0]	i_src3_sh16_v;
-input wire [`CPU_ADDR_WIDTH-1:0]	i_src3_j_v;
-input wire [`CPU_ADDR_WIDTH-1:0]	i_src3_broff_v;
-input wire [4:0]			i_shamt;
-input wire [5:0]			i_func;
-input wire [`CPU_REGNO_WIDTH-1:0]	i_regimm;
+input wire [`CPU_REGNO_WIDTH-1:0]	i_rd_no;
+input wire [`CPU_REG_WIDTH-1:0]		i_rs_val;
+input wire [`CPU_REG_WIDTH-1:0]		i_rt_val;
+input wire [`CPU_DATA_WIDTH-1:0]	i_imm;
+input wire [`CPU_ALUOP_WIDTH-1:0]	i_alu_op;
+input wire [4:0]			i_alu_inpt;
+input wire				i_alu_ovf_ex;
+input wire [4:0]			i_jump;
+input wire				i_jump_link;
+input wire [1:0]			i_imuldiv_op;
+input wire [`CPU_LSUOP_WIDTH-1:0]	i_lsu_op;
+input wire				i_lsu_lns;
+input wire				i_lsu_ext;
 /* Stage output */
-output reg [5:0]			o_op;
-output reg [`CPU_REGNO_WIDTH-1:0]	o_dst_gpr;
-output reg [`CPU_DATA_WIDTH-1:0]	o_result;
+output reg [`CPU_REGNO_WIDTH-1:0]	o_rd_no;
+output reg [`CPU_REG_WIDTH-1:0]		o_alu_result;
+output wire [`CPU_ADDR_WIDTH-1:0]	o_jump_addr;
+output reg				o_jump_valid;
+output reg [`CPU_LSUOP_WIDTH-1:0]	o_lsu_op;
+output reg				o_lsu_lns;
+output reg				o_lsu_ext;
 output reg [`CPU_DATA_WIDTH-1:0]	o_mem_data;
-output reg				o_j_addr_valid;
-output reg [`CPU_ADDR_WIDTH-1:0]	o_j_addr;
 
 
 wire core_stall;
@@ -101,409 +109,146 @@ assign core_stall = o_exec_stall || i_mem_stall || i_fetch_stall;
 assign o_exec_stall = 1'b0;
 
 
-reg [`CPU_ALUOP_WIDTH-1:0] alu_op;
-reg [`CPU_REG_WIDTH-1:0] a;
-reg [`CPU_REG_WIDTH-1:0] b;
-wire [`CPU_REG_WIDTH-1:0] alu_result;
-wire ovflow;
-wire zero;
-wire neg;
-
-reg j_mux;
-reg [`CPU_ADDR_WIDTH-1:0]	j_addr;
-
-reg r_mux;
-reg [`CPU_REG_WIDTH-1:0]	result;
+reg jump_instr;
+reg branch_taken;
+reg branch_link;
+reg [`CPU_REGNO_WIDTH-1:0] rd_no;
+reg [`CPU_ADDR_WIDTH-1:0] pc_p0;
 
 
-always @(*)
-	o_j_addr = !j_mux ? j_addr : alu_result;
+assign o_jump_addr = alu_result;
 
-always @(*)
-	o_result = !r_mux ? alu_result : result;
 
+/* ALU interconnect */
+reg [`CPU_ALUOP_WIDTH-1:0]	alu_op;
+reg [`CPU_REG_WIDTH-1:0]	a;
+reg [`CPU_REG_WIDTH-1:0]	b;
+wire [`CPU_REG_WIDTH-1:0]	alu_result;
+wire				ovflow;
+wire				zero;
+wire				neg;
 
 
 always @(posedge clk or negedge nrst)
 begin
 	if(!nrst)
+		rd_no <= {(`CPU_REG_WIDTH){1'b0}};
+	else if(!core_stall)
+		rd_no <= i_rd_no;
+end
+
+
+/* ALU operation */
+always @(posedge clk or negedge nrst)
+begin
+	if(!nrst)
 	begin
-		o_op <= 6'b0;
-		o_dst_gpr <= {(`CPU_REGNO_WIDTH){1'b0}};
-//		o_result <= {(`CPU_DATA_WIDTH){1'b0}};
-		o_mem_data <= {(`CPU_DATA_WIDTH){1'b0}};
-		o_j_addr_valid <= 1'b0;
-//		o_j_addr <= {(`CPU_ADDR_WIDTH){1'b0}};
-		o_drop <= 1'b0;
-		j_mux <= 1'b0;
-		j_addr <= {(`CPU_ADDR_WIDTH){1'b0}};
-		r_mux <= 1'b0;
-		result <= {(`CPU_REG_WIDTH){1'b0}};
+		alu_op <= `CPU_ALUOP_ADD;
 		a <= {(`CPU_REG_WIDTH){1'b0}};
 		b <= {(`CPU_REG_WIDTH){1'b0}};
 	end
 	else if(!core_stall)
 	begin
-		o_j_addr_valid <= 1'b0;
-		o_drop <= 1'b0;
-		j_mux <= 1'b0;
-		r_mux <= 1'b0;
+		alu_op <= i_alu_op;
+		case(i_alu_inpt)
+		DECODE_ALU_INPT_RTRS: begin
+			a <= i_rt_val;
+			b <= i_rs_val;
+		end
+		DECODE_ALU_INPT_RSIMM: begin
+			a <= i_rs_val;
+			b <= i_imm;
+		end
+		DECODE_ALU_INPT_RTIMM: begin
+			a <= i_rt_val;
+			b <= i_imm;
+		end
+		DECODE_ALU_INPT_PCIMM: begin
+			a <= i_pc_p1;
+			b <= i_imm;
+		end
+		default: begin /* DECODE_ALU_INPT_RSRT */
+			a <= i_rs_val;
+			b <= i_rt_val;
+		end
+		endcase
+	end
+end
 
-		o_op <= i_op;
-		o_dst_gpr <= i_dst_gpr;
 
-		if(i_op == `CPU_OP_SPECIAL && i_func == `CPU_FUNC_SLL)
-		begin
-			a <= i_src2_gpr_v;
-			b <= { 27'b0, i_shamt };
-			alu_op <= `CPU_ALUOP_SLL;
-		end
-		else if(i_op == `CPU_OP_SPECIAL && i_func == `CPU_FUNC_SRL)
-		begin
-			a <= i_src2_gpr_v;
-			b <= { 27'b0, i_shamt };
-			alu_op <= `CPU_ALUOP_SRL;
-		end
-		else if(i_op == `CPU_OP_SPECIAL && i_func == `CPU_FUNC_SRA)
-		begin
-			a <= i_src2_gpr_v;
-			b <= { 27'b0, i_shamt };
-			alu_op <= `CPU_ALUOP_SRA;
-		end
-		else if(i_op == `CPU_OP_SPECIAL && i_func == `CPU_FUNC_SLLV)
-		begin
-			a <= i_src2_gpr_v;
-			b <= { 27'b0, i_src1_gpr_v[4:0] };
-			alu_op <= `CPU_ALUOP_SLL;
-		end
-		else if(i_op == `CPU_OP_SPECIAL && i_func == `CPU_FUNC_SRLV)
-		begin
-			a <= i_src2_gpr_v;
-			b <= { 27'b0, i_src1_gpr_v[4:0] };
-			alu_op <= `CPU_ALUOP_SRL;
-		end
-		else if(i_op == `CPU_OP_SPECIAL && i_func == `CPU_FUNC_SRAV)
-		begin
-			a <= i_src2_gpr_v;
-			b <= { 27'b0, i_src1_gpr_v[4:0] };
-			alu_op <= `CPU_ALUOP_SRA;
-		end
-		else if(i_op == `CPU_OP_SPECIAL && i_func == `CPU_FUNC_JR)
-		begin
-			o_dst_gpr <= {(`CPU_REGNO_WIDTH){1'b0}};
-			o_j_addr_valid <= 1'b1;
-			j_addr <= i_src1_gpr_v;
-		end
-		else if(i_op == `CPU_OP_SPECIAL && i_func == `CPU_FUNC_JALR)
-		begin
-			o_j_addr_valid <= 1'b1;
-			j_addr <= i_src1_gpr_v;
-			result <= i_pc_p0;
-			r_mux <= 1'b1;
-		end
-		else if(i_op == `CPU_OP_SPECIAL && i_func == `CPU_FUNC_SYSCALL)
-		begin
-		end
-		else if(i_op == `CPU_OP_SPECIAL && i_func == `CPU_FUNC_BREAK)
-		begin
-		end
-		else if(i_op == `CPU_OP_SPECIAL && i_func == `CPU_FUNC_MFHI)
-		begin
-		end
-		else if(i_op == `CPU_OP_SPECIAL && i_func == `CPU_FUNC_MTHI)
-		begin
-		end
-		else if(i_op == `CPU_OP_SPECIAL && i_func == `CPU_FUNC_MFLO)
-		begin
-		end
-		else if(i_op == `CPU_OP_SPECIAL && i_func == `CPU_FUNC_MTLO)
-		begin
-		end
-		else if(i_op == `CPU_OP_SPECIAL && i_func == `CPU_FUNC_MULT)
-		begin
-		end
-		else if(i_op == `CPU_OP_SPECIAL && i_func == `CPU_FUNC_MULTU)
-		begin
-		end
-		else if(i_op == `CPU_OP_SPECIAL && i_func == `CPU_FUNC_DIV)
-		begin
-		end
-		else if(i_op == `CPU_OP_SPECIAL && i_func == `CPU_FUNC_DIVU)
-		begin
-		end
-		else if(i_op == `CPU_OP_SPECIAL && i_func == `CPU_FUNC_ADD)
-		begin
-			a <= i_src1_gpr_v;
-			b <= i_src2_gpr_v;
-			alu_op <= `CPU_ALUOP_ADD;
-		end
-		else if(i_op == `CPU_OP_SPECIAL && i_func == `CPU_FUNC_ADDU)
-		begin
-			a <= i_src1_gpr_v;
-			b <= i_src2_gpr_v;
-			alu_op <= `CPU_ALUOP_ADD;
-		end
-		else if(i_op == `CPU_OP_SPECIAL && i_func == `CPU_FUNC_SUB)
-		begin
-			a <= i_src1_gpr_v;
-			b <= i_src2_gpr_v;
-			alu_op <= `CPU_ALUOP_SUB;
-		end
-		else if(i_op == `CPU_OP_SPECIAL && i_func == `CPU_FUNC_SUBU)
-		begin
-			a <= i_src1_gpr_v;
-			b <= i_src2_gpr_v;
-			alu_op <= `CPU_ALUOP_SUB;
-		end
-		else if(i_op == `CPU_OP_SPECIAL && i_func == `CPU_FUNC_AND)
-		begin
-			a <= i_src1_gpr_v;
-			b <= i_src2_gpr_v;
-			alu_op <= `CPU_ALUOP_AND;
-		end
-		else if(i_op == `CPU_OP_SPECIAL && i_func == `CPU_FUNC_OR)
-		begin
-			a <= i_src1_gpr_v;
-			b <= i_src2_gpr_v;
-			alu_op <= `CPU_ALUOP_OR;
-		end
-		else if(i_op == `CPU_OP_SPECIAL && i_func == `CPU_FUNC_XOR)
-		begin
-			a <= i_src1_gpr_v;
-			b <= i_src2_gpr_v;
-			alu_op <= `CPU_ALUOP_XOR;
-		end
-		else if(i_op == `CPU_OP_SPECIAL && i_func == `CPU_FUNC_NOR)
-		begin
-			a <= i_src1_gpr_v;
-			b <= i_src2_gpr_v;
-			alu_op <= `CPU_ALUOP_NOR;
-		end
-		else if(i_op == `CPU_OP_SPECIAL && i_func == `CPU_FUNC_SLT)
-		begin
-			a <= i_src1_gpr_v;
-			b <= i_src2_gpr_v;
-			alu_op <= `CPU_ALUOP_SLT;
-		end
-		else if(i_op == `CPU_OP_SPECIAL && i_func == `CPU_FUNC_SLTU)
-		begin
-			a <= i_src1_gpr_v;
-			b <= i_src2_gpr_v;
-			alu_op <= `CPU_ALUOP_SLTU;
-		end
-		else if(i_op == `CPU_OP_REGIMM && i_regimm == `CPU_REGIMM_BLTZ)
-		begin
-			a <= i_pc_p1;
-			b <= i_src3_broff_v;
-			alu_op <= `CPU_ALUOP_ADD;
-			j_mux <= 1'b1;
-			o_j_addr_valid <= i_src1_gpr_v[31];
-			o_drop <= ~i_src1_gpr_v[31];
-			o_dst_gpr <= {(`CPU_REGNO_WIDTH){1'b0}};
-		end
-		else if(i_op == `CPU_OP_REGIMM && i_regimm == `CPU_REGIMM_BGEZ)
-		begin
-			a <= i_pc_p1;
-			b <= i_src3_broff_v;
-			alu_op <= `CPU_ALUOP_ADD;
-			j_mux <= 1'b1;
-			o_j_addr_valid <= ~i_src1_gpr_v[31];
-			o_drop <= i_src1_gpr_v[31];
-			o_dst_gpr <= {(`CPU_REGNO_WIDTH){1'b0}};
+/* LSU operation */
+always @(posedge clk or negedge nrst)
+begin
+	if(!nrst)
+	begin
+		o_lsu_op <= `CPU_LSU_IDLE;
+		o_lsu_lns <= 1'b0;
+		o_lsu_ext <= 1'b0;
+		o_mem_data <= {(`CPU_DATA_WIDTH){1'b0}};
+	end
+	else if(!core_stall)
+	begin
+		o_lsu_op <= i_lsu_op;
+		o_lsu_lns <= i_lsu_lns;
+		o_lsu_ext <= i_lsu_ext;
+		/*if(i_lsu_op != `CPU_LSU_IDLE) */o_mem_data <= i_rt_val;
+	end
+end
 
-		end
-		else if(i_op == `CPU_OP_REGIMM && i_regimm == `CPU_REGIMM_BLTZAL)
+
+/* Calculate branch */
+always @(posedge clk or negedge nrst)
+begin
+	if(!nrst)
+	begin
+		branch_taken <= 1'b0;
+		branch_link <= 1'b0;
+		jump_instr <= 1'b0;
+		pc_p0 <= {(`CPU_ADDR_WIDTH){1'b0}};
+	end
+	else if(!core_stall)
+	begin
+		branch_link <= i_jump_link;
+		jump_instr <= i_jump != DECODE_JUMPT_NONE ? 1'b1 : 1'b0;
+		pc_p0 <= i_pc_p0;
+
+		case(i_jump)
+		DECODE_JUMPT_J, DECODE_JUMPT_JR: branch_taken <= 1'b1;
+		DECODE_JUMPT_BLTZ: branch_taken <= i_rs_val[31];
+		DECODE_JUMPT_BGEZ: branch_taken <= ~i_rs_val[31];
+		DECODE_JUMPT_BEQ: branch_taken <= i_rs_val == i_rt_val;
+		DECODE_JUMPT_BNE: branch_taken <= i_rs_val != i_rt_val;
+		DECODE_JUMPT_BLEZ: branch_taken <= i_rs_val[31] || ~|i_rs_val;
+		DECODE_JUMPT_BGTZ: branch_taken <= !i_rs_val[31] && |i_rs_val;
+		default: branch_taken <= 1'b0;
+		endcase
+	end
+end
+
+
+/* Set outputs */
+always @(*)
+begin
+	if(jump_instr)
+	begin
+		if(branch_taken)
 		begin
-			a <= i_pc_p1;
-			b <= i_src3_broff_v;
-			alu_op <= `CPU_ALUOP_ADD;
-			j_mux <= 1'b1;
-			o_j_addr_valid <= i_src1_gpr_v[31];
-			o_drop <= ~i_src1_gpr_v[31];
-			o_dst_gpr <= i_src1_gpr_v[31] ? 31 : {(`CPU_REGNO_WIDTH){1'b0}};
-			result <= i_pc_p0;
-			r_mux <= i_src1_gpr_v[31];
+			o_rd_no = rd_no;
+			o_alu_result = branch_link ? pc_p0 : alu_result;
+			o_jump_valid = branch_taken;
 		end
-		else if(i_op == `CPU_OP_REGIMM && i_regimm == `CPU_REGIMM_BGEZAL)
+		else
 		begin
-			a <= i_pc_p1;
-			b <= i_src3_broff_v;
-			alu_op <= `CPU_ALUOP_ADD;
-			j_mux <= 1'b1;
-			o_j_addr_valid <= ~i_src1_gpr_v[31];
-			o_drop <= i_src1_gpr_v[31];
-			o_dst_gpr <= ~i_src1_gpr_v[31] ? 31 : {(`CPU_REGNO_WIDTH){1'b0}};
-			result <= i_pc_p0;
-			r_mux <= ~i_src1_gpr_v[31];
+			o_rd_no = R0;
+			o_alu_result = branch_link ? pc_p0 : alu_result;
+			o_jump_valid = branch_taken;
 		end
-		else if(i_op == `CPU_OP_J)
-		begin
-			j_addr <= i_src3_j_v;
-			o_j_addr_valid <= 1'b1;
-			o_dst_gpr <= {(`CPU_REGNO_WIDTH){1'b0}};
-		end
-		else if(i_op == `CPU_OP_JAL)
-		begin
-			j_addr <= i_src3_j_v;
-			o_j_addr_valid <= 1'b1;
-			o_dst_gpr <= 31;
-			result <= i_pc_p0;
-			r_mux <= 1'b1;
-		end
-		else if(i_op == `CPU_OP_BEQ)
-		begin
-			a <= i_pc_p1;
-			b <= i_src3_broff_v;
-			alu_op <= `CPU_ALUOP_ADD;
-			j_mux <= 1'b1;
-			o_j_addr_valid <= i_src1_gpr_v == i_src2_gpr_v;
-			o_drop <= i_src1_gpr_v != i_src2_gpr_v;
-			o_dst_gpr <= {(`CPU_REGNO_WIDTH){1'b0}};
-		end
-		else if(i_op == `CPU_OP_BNE)
-		begin
-			a <= i_pc_p1;
-			b <= i_src3_broff_v;
-			alu_op <= `CPU_ALUOP_ADD;
-			j_mux <= 1'b1;
-			o_j_addr_valid <= i_src1_gpr_v != i_src2_gpr_v;
-			o_drop <= i_src1_gpr_v == i_src2_gpr_v;
-			o_dst_gpr <= {(`CPU_REGNO_WIDTH){1'b0}};
-		end
-		else if(i_op == `CPU_OP_BLEZ)
-		begin
-			a <= i_pc_p1;
-			b <= i_src3_broff_v;
-			alu_op <= `CPU_ALUOP_ADD;
-			j_mux <= 1'b1;
-			o_j_addr_valid <= i_src1_gpr_v[31] || ~|i_src1_gpr_v;
-			o_drop <= !i_src1_gpr_v[31] && |i_src1_gpr_v;
-			o_dst_gpr <= {(`CPU_REGNO_WIDTH){1'b0}};
-		end
-		else if(i_op == `CPU_OP_BGTZ)
-		begin
-			a <= i_pc_p1;
-			b <= i_src3_broff_v;
-			alu_op <= `CPU_ALUOP_ADD;
-			j_mux <= 1'b1;
-			o_j_addr_valid <= !i_src1_gpr_v[31] && |i_src1_gpr_v;
-			o_drop <= i_src1_gpr_v[31] || ~|i_src1_gpr_v;
-			o_dst_gpr <= {(`CPU_REGNO_WIDTH){1'b0}};
-		end
-		else if(i_op == `CPU_OP_ADDI)
-		begin
-			o_dst_gpr <= i_regimm; //XXX:
-			a <= i_src1_gpr_v;
-			b <= i_src3_se_v;
-			alu_op <= `CPU_ALUOP_ADD;
-		end
-		else if(i_op == `CPU_OP_ADDIU)
-		begin
-			o_dst_gpr <= i_regimm; //XXX:
-			a <= i_src1_gpr_v;
-			b <= i_src3_se_v;
-			alu_op <= `CPU_ALUOP_ADD;
-		end
-		else if(i_op == `CPU_OP_SLTI)
-		begin
-			o_dst_gpr <= i_regimm; //XXX:
-			a <= i_src1_gpr_v;
-			b <= i_src3_se_v;
-			alu_op <= `CPU_ALUOP_SLT;
-		end
-		else if(i_op == `CPU_OP_SLTIU)
-		begin
-			o_dst_gpr <= i_regimm; //XXX:
-			a <= i_src1_gpr_v;
-			b <= i_src3_se_v;
-			alu_op <= `CPU_ALUOP_SLTU;
-		end
-		else if(i_op == `CPU_OP_ANDI)
-		begin
-			o_dst_gpr <= i_regimm; //XXX:
-			a <= i_src1_gpr_v;
-			b <= i_src3_ze_v;
-			alu_op <= `CPU_ALUOP_AND;
-		end
-		else if(i_op == `CPU_OP_ORI)
-		begin
-			o_dst_gpr <= i_regimm; //XXX:
-			a <= i_src1_gpr_v;
-			b <= i_src3_ze_v;
-			alu_op <= `CPU_ALUOP_OR;
-		end
-		else if(i_op == `CPU_OP_XORI)
-		begin
-			o_dst_gpr <= i_regimm; //XXX:
-			a <= i_src1_gpr_v;
-			b <= i_src3_ze_v;
-			alu_op <= `CPU_ALUOP_XOR;
-		end
-		else if(i_op == `CPU_OP_LUI)
-		begin
-			o_dst_gpr <= i_regimm; //XXX:
-			r_mux <= 1'b1;
-			result <= { i_src3_ze_v[15:0], 16'b0 };
-		end
-		else if(i_op == `CPU_OP_LB)
-		begin
-			o_dst_gpr <= i_regimm; //XXX:
-			a <= i_src1_gpr_v;
-			b <= i_src3_se_v;
-			alu_op <= `CPU_ALUOP_ADD;
-		end
-		else if(i_op == `CPU_OP_LH)
-		begin
-			o_dst_gpr <= i_regimm; //XXX:
-			a <= i_src1_gpr_v;
-			b <= i_src3_se_v;
-			alu_op <= `CPU_ALUOP_ADD;
-		end
-		else if(i_op == `CPU_OP_LW)
-		begin
-			o_dst_gpr <= i_regimm; //XXX:
-			a <= i_src1_gpr_v;
-			b <= i_src3_se_v;
-			alu_op <= `CPU_ALUOP_ADD;
-		end
-		else if(i_op == `CPU_OP_LBU)
-		begin
-			o_dst_gpr <= i_regimm; //XXX:
-			a <= i_src1_gpr_v;
-			b <= i_src3_se_v;
-			alu_op <= `CPU_ALUOP_ADD;
-		end
-		else if(i_op == `CPU_OP_LHU)
-		begin
-			o_dst_gpr <= i_regimm; //XXX:
-			a <= i_src1_gpr_v;
-			b <= i_src3_se_v;
-			alu_op <= `CPU_ALUOP_ADD;
-		end
-		else if(i_op == `CPU_OP_SB)
-		begin
-			o_dst_gpr <= 0; //XXX:
-			o_mem_data <= i_src2_gpr_v;
-			a <= i_src1_gpr_v;
-			b <= i_src3_se_v;
-			alu_op <= `CPU_ALUOP_ADD;
-		end
-		else if(i_op == `CPU_OP_SH)
-		begin
-			o_dst_gpr <= 0; //XXX:
-			o_mem_data <= i_src2_gpr_v;
-			a <= i_src1_gpr_v;
-			b <= i_src3_se_v;
-			alu_op <= `CPU_ALUOP_ADD;
-		end
-		else if(i_op == `CPU_OP_SW)
-		begin
-			o_dst_gpr <= 0; //XXX:
-			o_mem_data <= i_src2_gpr_v;
-			a <= i_src1_gpr_v;
-			b <= i_src3_se_v;
-			alu_op <= `CPU_ALUOP_ADD;
-		end
+	end
+	else
+	begin
+			o_rd_no = rd_no;
+			o_alu_result = alu_result;
+			o_jump_valid = branch_taken;
 	end
 end
 
