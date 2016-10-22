@@ -42,6 +42,10 @@ module execute(
 	i_mem_stall,
 	i_fetch_stall,
 	i_drop,
+	/* Coprocessor 0 */
+	i_cop0_op,
+	i_cop0_cop,
+	i_cop0_reg_val,
 	/* Decoded instr */
 	i_rd_no,
 	i_rs_val,
@@ -78,6 +82,10 @@ output wire				o_exec_stall;
 input wire				i_mem_stall;
 input wire				i_fetch_stall;
 input wire				i_drop;
+/* Coprocessor 0 */
+input wire				i_cop0_op;
+input wire [`CPU_REGNO_WIDTH-1:0]	i_cop0_cop;
+input wire [`CPU_REG_WIDTH-1:0]		i_cop0_reg_val;
 /* Decoded instr */
 input wire [`CPU_REGNO_WIDTH-1:0]	i_rd_no;
 input wire [`CPU_REG_WIDTH-1:0]		i_rs_val;
@@ -132,9 +140,9 @@ wire				neg;
 always @(posedge clk or negedge nrst)
 begin
 	if(!nrst)
-		rd_no <= {(`CPU_REG_WIDTH){1'b0}};
+		rd_no <= {(`CPU_REGNO_WIDTH){1'b0}};
 	else if(i_drop)
-		rd_no <= {(`CPU_REG_WIDTH){1'b0}};
+		rd_no <= {(`CPU_REGNO_WIDTH){1'b0}};
 	else if(!core_stall)
 		rd_no <= i_rd_no;
 end
@@ -171,7 +179,7 @@ begin
 		end
 		default: begin /* DECODE_ALU_INPT_RSRT */
 			a <= i_rs_val;
-			b <= i_rt_val;
+			b <= (i_cop0_op && i_cop0_cop == `CPU_COP0_MF ? i_cop0_reg_val : i_rt_val);
 		end
 		endcase
 	end

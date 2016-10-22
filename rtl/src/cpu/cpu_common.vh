@@ -43,6 +43,18 @@
 `define CPU_ALUOP_WIDTH	4			/* ALU operation width */
 
 `define CPU_RESET_ADDR	32'h0000_0000		/* Reset vector address */
+`define CPU_PROCID_CODE	32'h001A_8100		/* CPU Identification */
+/*
+ * PROCID fields
+ *
+ * 0xSSCCPPRR
+ *
+ * SS - Company options;
+ * CC - Company ID;
+ * PP - CPU ID;
+ * RR - Revision.
+ *
+ */
 
 
 `endif /* _CPU_COMMON_VH_ */

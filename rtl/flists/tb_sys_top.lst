@@ -21,6 +21,7 @@ src/cpu/ifu.v
 src/cpu/lsu.v
 src/cpu/reg_file.v
 src/cpu/fwdu.v
+src/cpu/coproc0.v
 src/cpu/fetch.v
 src/cpu/decode.v
 src/cpu/execute.v

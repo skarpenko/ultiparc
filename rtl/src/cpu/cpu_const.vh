@@ -123,10 +123,14 @@
 `define CPU_REGIMM_BGEZAL	5'b10001
 
 
-/* Coprocessor 0 function codes */
+/* Coprocessor 0 operation codes */
 `define CPU_COP0_MF		5'b00000
 `define CPU_COP0_MT		5'b00100
-`define CPU_COP0_RFE		5'b10000
+`define CPU_COP0_CO		5'b10000
+
+
+/* Coprocessor 0 function codes */
+`define CPU_COP0_FUNC_RFE	6'b010000
 
 
 `endif /* _CPU_CONST_VH_ */

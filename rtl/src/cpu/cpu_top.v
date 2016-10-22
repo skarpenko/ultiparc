@@ -119,6 +119,13 @@ wire				fetch_stall;
 assign core_stall = fetch_stall || exec_stall || mem_stall;
 
 
+/* Coprocessor 0 wires */
+wire				cop0_op_p1;
+wire [`CPU_REGNO_WIDTH-1:0]	cop0_cop_p1;
+wire [`CPU_REGNO_WIDTH-1:0]	cop0_reg_no_p1;
+wire [`CPU_REG_WIDTH-1:0]	cop0_reg_val_p1;
+wire [`CPU_REGNO_WIDTH-1:0]	cop0_rt_no_p1;
+
 
 /* Fetch stage output */
 wire [`CPU_INSTR_WIDTH-1:0]	instr_p0;
@@ -234,6 +241,29 @@ fwdu fwdu(
 );
 
 
+/** Coprocessor 0 **/
+coproc0 coproc0(
+	.clk(clk),
+	.nrst(nrst),
+	/* Control signals */
+	.i_exec_stall(exec_stall),
+	.i_mem_stall(mem_stall),
+	.i_fetch_stall(fetch_stall),
+	.i_drop_p1(1'b0),
+	.i_drop_p2(1'b0),
+	/* Fetched instruction */
+	.i_instr(instr_p0),
+	/* Decoded coprocessor instruction */
+	.o_cop0_op_p1(cop0_op_p1),
+	.o_cop0_cop_p1(cop0_cop_p1),
+	.o_cop0_reg_no_p1(cop0_reg_no_p1),
+	.o_cop0_reg_val_p1(cop0_reg_val_p1),
+	.o_cop0_rt_no_p1(cop0_rt_no_p1),
+	/* Execute stage signals */
+	.i_cop0_alu_result_p2(alu_result_p2)
+);
+
+
 
 /*************************** PIPELINE STAGES **********************************/
 
@@ -269,6 +299,10 @@ decode decode(
 	.i_mem_stall(mem_stall),
 	.i_fetch_stall(fetch_stall),
 	.i_drop(1'b0),
+	/* Coprocessor 0 */
+	.i_cop0_cop(cop0_cop_p1),
+	.i_cop0_reg_no(cop0_reg_no_p1),
+	.i_cop0_rt_no(cop0_rt_no_p1),
 	/* Fetched instruction */
 	.i_instr(instr_p0),
 	/* Decoded instruction */
@@ -299,6 +333,10 @@ execute execute(
 	.i_mem_stall(mem_stall),
 	.i_fetch_stall(fetch_stall),
 	.i_drop(1'b0),
+	/* Coprocessor 0 */
+	.i_cop0_op(cop0_op_p1),
+	.i_cop0_cop(cop0_cop_p1),
+	.i_cop0_reg_val(cop0_reg_val_p1),
 	/* Decoded instruction */
 	.i_rd_no(rd_no_p1),
 	.i_rs_val(rs_val_p1),

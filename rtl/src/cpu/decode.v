@@ -41,6 +41,10 @@ module decode(
 	i_mem_stall,
 	i_fetch_stall,
 	i_drop,
+	/* Coprocessor 0 */
+	i_cop0_cop,
+	i_cop0_reg_no,
+	i_cop0_rt_no,
 	/* Fetched instruction */
 	i_instr,
 	/* Decoded instr */
@@ -70,12 +74,16 @@ input wire				i_exec_stall;
 input wire				i_mem_stall;
 input wire				i_fetch_stall;
 input wire				i_drop;
+/* Coprocessor 0 */
+input wire [`CPU_REGNO_WIDTH-1:0]	i_cop0_cop;
+input wire [`CPU_REGNO_WIDTH-1:0]	i_cop0_reg_no;
+input wire [`CPU_REGNO_WIDTH-1:0]	i_cop0_rt_no;
 /* Fetched instruction */
 input wire [`CPU_INSTR_WIDTH-1:0]	i_instr;
 /* Decoded instr */
 output reg [`CPU_REGNO_WIDTH-1:0]	o_rd_no;
-output wire [`CPU_REGNO_WIDTH-1:0]	o_rs_no;
-output wire [`CPU_REGNO_WIDTH-1:0]	o_rt_no;
+output reg [`CPU_REGNO_WIDTH-1:0]	o_rs_no;
+output reg [`CPU_REGNO_WIDTH-1:0]	o_rt_no;
 output reg [`CPU_DATA_WIDTH-1:0]	o_imm;
 output reg [`CPU_ALUOP_WIDTH-1:0]	o_alu_op;
 output reg [4:0]			o_alu_inpt;
@@ -114,9 +122,6 @@ assign regimm	= instr[20:16];
 assign shamt	= instr[10:6];
 assign func	= instr[5:0];
 
-assign o_rs_no = (op == `CPU_OP_J || op == `CPU_OP_JAL || op == `CPU_OP_LUI) ? R0 : rs;
-assign o_rt_no = (op == `CPU_OP_SPECIAL && (func == `CPU_FUNC_JR || func == `CPU_FUNC_JALR)) ? R0 : rt;
-
 
 /* Immediate values */
 wire [`CPU_DATA_WIDTH-1:0]	sign_ext;	/* Sign extended immediate */
@@ -132,6 +137,27 @@ assign upper_imm	= { instr[15:0], 16'b0 };
 assign jump_target	= { pc_high, instr[25:0], 2'b0 };
 assign branch_offset	= { {14{instr[15]}}, instr[15:0], 2'b0 };
 assign shift_amount	= { 27'b0, shamt };
+
+
+/* RS source register */
+always @(*)
+begin
+	case(op)
+	`CPU_OP_J, `CPU_OP_JAL, `CPU_OP_LUI, `CPU_OP_COP0: o_rs_no = R0;
+	default: o_rs_no = rs;
+	endcase
+end
+
+
+/* RT source register */
+always @(*)
+begin
+	case(op)
+	`CPU_OP_SPECIAL: o_rt_no = (func == `CPU_FUNC_JR || func == `CPU_FUNC_JALR) ? R0 : rt;
+	`CPU_OP_COP0: o_rt_no = i_cop0_rt_no;
+	default: o_rt_no = rt;
+	endcase
+end
 
 
 /* Decode destination register */
@@ -155,6 +181,8 @@ begin
 	`CPU_OP_ADDI, `CPU_OP_ADDIU, `CPU_OP_SLTI, `CPU_OP_SLTIU, `CPU_OP_ANDI,
 	`CPU_OP_ORI, `CPU_OP_XORI, `CPU_OP_LUI, `CPU_OP_LB, `CPU_OP_LH, `CPU_OP_LW,
 	`CPU_OP_LBU, `CPU_OP_LHU: o_rd_no = rt;
+	/***/
+	`CPU_OP_COP0: o_rd_no = (i_cop0_cop == `CPU_COP0_MF ? i_cop0_rt_no : R0);
 	/***/
 	default: o_rd_no = rd;
 	endcase
