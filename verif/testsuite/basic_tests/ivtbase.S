@@ -95,6 +95,7 @@ test_failed:
 
 
 /************************* New Interrupt Vector Table *************************/
+.p2align 10	/* IVT must be 1Kb aligned */
 new_ivt:
 	j test_failed
 	nop

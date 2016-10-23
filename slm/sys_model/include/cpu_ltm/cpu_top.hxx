@@ -2016,7 +2016,7 @@ inline void cpu_top::instr_mtc0(uint32_t instr)
 
 	switch(iw.r.rd) {
 		case 10: // IVTB register
-			m_ivtb = m_gp_regs[iw.r.rt] & (~0x3);
+			m_ivtb = m_gp_regs[iw.r.rt] & (~0x3FF);
 			break;
 		case 11: // PSR Register
 			m_psr = m_gp_regs[iw.r.rt] & (0x1);
