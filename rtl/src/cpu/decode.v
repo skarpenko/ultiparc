@@ -364,7 +364,7 @@ begin
 		instr <= NOP;
 		pc_high <= 4'b0;
 	end
-	if(!core_stall)
+	else if(!core_stall)
 	begin
 		instr <= i_instr;
 		pc_high <= i_pc[31:28];

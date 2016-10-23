@@ -61,7 +61,6 @@ input wire				i_jump_valid;
 input wire				i_exec_stall;
 input wire				i_mem_stall;
 output wire				o_fetch_stall;
-output wire				o_fetch_except;
 /* IFU interface */
 output reg [`CPU_ADDR_WIDTH-1:0]	o_addr;
 input wire [`CPU_INSTR_WIDTH-1:0]	i_instr_dat;

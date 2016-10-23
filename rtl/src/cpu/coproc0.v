@@ -149,6 +149,7 @@ begin
 		SR: o_cop0_reg_val_p1 = { {(`CPU_REG_WIDTH-1){1'b0}}, reg_sr_ie };
 		EPC: o_cop0_reg_val_p1 = reg_epc;
 		PRID: o_cop0_reg_val_p1 = reg_prid;
+		default: o_cop0_reg_val_p1 = {(`CPU_REG_WIDTH){1'b0}};
 		endcase
 	end
 end
@@ -165,7 +166,7 @@ begin
 	begin
 		instr <= NOP;
 	end
-	if(!core_stall)
+	else if(!core_stall)
 	begin
 		instr <= i_instr;
 	end
@@ -198,7 +199,7 @@ begin
 		cop_reg_no_p2 <= {(`CPU_REGNO_WIDTH){1'b0}};
 		cop_func_p2 <= 6'b0;
 	end
-	if(!core_stall)
+	else if(!core_stall)
 	begin
 		cop_instr_p2 <= cop_instr_p1;
 		cop_p2 <= cop_p1;
@@ -229,8 +230,7 @@ begin
 		cop_reg_val_p3 <= {(`CPU_REG_WIDTH){1'b0}};
 		cop_func_p3 <= 6'b0;
 	end
-	else
-	if(!core_stall)
+	else if(!core_stall)
 	begin
 		cop_instr_p3 <= cop_instr_p2;
 		cop_p3 <= cop_p2;
@@ -254,8 +254,7 @@ begin
 		reg_sr_ie <= 1'b0;
 		reg_epc <= {(`CPU_ADDR_WIDTH){1'b0}};
 	end
-	else
-	if(!core_stall && cop_instr_p3)
+	else if(!core_stall && cop_instr_p3)
 	begin
 		if(cop_p3 == `CPU_COP0_CO)
 		begin

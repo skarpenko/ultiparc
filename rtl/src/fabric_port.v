@@ -114,7 +114,8 @@ assign o_D_SCmdAccept = ((d_bus_state == BUS_IDLE || i_D_MCmd == `OCP_CMD_IDLE) 
 /* Return port number */
 function [PORT_BITS-2:0] port_no;
 	input [`ADDR_WIDTH-1:0] addr;
-	port_no = (addr[`ADDR_WIDTH-1] ? addr[`ADDR_WIDTH-2:`ADDR_WIDTH-PORT_BITS] + 1 : 0);
+	port_no = (addr[`ADDR_WIDTH-1] ? addr[`ADDR_WIDTH-2:`ADDR_WIDTH-PORT_BITS] + 1'b1 :
+		{(PORT_BITS-1){1'b0}});
 endfunction
 
 
