@@ -46,6 +46,10 @@ module execute(
 	i_cop0_op,
 	i_cop0_cop,
 	i_cop0_reg_val,
+	/* Integer multiplication and division unit */
+	i_imuldiv_stall,
+	i_imuldiv_rd_val,
+	i_imuldiv_rd_valid,
 	/* Decoded instr */
 	i_rd_no,
 	i_rs_val,
@@ -56,7 +60,6 @@ module execute(
 	i_alu_ovf_ex,
 	i_jump,
 	i_jump_link,
-	i_imuldiv_op,
 	i_lsu_op,
 	i_lsu_lns,
 	i_lsu_ext,
@@ -86,6 +89,10 @@ input wire				i_drop;
 input wire				i_cop0_op;
 input wire [`CPU_REGNO_WIDTH-1:0]	i_cop0_cop;
 input wire [`CPU_REG_WIDTH-1:0]		i_cop0_reg_val;
+/* Integer multiplication and division unit */
+input wire				i_imuldiv_stall;
+input wire [`CPU_REG_WIDTH-1:0]		i_imuldiv_rd_val;
+input wire				i_imuldiv_rd_valid;
 /* Decoded instr */
 input wire [`CPU_REGNO_WIDTH-1:0]	i_rd_no;
 input wire [`CPU_REG_WIDTH-1:0]		i_rs_val;
@@ -96,7 +103,6 @@ input wire [4:0]			i_alu_inpt;
 input wire				i_alu_ovf_ex;
 input wire [4:0]			i_jump;
 input wire				i_jump_link;
-input wire [1:0]			i_imuldiv_op;
 input wire [`CPU_LSUOP_WIDTH-1:0]	i_lsu_op;
 input wire				i_lsu_lns;
 input wire				i_lsu_ext;
@@ -114,7 +120,7 @@ output reg [`CPU_DATA_WIDTH-1:0]	o_mem_data;
 wire core_stall;
 assign core_stall = o_exec_stall || i_mem_stall || i_fetch_stall;
 
-assign o_exec_stall = 1'b0;
+assign o_exec_stall = i_imuldiv_stall;
 
 assign o_jump_addr = alu_result;
 
@@ -249,7 +255,8 @@ end
 /* Set outputs */
 assign o_rd_no = jump_instr && !branch_taken ? R0 : rd_no;
 assign o_jump_valid = branch_taken;
-assign o_alu_result = jump_instr && branch_link ? pc_p0 : alu_result;
+assign o_alu_result = jump_instr && branch_link ? pc_p0 :
+			i_imuldiv_rd_valid ? i_imuldiv_rd_val : alu_result;
 
 
 /* ALU instance */

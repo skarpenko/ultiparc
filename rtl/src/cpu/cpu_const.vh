@@ -57,6 +57,18 @@
 `define CPU_ALUOP_RESVD5	4'b1111	/* Reserved */
 
 
+/* Integer multiplication and division unit operations */
+`define CPU_IMDOP_IDLE		4'b0000	/* Idle */
+`define CPU_IMDOP_MFLO		4'b0010	/* Move from LO */
+`define CPU_IMDOP_MFHI		4'b0011	/* Move from HI */
+`define CPU_IMDOP_MTLO		4'b0100	/* Move to LO */
+`define CPU_IMDOP_MTHI		4'b0101	/* Move to HI */
+`define CPU_IMDOP_MUL		4'b1000	/* Signed multiplication */
+`define CPU_IMDOP_MULU		4'b1001	/* Unsigned multiplication */
+`define CPU_IMDOP_DIV		4'b1100	/* Signed division */
+`define CPU_IMDOP_DIVU		4'b1101	/* Unsigned division */
+
+
 /* Operation codes */
 `define CPU_OP_SPECIAL		6'b000000
 `define CPU_OP_COP0		6'b010000

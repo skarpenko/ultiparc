@@ -90,7 +90,7 @@ output reg [4:0]			o_alu_inpt;
 output wire				o_alu_ovf_ex;
 output reg [4:0]			o_jump;
 output wire				o_jump_link;
-output wire [1:0]			o_imuldiv_op;
+output reg [`CPU_IMDOP_WIDTH-1:0]	o_imuldiv_op;
 output reg [`CPU_LSUOP_WIDTH-1:0]	o_lsu_op;
 output reg				o_lsu_lns;
 output reg				o_lsu_ext;
@@ -99,7 +99,6 @@ output reg				o_lsu_ext;
 wire core_stall;
 assign core_stall = i_exec_stall || i_mem_stall || i_fetch_stall;
 
-assign o_imuldiv_op = 2'b0;	/*TBD:*/
 
 reg [`CPU_INSTR_WIDTH-1:0] instr;	/* Instruction word */
 reg [3:0] pc_high;			/* High four bits of PC */
@@ -164,7 +163,13 @@ end
 always @(*)
 begin
 	case(op)
-	`CPU_OP_SPECIAL: o_rd_no = (func == `CPU_FUNC_JR ? R0 : rd);
+	`CPU_OP_SPECIAL: begin
+		case(func)
+		`CPU_FUNC_JR, `CPU_FUNC_MTHI, `CPU_FUNC_MTLO, `CPU_FUNC_MULT,
+		`CPU_FUNC_MULTU, `CPU_FUNC_DIV, `CPU_FUNC_DIVU: o_rd_no = R0;
+		default: o_rd_no = rd;
+		endcase
+	end
 	/***/
 	`CPU_OP_REGIMM: begin
 		case(regimm)
@@ -296,6 +301,30 @@ assign o_jump_link = (op == `CPU_OP_SPECIAL && func == `CPU_FUNC_JALR) ||
 	(op == `CPU_OP_REGIMM && regimm == `CPU_REGIMM_BLTZAL) ||
 	(op == `CPU_OP_REGIMM && regimm == `CPU_REGIMM_BGEZAL) ||
 	(op == `CPU_OP_JAL) ? 1'b1 : 1'b0;
+
+
+/* Decode integer multiplication and division unit operation */
+always @(*)
+begin
+	if(op == `CPU_OP_SPECIAL && func == `CPU_FUNC_MFLO)
+		o_imuldiv_op = `CPU_IMDOP_MFLO;
+	else if(op == `CPU_OP_SPECIAL && func == `CPU_FUNC_MFHI)
+		o_imuldiv_op = `CPU_IMDOP_MFHI;
+	else if(op == `CPU_OP_SPECIAL && func == `CPU_FUNC_MTLO)
+		o_imuldiv_op = `CPU_IMDOP_MTLO;
+	else if(op == `CPU_OP_SPECIAL && func == `CPU_FUNC_MTHI)
+		o_imuldiv_op = `CPU_IMDOP_MTHI;
+	else if(op == `CPU_OP_SPECIAL && func == `CPU_FUNC_MULT)
+		o_imuldiv_op = `CPU_IMDOP_MUL;
+	else if(op == `CPU_OP_SPECIAL && func == `CPU_FUNC_MULTU)
+		o_imuldiv_op = `CPU_IMDOP_MULU;
+	else if(op == `CPU_OP_SPECIAL && func == `CPU_FUNC_DIV)
+		o_imuldiv_op = `CPU_IMDOP_DIV;
+	else if(op == `CPU_OP_SPECIAL && func == `CPU_FUNC_DIVU)
+		o_imuldiv_op = `CPU_IMDOP_DIVU;
+	else
+		o_imuldiv_op = `CPU_IMDOP_IDLE;
+end
 
 
 /* Decode LSU operation */
