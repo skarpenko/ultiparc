@@ -38,16 +38,14 @@ module execute(
 	/* CU signals */
 	i_pc_p0,
 	i_pc_p1,
-	o_exec_stall,
+	i_exec_stall,
 	i_mem_stall,
 	i_fetch_stall,
-	i_drop,
 	/* Coprocessor 0 */
 	i_cop0_op,
 	i_cop0_cop,
 	i_cop0_reg_val,
 	/* Integer multiplication and division unit */
-	i_imuldiv_stall,
 	i_imuldiv_rd_val,
 	i_imuldiv_rd_valid,
 	/* Decoded instr */
@@ -81,16 +79,14 @@ input wire				nrst;
 /* CU signals */
 input wire [`CPU_ADDR_WIDTH-1:0]	i_pc_p0;
 input wire [`CPU_ADDR_WIDTH-1:0]	i_pc_p1;
-output wire				o_exec_stall;
+input wire				i_exec_stall;
 input wire				i_mem_stall;
 input wire				i_fetch_stall;
-input wire				i_drop;
 /* Coprocessor 0 */
 input wire				i_cop0_op;
 input wire [`CPU_REGNO_WIDTH-1:0]	i_cop0_cop;
 input wire [`CPU_REG_WIDTH-1:0]		i_cop0_reg_val;
 /* Integer multiplication and division unit */
-input wire				i_imuldiv_stall;
 input wire [`CPU_REG_WIDTH-1:0]		i_imuldiv_rd_val;
 input wire				i_imuldiv_rd_valid;
 /* Decoded instr */
@@ -118,9 +114,8 @@ output reg [`CPU_DATA_WIDTH-1:0]	o_mem_data;
 
 
 wire core_stall;
-assign core_stall = o_exec_stall || i_mem_stall || i_fetch_stall;
+assign core_stall = i_exec_stall || i_mem_stall || i_fetch_stall;
 
-assign o_exec_stall = i_imuldiv_stall;
 
 assign o_jump_addr = alu_result;
 
@@ -146,8 +141,6 @@ wire				neg;
 always @(posedge clk or negedge nrst)
 begin
 	if(!nrst)
-		rd_no <= {(`CPU_REGNO_WIDTH){1'b0}};
-	else if(i_drop)
 		rd_no <= {(`CPU_REGNO_WIDTH){1'b0}};
 	else if(!core_stall)
 		rd_no <= i_rd_no;
@@ -202,10 +195,6 @@ begin
 		o_lsu_ext <= 1'b0;
 		o_mem_data <= {(`CPU_DATA_WIDTH){1'b0}};
 	end
-	else if(i_drop)
-	begin
-		o_lsu_op <= `CPU_LSU_IDLE;
-	end
 	else if(!core_stall)
 	begin
 		o_lsu_op <= i_lsu_op;
@@ -226,11 +215,6 @@ begin
 		branch_link <= 1'b0;
 		jump_instr <= 1'b0;
 		pc_p0 <= {(`CPU_ADDR_WIDTH){1'b0}};
-	end
-	else if(i_drop)
-	begin
-		branch_taken <= 1'b0;
-		jump_instr <= 1'b0;
 	end
 	else if(!core_stall)
 	begin

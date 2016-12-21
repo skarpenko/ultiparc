@@ -130,7 +130,6 @@ wire [`CPU_REGNO_WIDTH-1:0]	cop0_rt_no_p1;
 /* Integer multiplication and division unit wires */
 wire [`CPU_REG_WIDTH-1:0]	imuldiv_rd_val;
 wire				imuldiv_rd_valid;
-wire				imuldiv_stall;	/* connected to exec_stall */
 
 
 /* Fetch stage output */
@@ -255,8 +254,6 @@ coproc0 coproc0(
 	.i_exec_stall(exec_stall),
 	.i_mem_stall(mem_stall),
 	.i_fetch_stall(fetch_stall),
-	.i_drop_p1(1'b0),
-	.i_drop_p2(1'b0),
 	/* Fetched instruction */
 	.i_instr(instr_p0),
 	/* Decoded coprocessor instruction */
@@ -275,11 +272,9 @@ imuldivu imuldivu(
 	.clk(clk),
 	.nrst(nrst),
 	/* Control signals */
-	.o_imuldiv_stall(imuldiv_stall),
-	.i_exec_stall(exec_stall),
+	.o_exec_stall(exec_stall),
 	.i_mem_stall(mem_stall),
 	.i_fetch_stall(fetch_stall),
-	.i_drop_p2(1'b0),
 	/* Decoded operation */
 	.i_imuldiv_op(imuldiv_op_p1),
 	/* Operands */
@@ -326,7 +321,6 @@ decode decode(
 	.i_exec_stall(exec_stall),
 	.i_mem_stall(mem_stall),
 	.i_fetch_stall(fetch_stall),
-	.i_drop(1'b0),
 	/* Coprocessor 0 */
 	.i_cop0_cop(cop0_cop_p1),
 	.i_cop0_reg_no(cop0_reg_no_p1),
@@ -357,16 +351,14 @@ execute execute(
 	/* Control signals */
 	.i_pc_p0(pc_p0),
 	.i_pc_p1(pc_p1),
-	.o_exec_stall(exec_stall),
+	.i_exec_stall(exec_stall),
 	.i_mem_stall(mem_stall),
 	.i_fetch_stall(fetch_stall),
-	.i_drop(1'b0),
 	/* Coprocessor 0 */
 	.i_cop0_op(cop0_op_p1),
 	.i_cop0_cop(cop0_cop_p1),
 	.i_cop0_reg_val(cop0_reg_val_p1),
 	/* Integer multiplication and division unit */
-	.i_imuldiv_stall(imuldiv_stall),
 	.i_imuldiv_rd_val(imuldiv_rd_val),
 	.i_imuldiv_rd_valid(imuldiv_rd_valid),
 	/* Decoded instruction */

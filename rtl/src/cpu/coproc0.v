@@ -39,8 +39,6 @@ module coproc0(
 	i_exec_stall,
 	i_mem_stall,
 	i_fetch_stall,
-	i_drop_p1,
-	i_drop_p2,
 	/* Fetched instruction */
 	i_instr,
 	/* Decoded instr */
@@ -68,8 +66,6 @@ input wire				nrst;
 input wire				i_exec_stall;
 input wire				i_mem_stall;
 input wire				i_fetch_stall;
-input wire				i_drop_p1;
-input wire				i_drop_p2;
 /* Fetched instruction */
 input wire [`CPU_INSTR_WIDTH-1:0]	i_instr;
 /* Decoded instr */
@@ -162,10 +158,6 @@ begin
 	begin
 		instr <= NOP;
 	end
-	else if(i_drop_p1)
-	begin
-		instr <= NOP;
-	end
 	else if(!core_stall)
 	begin
 		instr <= i_instr;
@@ -186,13 +178,6 @@ reg [5:0]			cop_func_p2;
 always @(posedge clk or negedge nrst)
 begin
 	if(!nrst)
-	begin
-		cop_instr_p2 <= 1'b0;
-		cop_p2 <= {(`CPU_REGNO_WIDTH){1'b0}};
-		cop_reg_no_p2 <= {(`CPU_REGNO_WIDTH){1'b0}};
-		cop_func_p2 <= 6'b0;
-	end
-	else if(i_drop_p2)
 	begin
 		cop_instr_p2 <= 1'b0;
 		cop_p2 <= {(`CPU_REGNO_WIDTH){1'b0}};

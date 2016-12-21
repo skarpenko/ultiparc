@@ -40,7 +40,6 @@ module decode(
 	i_exec_stall,
 	i_mem_stall,
 	i_fetch_stall,
-	i_drop,
 	/* Coprocessor 0 */
 	i_cop0_cop,
 	i_cop0_reg_no,
@@ -73,7 +72,6 @@ input wire [`CPU_ADDR_WIDTH-1:0]	i_pc;
 input wire				i_exec_stall;
 input wire				i_mem_stall;
 input wire				i_fetch_stall;
-input wire				i_drop;
 /* Coprocessor 0 */
 input wire [`CPU_REGNO_WIDTH-1:0]	i_cop0_cop;
 input wire [`CPU_REGNO_WIDTH-1:0]	i_cop0_reg_no;
@@ -384,11 +382,6 @@ end
 always @(posedge clk or negedge nrst)
 begin
 	if(!nrst)
-	begin
-		instr <= NOP;
-		pc_high <= 4'b0;
-	end
-	else if(i_drop)
 	begin
 		instr <= NOP;
 		pc_high <= 4'b0;

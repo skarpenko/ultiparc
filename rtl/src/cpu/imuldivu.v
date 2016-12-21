@@ -36,11 +36,9 @@ module imuldivu(
 	clk,
 	nrst,
 	/* CU signals */
-	o_imuldiv_stall,
-	i_exec_stall,
+	o_exec_stall,
 	i_mem_stall,
 	i_fetch_stall,
-	i_drop_p2,
 	/* Decoded operation */
 	i_imuldiv_op,
 	/* Operands */
@@ -54,11 +52,9 @@ module imuldivu(
 input wire				clk;
 input wire				nrst;
 /* CU signals */
-output wire				o_imuldiv_stall;
-input wire				i_exec_stall;
+output wire				o_exec_stall;
 input wire				i_mem_stall;
 input wire				i_fetch_stall;
-input wire				i_drop_p2;
 /* Decoded operation */
 input wire [`CPU_IMDOP_WIDTH-1:0]	i_imuldiv_op;
 /* Operands */
@@ -68,39 +64,50 @@ input wire [`CPU_REG_WIDTH-1:0]		i_rt_val;
 output reg [`CPU_REG_WIDTH-1:0]		o_imuldiv_rd_val;
 output reg				o_imuldiv_rd_valid;
 
+/* Stall logic */
 wire core_stall;
-assign core_stall	= i_exec_stall || i_mem_stall || i_fetch_stall;
+assign core_stall	= o_exec_stall || i_mem_stall || i_fetch_stall;
+assign o_exec_stall = !i_mem_stall && !i_fetch_stall && !muldiv_ready && interlock_instr;
 
 
 reg [2*`CPU_REG_WIDTH-1:0] hilor;	/* HI and LO registers */
 
-assign o_imuldiv_stall = !i_mem_stall && !i_fetch_stall && !muldiv_ready && interlock_instr;
 
+/* Interlocked instruction arrived */
 wire interlock_instr;
 assign interlock_instr = (i_imuldiv_op == `CPU_IMDOP_MFLO) || (i_imuldiv_op == `CPU_IMDOP_MFHI) ||
 			(i_imuldiv_op == `CPU_IMDOP_MUL) || (i_imuldiv_op == `CPU_IMDOP_MULU) ||
 			(i_imuldiv_op == `CPU_IMDOP_DIV) || (i_imuldiv_op == `CPU_IMDOP_DIVU);
 
 
+/* Multiplication and division units are ready */
 wire muldiv_ready;
 assign muldiv_ready = !div_running && !mul_running;
 
+
+/* Multiplication or division is in progress */
 reg mul_running;
 reg div_running;
 
 
+/* Operand values */
 reg [`CPU_REG_WIDTH-1:0]	rs_reg;
 reg [`CPU_REG_WIDTH-1:0]	rt_reg;
 
+
+/* Division unit control signals */
 reg				div_start;
 reg				div_signd;
 wire				div_ready;
 wire [2*`CPU_REG_WIDTH-1:0]	div_remquot;
 
+
+/* Multiplication unit control signals */
 reg				mul_start;
 reg				mul_signd;
 wire				mul_ready;
 wire [2*`CPU_REG_WIDTH-1:0]	mul_product;
+
 
 
 /****************************** EXECUTE STAGE *********************************/
@@ -109,7 +116,6 @@ wire [2*`CPU_REG_WIDTH-1:0]	mul_product;
 reg				imd_mthi_p2;
 reg				imd_mtlo_p2;
 reg [`CPU_REG_WIDTH-1:0]	imd_rval_p2;
-
 
 
 /* Execute stage */
@@ -138,12 +144,7 @@ begin
 		mul_running <= !mul_ready;
 		div_running <= !div_ready;
 
-		if(i_drop_p2)
-		begin
-			imd_mthi_p2 <= 1'b0;
-			imd_mtlo_p2 <= 1'b0;
-		end
-		else if(!core_stall)
+		if(!core_stall)
 		begin
 			imd_mthi_p2 <= 1'b0;
 			imd_mtlo_p2 <= 1'b0;
@@ -259,7 +260,7 @@ end
 
 
 
-/**************** DIVISION AND MULTIPLICATION BLOCKS INSTANCES ****************/
+/**************** DIVISION AND MULTIPLICATION UNITS INSTANCES *****************/
 
 
 long_idiv idiv(

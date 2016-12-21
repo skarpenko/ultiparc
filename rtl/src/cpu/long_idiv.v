@@ -56,15 +56,24 @@ output wire [2*`CPU_REG_WIDTH-1:0]	remquot;
 reg [2*`CPU_REG_WIDTH-1:0]	qr;
 reg [5:0]			bit;
 wire [`CPU_REG_WIDTH:0]		diff;
-reg [`CPU_REG_WIDTH-1:0]	divdr;
+reg [`CPU_REG_WIDTH-1:0]	abs_divider;
 
 
-assign ready						= !bit && !start;
-assign remquot[2*`CPU_REG_WIDTH-1:`CPU_REG_WIDTH]	= (signd && dividend[`CPU_REG_WIDTH-1]) ?
-								-qr[2*`CPU_REG_WIDTH-1:`CPU_REG_WIDTH] : qr[2*`CPU_REG_WIDTH-1:`CPU_REG_WIDTH];
-assign remquot[`CPU_REG_WIDTH-1:0]			= (signd && (dividend[`CPU_REG_WIDTH-1] ^ divider[`CPU_REG_WIDTH-1])) ?
-								-qr[`CPU_REG_WIDTH-1:0] : qr[`CPU_REG_WIDTH-1:0];
-assign diff						= qr[2*`CPU_REG_WIDTH-1:`CPU_REG_WIDTH-1] - { 1'b0, divdr };
+assign ready	= !bit && !start;
+
+
+/* Result: remainder and quotient */
+assign remquot[2*`CPU_REG_WIDTH-1:`CPU_REG_WIDTH]	=
+			(signd && dividend[`CPU_REG_WIDTH-1]) ?
+				-qr[2*`CPU_REG_WIDTH-1:`CPU_REG_WIDTH] :
+				qr[2*`CPU_REG_WIDTH-1:`CPU_REG_WIDTH];
+assign remquot[`CPU_REG_WIDTH-1:0]			=
+			(signd && (dividend[`CPU_REG_WIDTH-1] ^ divider[`CPU_REG_WIDTH-1])) ?
+				-qr[`CPU_REG_WIDTH-1:0] : qr[`CPU_REG_WIDTH-1:0];
+
+
+/* Difference between divider and working portion of dividend */
+assign diff	= qr[2*`CPU_REG_WIDTH-1:`CPU_REG_WIDTH-1] - { 1'b0, abs_divider };
 
 
 always @(posedge clk or negedge nrst)
@@ -73,7 +82,7 @@ begin
 	begin
 		qr <= {(2*`CPU_REG_WIDTH){1'b0}};
 		bit <= 6'b0;
-		divdr <= {(`CPU_REG_WIDTH){1'b0}};
+		abs_divider <= {(`CPU_REG_WIDTH){1'b0}};
 	end
 	else if(start)
 	begin
@@ -85,8 +94,9 @@ begin
 		else
 		begin
 			bit <= 6'd`CPU_REG_WIDTH;
-			qr <= { {(`CPU_REG_WIDTH){1'b0}}, signd && dividend[`CPU_REG_WIDTH-1] ? -dividend : dividend };
-			divdr <= signd && divider[`CPU_REG_WIDTH-1] ? -divider : divider;
+			qr <= { {(`CPU_REG_WIDTH){1'b0}}, signd && dividend[`CPU_REG_WIDTH-1] ?
+					-dividend : dividend };
+			abs_divider <= signd && divider[`CPU_REG_WIDTH-1] ? -divider : divider;
 		end
 	end
 	else if(bit)
