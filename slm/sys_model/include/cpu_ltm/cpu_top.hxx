@@ -1635,7 +1635,7 @@ private:
 	//
 	// Execute Coprocessor 0 instructions
 	// Registers supported:
-	//   0xA  - IVTB (Interrupt Vector Table Base, two LSB bits are ignored)
+	//   0xA  - IVTB (Interrupt Vector Table Base, ten LSB bits are ignored)
 	//   0xB  - PSR  (Copy of SR register on interrupt/exception entrance)
 	//   0xC  - SR   (Status Register)
 	//             Bit 0 - IE (Interrupt enable)
