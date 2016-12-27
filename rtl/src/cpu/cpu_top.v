@@ -78,12 +78,7 @@ input wire				i_DErr;
 
 /* Program counter */
 reg [`CPU_ADDR_WIDTH-1:0]	pc_next;
-reg [`CPU_ADDR_WIDTH-1:0]	pc_p0;
-reg [`CPU_ADDR_WIDTH-1:0]	pc_p1;
-reg [`CPU_ADDR_WIDTH-1:0]	pc_p2;
-reg [`CPU_ADDR_WIDTH-1:0]	pc_p3;
-reg [`CPU_ADDR_WIDTH-1:0]	pc_p4;
-
+reg [`CPU_ADDR_WIDTH-1:0]	pc_prev;
 
 /* Register file wires */
 wire [`CPU_REGNO_WIDTH-1:0]	rf_rs;
@@ -296,6 +291,7 @@ fetch fetch(
 	.nrst(nrst),
 	/* Control signals */
 	.i_pc(pc_next),
+	.i_jump_addr(jump_addr_p2),
 	.i_jump_valid(jump_valid_p2),
 	.i_exec_stall(exec_stall),
 	.i_mem_stall(mem_stall),
@@ -317,7 +313,7 @@ decode decode(
 	.clk(clk),
 	.nrst(nrst),
 	/* Control signals */
-	.i_pc(pc_p1),
+	.i_pc(pc_prev),
 	.i_exec_stall(exec_stall),
 	.i_mem_stall(mem_stall),
 	.i_fetch_stall(fetch_stall),
@@ -349,8 +345,8 @@ execute execute(
 	.clk(clk),
 	.nrst(nrst),
 	/* Control signals */
-	.i_pc_p0(pc_p0),
-	.i_pc_p1(pc_p1),
+	.i_pc_p0(pc_next),
+	.i_pc_p1(pc_prev),
 	.i_exec_stall(exec_stall),
 	.i_mem_stall(mem_stall),
 	.i_fetch_stall(fetch_stall),
@@ -438,20 +434,12 @@ begin
 	if(!nrst)
 	begin
 		pc_next <= `CPU_RESET_ADDR;
-		pc_p0 <= `CPU_RESET_ADDR;
-		pc_p1 <= `CPU_RESET_ADDR;
-		pc_p2 <= `CPU_RESET_ADDR;
-		pc_p3 <= `CPU_RESET_ADDR;
-		pc_p4 <= `CPU_RESET_ADDR;
+		pc_prev <= `CPU_RESET_ADDR;
 	end
 	else if(!core_stall)
 	begin
-		pc_next <= jump_valid_p2 ? jump_addr_p2 : pc_next + `CPU_INSTR_SIZE;
-		pc_p0 <= pc_next;
-		pc_p1 <= pc_p0;
-		pc_p2 <= pc_p1;
-		pc_p3 <= pc_p2;
-		pc_p4 <= pc_p3;
+		pc_next <= (!jump_valid_p2 ? pc_next : jump_addr_p2) + `CPU_INSTR_SIZE;
+		pc_prev <= pc_next;
 	end
 end
 

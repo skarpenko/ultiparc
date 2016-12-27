@@ -37,6 +37,7 @@ module fetch(
 	nrst,
 	/* CU signals */
 	i_pc,
+	i_jump_addr,
 	i_jump_valid,
 	i_exec_stall,
 	i_mem_stall,
@@ -57,6 +58,7 @@ input wire				clk;
 input wire				nrst;
 /* CU signals */
 input wire [`CPU_ADDR_WIDTH-1:0]	i_pc;
+input wire [`CPU_ADDR_WIDTH-1:0]	i_jump_addr;
 input wire				i_jump_valid;
 input wire				i_exec_stall;
 input wire				i_mem_stall;
@@ -77,10 +79,7 @@ wire core_stall;
 assign core_stall = i_exec_stall || i_mem_stall || o_fetch_stall;
 assign o_fetch_stall = i_busy;
 
-reg nullify;
-reg [`CPU_INSTR_WIDTH-1:0] instr;
-
-assign o_instr = nullify ? NOP : instr;
+assign o_instr = !i_jump_valid ? i_instr_dat : NOP;
 
 
 /* IFU operation */
@@ -96,29 +95,9 @@ begin
 		o_rd_cmd <= 1'b0;
 		if(!core_stall)
 		begin
-			o_addr <= i_pc;
+			o_addr <= !i_jump_valid ? i_pc : i_jump_addr;
 			o_rd_cmd <= 1'b1;
 		end
-	end
-end
-
-
-/* IFU response */
-always @(posedge clk or negedge nrst)
-begin
-	if(!nrst)
-	begin
-		instr <= NOP;
-		nullify <= 1'b0;
-	end
-	else if(i_jump_valid)
-	begin
-		nullify <= 1'b1;
-	end
-	else if(!core_stall)
-	begin
-		instr <= !nullify ? i_instr_dat : NOP;
-		nullify <= 1'b0;
 	end
 end
 
