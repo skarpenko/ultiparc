@@ -69,6 +69,12 @@
 `define CPU_IMDOP_DIVU		4'b1101	/* Unsigned division */
 
 
+/* Software traps */
+`define CPU_SWTRP_NONE		2'b00	/* None */
+`define CPU_SWTRP_SYSCALL	2'b01	/* System call */
+`define CPU_SWTRP_BREAK		2'b10	/* Software breakpoint */
+
+
 /* Operation codes */
 `define CPU_OP_SPECIAL		6'b000000
 `define CPU_OP_COP0		6'b010000

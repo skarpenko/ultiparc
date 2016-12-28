@@ -40,6 +40,7 @@ module decode(
 	i_exec_stall,
 	i_mem_stall,
 	i_fetch_stall,
+	o_decode_error,
 	/* Coprocessor 0 */
 	i_cop0_cop,
 	i_cop0_reg_no,
@@ -57,6 +58,7 @@ module decode(
 	o_jump,
 	o_jump_link,
 	o_imuldiv_op,
+	o_sw_trap,
 	o_lsu_op,
 	o_lsu_lns,
 	o_lsu_ext
@@ -72,6 +74,7 @@ input wire [`CPU_ADDR_WIDTH-1:0]	i_pc;
 input wire				i_exec_stall;
 input wire				i_mem_stall;
 input wire				i_fetch_stall;
+output reg				o_decode_error;
 /* Coprocessor 0 */
 input wire [`CPU_REGNO_WIDTH-1:0]	i_cop0_cop;
 input wire [`CPU_REGNO_WIDTH-1:0]	i_cop0_reg_no;
@@ -89,13 +92,13 @@ output wire				o_alu_ovf_ex;
 output reg [4:0]			o_jump;
 output wire				o_jump_link;
 output reg [`CPU_IMDOP_WIDTH-1:0]	o_imuldiv_op;
+output reg [`CPU_SWTRP_WIDTH-1:0]	o_sw_trap;
 output reg [`CPU_LSUOP_WIDTH-1:0]	o_lsu_op;
 output reg				o_lsu_lns;
 output reg				o_lsu_ext;
 
 
-wire core_stall;
-assign core_stall = i_exec_stall || i_mem_stall || i_fetch_stall;
+wire core_stall = i_exec_stall || i_mem_stall || i_fetch_stall;
 
 
 reg [`CPU_INSTR_WIDTH-1:0] instr;	/* Instruction word */
@@ -325,6 +328,18 @@ begin
 end
 
 
+/* Decode software trap */
+always @(*)
+begin
+	if(op == `CPU_OP_SPECIAL && func == `CPU_FUNC_SYSCALL)
+		o_sw_trap = `CPU_SWTRP_SYSCALL;
+	else if(op == `CPU_OP_SPECIAL && func == `CPU_FUNC_BREAK)
+		o_sw_trap = `CPU_SWTRP_BREAK;
+	else
+		o_sw_trap = `CPU_SWTRP_NONE;
+end
+
+
 /* Decode LSU operation */
 always @(*)
 begin
@@ -375,6 +390,66 @@ begin
 		o_lsu_op = `CPU_LSU_WORD;
 		o_lsu_lns = 1'b0;
 	end
+end
+
+
+/* Detect instruction format errors */
+always @(*)
+begin
+	case(op)
+	/** SPECIAL instruction class **/
+	`CPU_OP_SPECIAL: begin
+		case(func)
+		`CPU_FUNC_SLL, `CPU_FUNC_SRL,
+		`CPU_FUNC_SRA: o_decode_error = |rs ? 1'b1 : 1'b0;
+		/****/
+		`CPU_FUNC_SLLV, `CPU_FUNC_SRLV, `CPU_FUNC_SRAV, `CPU_FUNC_ADD,
+		`CPU_FUNC_ADDU, `CPU_FUNC_SUB, `CPU_FUNC_SUBU, `CPU_FUNC_AND,
+		`CPU_FUNC_OR, `CPU_FUNC_XOR, `CPU_FUNC_NOR, `CPU_FUNC_SLT,
+		`CPU_FUNC_SLTU: o_decode_error = |shamt ? 1'b1 : 1'b0;
+		/****/
+		`CPU_FUNC_JR, `CPU_FUNC_MTHI,
+		`CPU_FUNC_MTLO: o_decode_error = |{ rt, rd, shamt } ? 1'b1 : 1'b0;
+		/****/
+		`CPU_FUNC_JALR: o_decode_error = |{ rt, shamt } ? 1'b1 : 1'b0;
+		/****/
+		`CPU_FUNC_MFHI,
+		`CPU_FUNC_MFLO: o_decode_error = |{ rs, rt, shamt } ? 1'b1 : 1'b0;
+		/****/
+		`CPU_FUNC_MULT, `CPU_FUNC_MULTU, `CPU_FUNC_DIV,
+		`CPU_FUNC_DIVU: o_decode_error = |{ rd, shamt } ? 1'b1 : 1'b0;
+		/****/
+		`CPU_FUNC_SYSCALL, `CPU_FUNC_BREAK: o_decode_error = 1'b0;
+		/****/
+		default:  o_decode_error = 1'b1;
+		endcase
+	end
+	/** REGIMM instruction class **/
+	`CPU_OP_REGIMM: begin
+		case(regimm)
+		`CPU_REGIMM_BLTZ, `CPU_REGIMM_BGEZ,
+		`CPU_REGIMM_BLTZAL, `CPU_REGIMM_BGEZAL: o_decode_error = 1'b0;
+		/****/
+		default: o_decode_error = 1'b1;
+		endcase
+	end
+	/** Conditional branch instructions **/
+	`CPU_OP_BLEZ, `CPU_OP_BGTZ: o_decode_error = |rt ? 1'b1 : 1'b0;
+	/** Load upper immediate **/
+	`CPU_OP_LUI: o_decode_error = |rs ? 1'b1 : 1'b0;
+	/** Unconditional and conditional branch instructions **/
+	`CPU_OP_J, `CPU_OP_JAL, `CPU_OP_BEQ, `CPU_OP_BNE: o_decode_error = 1'b0;
+	/** Instructions with immediate operand **/
+	`CPU_OP_ADDI, `CPU_OP_ADDIU, `CPU_OP_SLTI, `CPU_OP_SLTIU, `CPU_OP_ANDI,
+	`CPU_OP_ORI, `CPU_OP_XORI: o_decode_error = 1'b0;
+	/** Load/store instructions **/
+	`CPU_OP_LB, `CPU_OP_LH, `CPU_OP_LW, `CPU_OP_LBU, `CPU_OP_LHU,
+	`CPU_OP_SB, `CPU_OP_SH, `CPU_OP_SW: o_decode_error = 1'b0;
+	/** Coprocessor 0 instructions **/
+	`CPU_OP_COP0: o_decode_error = 1'b0;	/* Other fields are checked by Cop0 */
+	/****/
+	default: o_decode_error = 1'b1;
+	endcase
 end
 
 

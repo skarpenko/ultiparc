@@ -41,6 +41,10 @@ module execute(
 	i_exec_stall,
 	i_mem_stall,
 	i_fetch_stall,
+	o_overfl_error,
+	o_addr_error,
+	o_syscall_trap,
+	o_break_trap,
 	/* Coprocessor 0 */
 	i_cop0_op,
 	i_cop0_cop,
@@ -58,6 +62,7 @@ module execute(
 	i_alu_ovf_ex,
 	i_jump,
 	i_jump_link,
+	i_sw_trap,
 	i_lsu_op,
 	i_lsu_lns,
 	i_lsu_ext,
@@ -82,6 +87,10 @@ input wire [`CPU_ADDR_WIDTH-1:0]	i_pc_p1;
 input wire				i_exec_stall;
 input wire				i_mem_stall;
 input wire				i_fetch_stall;
+output wire				o_overfl_error;
+output wire				o_addr_error;
+output reg				o_syscall_trap;
+output reg				o_break_trap;
 /* Coprocessor 0 */
 input wire				i_cop0_op;
 input wire [`CPU_REGNO_WIDTH-1:0]	i_cop0_cop;
@@ -99,6 +108,7 @@ input wire [4:0]			i_alu_inpt;
 input wire				i_alu_ovf_ex;
 input wire [4:0]			i_jump;
 input wire				i_jump_link;
+input wire [`CPU_SWTRP_WIDTH-1:0]	i_sw_trap;
 input wire [`CPU_LSUOP_WIDTH-1:0]	i_lsu_op;
 input wire				i_lsu_lns;
 input wire				i_lsu_ext;
@@ -113,11 +123,13 @@ output reg				o_lsu_ext;
 output reg [`CPU_DATA_WIDTH-1:0]	o_mem_data;
 
 
-wire core_stall;
-assign core_stall = i_exec_stall || i_mem_stall || i_fetch_stall;
+wire core_stall = i_exec_stall || i_mem_stall || i_fetch_stall;
 
 
 assign o_jump_addr = alu_result;
+
+assign o_overfl_error = ovflow_en && ovflow;
+assign o_addr_error = (branch_taken && alu_result[1:0] ? 1'b1 : 1'b0);
 
 
 reg jump_instr;				/* Current operation is jump */
@@ -131,6 +143,7 @@ reg [`CPU_ADDR_WIDTH-1:0] pc_p0;	/* Captured PC of instruction after delay slot 
 reg [`CPU_ALUOP_WIDTH-1:0]	alu_op;
 reg [`CPU_REG_WIDTH-1:0]	a;
 reg [`CPU_REG_WIDTH-1:0]	b;
+reg				ovflow_en;
 wire [`CPU_REG_WIDTH-1:0]	alu_result;
 wire				ovflow;
 wire				zero;
@@ -155,10 +168,12 @@ begin
 		alu_op <= `CPU_ALUOP_ADD;
 		a <= {(`CPU_REG_WIDTH){1'b0}};
 		b <= {(`CPU_REG_WIDTH){1'b0}};
+		ovflow_en <= 1'b0;
 	end
 	else if(!core_stall)
 	begin
 		alu_op <= i_alu_op;
+		ovflow_en <= i_alu_ovf_ex;
 		case(i_alu_inpt)
 		DECODE_ALU_INPT_RTRS: begin
 			a <= i_rt_val;
@@ -232,6 +247,22 @@ begin
 		DECODE_JUMPT_BGTZ: branch_taken <= !i_rs_val[31] && |i_rs_val;
 		default: branch_taken <= 1'b0;
 		endcase
+	end
+end
+
+
+/* Software traps */
+always @(posedge clk or negedge nrst)
+begin
+	if(!nrst)
+	begin
+		o_syscall_trap <= 1'b0;
+		o_break_trap <= 1'b0;
+	end
+	else if(!core_stall)
+	begin
+		o_syscall_trap <= (i_sw_trap == `CPU_SWTRP_SYSCALL ? 1'b1 : 1'b0);
+		o_break_trap <= (i_sw_trap == `CPU_SWTRP_BREAK ? 1'b1 : 1'b0);
 	end
 end
 

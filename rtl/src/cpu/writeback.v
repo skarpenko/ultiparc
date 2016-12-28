@@ -61,8 +61,7 @@ output reg [`CPU_REG_WIDTH-1:0]		o_rd_val;
 
 
 
-wire core_stall;
-assign core_stall = i_exec_stall || i_mem_stall || i_fetch_stall;
+wire core_stall = i_exec_stall || i_mem_stall || i_fetch_stall;
 
 
 always @(posedge clk or negedge nrst)

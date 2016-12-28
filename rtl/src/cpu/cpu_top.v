@@ -107,11 +107,21 @@ wire				lsu_err_align;
 wire				lsu_err_bus;
 
 /* Control signals */
-wire				core_stall;
 wire				exec_stall;
 wire				mem_stall;
 wire				fetch_stall;
-assign core_stall = fetch_stall || exec_stall || mem_stall;
+wire				core_stall = fetch_stall || exec_stall || mem_stall;
+wire				bus_error_p0;
+wire				addr_error_p0;
+wire				base_decode_error_p1;
+wire				cop0_decode_error_p1;
+wire				decode_error_p1 = base_decode_error_p1 || cop0_decode_error_p1;
+wire				overfl_error_p2;
+wire				addr_error_p2;
+wire				syscall_trap_p2;
+wire				break_trap_p2;
+wire				bus_error_p3;
+wire				addr_error_p3;
 
 
 /* Coprocessor 0 wires */
@@ -142,6 +152,7 @@ wire				alu_ovf_ex_p1;
 wire [4:0]			jump_p1;
 wire				jump_link_p1;
 wire [`CPU_IMDOP_WIDTH-1:0]	imuldiv_op_p1;
+wire [`CPU_SWTRP_WIDTH-1:0]	sw_trap_p1;
 wire [`CPU_LSUOP_WIDTH-1:0]	lsu_op_p1;
 wire				lsu_lns_p1;
 wire				lsu_ext_p1;
@@ -249,6 +260,7 @@ coproc0 coproc0(
 	.i_exec_stall(exec_stall),
 	.i_mem_stall(mem_stall),
 	.i_fetch_stall(fetch_stall),
+	.o_decode_error(cop0_decode_error_p1),
 	/* Fetched instruction */
 	.i_instr(instr_p0),
 	/* Decoded coprocessor instruction */
@@ -296,6 +308,8 @@ fetch fetch(
 	.i_exec_stall(exec_stall),
 	.i_mem_stall(mem_stall),
 	.o_fetch_stall(fetch_stall),
+	.o_bus_error(bus_error_p0),
+	.o_addr_error(addr_error_p0),
 	/* IFU signals */
 	.o_addr(ifu_addr),
 	.i_instr_dat(ifu_instr_dat),
@@ -317,6 +331,7 @@ decode decode(
 	.i_exec_stall(exec_stall),
 	.i_mem_stall(mem_stall),
 	.i_fetch_stall(fetch_stall),
+	.o_decode_error(base_decode_error_p1),
 	/* Coprocessor 0 */
 	.i_cop0_cop(cop0_cop_p1),
 	.i_cop0_reg_no(cop0_reg_no_p1),
@@ -334,6 +349,7 @@ decode decode(
 	.o_jump(jump_p1),
 	.o_jump_link(jump_link_p1),
 	.o_imuldiv_op(imuldiv_op_p1),
+	.o_sw_trap(sw_trap_p1),
 	.o_lsu_op(lsu_op_p1),
 	.o_lsu_lns(lsu_lns_p1),
 	.o_lsu_ext(lsu_ext_p1)
@@ -350,6 +366,10 @@ execute execute(
 	.i_exec_stall(exec_stall),
 	.i_mem_stall(mem_stall),
 	.i_fetch_stall(fetch_stall),
+	.o_overfl_error(overfl_error_p2),
+	.o_addr_error(addr_error_p2),
+	.o_syscall_trap(syscall_trap_p2),
+	.o_break_trap(break_trap_p2),
 	/* Coprocessor 0 */
 	.i_cop0_op(cop0_op_p1),
 	.i_cop0_cop(cop0_cop_p1),
@@ -367,6 +387,7 @@ execute execute(
 	.i_alu_ovf_ex(alu_ovf_ex_p1),
 	.i_jump(jump_p1),
 	.i_jump_link(jump_link_p1),
+	.i_sw_trap(sw_trap_p1),
 	.i_lsu_op(lsu_op_p1),
 	.i_lsu_lns(lsu_lns_p1),
 	.i_lsu_ext(lsu_ext_p1),
@@ -390,6 +411,8 @@ memory_access memory_access(
 	.i_exec_stall(exec_stall),
 	.o_mem_stall(mem_stall),
 	.i_fetch_stall(fetch_stall),
+	.o_bus_error(bus_error_p3),
+	.o_addr_error(addr_error_p3),
 	/* LSU interface */
 	.lsu_addr(lsu_addr),
 	.lsu_wdata(lsu_wdata),

@@ -39,6 +39,8 @@ module memory_access(
 	i_exec_stall,
 	o_mem_stall,
 	i_fetch_stall,
+	o_bus_error,
+	o_addr_error,
 	/* LSU interface */
 	lsu_addr,
 	lsu_wdata,
@@ -74,6 +76,8 @@ input wire				nrst;
 input wire				i_exec_stall;
 output wire				o_mem_stall;
 input wire				i_fetch_stall;
+output wire				o_bus_error;
+output wire				o_addr_error;
 /* LSU interface */
 output reg [`CPU_ADDR_WIDTH-1:0]	lsu_addr;
 output reg [`CPU_DATA_WIDTH-1:0]	lsu_wdata;
@@ -96,10 +100,12 @@ output reg [`CPU_REG_WIDTH-1:0]		o_rd_val;
 
 
 
-wire core_stall;
-assign core_stall = i_exec_stall || o_mem_stall || i_fetch_stall;
+wire core_stall = i_exec_stall || o_mem_stall || i_fetch_stall;
 
 assign o_mem_stall = lsu_busy;
+
+assign o_bus_error = lsu_err_bus;
+assign o_addr_error = lsu_err_align;
 
 
 reg [3:0] lsu_mux;	/* Destination result MUX */

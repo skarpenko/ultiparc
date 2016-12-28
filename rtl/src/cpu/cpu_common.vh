@@ -42,6 +42,7 @@
 `define CPU_LSUOP_WIDTH	2			/* LSU operation width */
 `define CPU_ALUOP_WIDTH	4			/* ALU operation width */
 `define CPU_IMDOP_WIDTH	4			/* Multiplication and division unit operation width */
+`define CPU_SWTRP_WIDTH	2			/* Software trap type width */
 
 `define CPU_RESET_ADDR	32'h0000_0000		/* Reset vector address */
 `define CPU_PROCID_CODE	32'h001A_8100		/* CPU Identification */

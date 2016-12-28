@@ -39,6 +39,7 @@ module coproc0(
 	i_exec_stall,
 	i_mem_stall,
 	i_fetch_stall,
+	o_decode_error,
 	/* Fetched instruction */
 	i_instr,
 	/* Decoded instr */
@@ -66,6 +67,7 @@ input wire				nrst;
 input wire				i_exec_stall;
 input wire				i_mem_stall;
 input wire				i_fetch_stall;
+output reg				o_decode_error;
 /* Fetched instruction */
 input wire [`CPU_INSTR_WIDTH-1:0]	i_instr;
 /* Decoded instr */
@@ -79,8 +81,7 @@ input wire [`CPU_REG_WIDTH-1:0]		i_cop0_alu_result_p2;
 
 
 
-wire core_stall;
-assign core_stall = i_exec_stall || i_mem_stall || i_fetch_stall;
+wire core_stall = i_exec_stall || i_mem_stall || i_fetch_stall;
 
 
 /* Coprocessor 0 registers */
@@ -102,12 +103,14 @@ wire [5:0]			op;	/* Opcode */
 wire [`CPU_REGNO_WIDTH-1:0]	cop;	/* Coprocessor opcode */
 wire [`CPU_REGNO_WIDTH-1:0]	rt;	/* Source register 2 */
 wire [`CPU_REGNO_WIDTH-1:0]	rd;	/* Destination register */
+wire [4:0]			rsvd;	/* Reserved field */
 wire [5:0]			func;	/* Function */
 
 assign op	= instr[31:26];
 assign cop	= instr[25:21];
 assign rt	= instr[20:16];
 assign rd	= instr[15:11];
+assign rsvd	= instr[10:6];
 assign func	= instr[5:0];
 
 
@@ -146,6 +149,24 @@ begin
 		EPC: o_cop0_reg_val_p1 = reg_epc;
 		PRID: o_cop0_reg_val_p1 = reg_prid;
 		default: o_cop0_reg_val_p1 = {(`CPU_REG_WIDTH){1'b0}};
+		endcase
+	end
+end
+
+
+/* Detect instruction format errors */
+always @(*)
+begin
+	o_decode_error = 1'b0;
+
+	if(cop_instr_p1)
+	begin
+		case(cop_p1)
+		`CPU_COP0_MF,
+		`CPU_COP0_MT: o_decode_error = |{ rsvd, func } ? 1'b1 : 1'b0;
+		`CPU_COP0_CO: o_decode_error =
+			|{ rt, rd, rsvd } || func != `CPU_COP0_FUNC_RFE ? 1'b1 : 1'b0;
+		default: o_decode_error = 1'b1;
 		endcase
 	end
 end

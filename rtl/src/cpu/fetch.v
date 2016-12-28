@@ -42,6 +42,8 @@ module fetch(
 	i_exec_stall,
 	i_mem_stall,
 	o_fetch_stall,
+	o_bus_error,
+	o_addr_error,
 	/* IFU signals */
 	o_addr,
 	i_instr_dat,
@@ -63,6 +65,8 @@ input wire				i_jump_valid;
 input wire				i_exec_stall;
 input wire				i_mem_stall;
 output wire				o_fetch_stall;
+output wire				o_bus_error;
+output wire				o_addr_error;
 /* IFU interface */
 output reg [`CPU_ADDR_WIDTH-1:0]	o_addr;
 input wire [`CPU_INSTR_WIDTH-1:0]	i_instr_dat;
@@ -74,10 +78,12 @@ input wire				i_err_bus;
 output wire [`CPU_INSTR_WIDTH-1:0]	o_instr;
 
 
-wire core_stall;
+wire core_stall = i_exec_stall || i_mem_stall || o_fetch_stall;
 
-assign core_stall = i_exec_stall || i_mem_stall || o_fetch_stall;
 assign o_fetch_stall = i_busy;
+
+assign o_bus_error = i_err_bus;
+assign o_addr_error = i_err_align;
 
 assign o_instr = !i_jump_valid ? i_instr_dat : NOP;
 

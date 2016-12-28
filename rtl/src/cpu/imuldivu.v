@@ -65,8 +65,7 @@ output reg [`CPU_REG_WIDTH-1:0]		o_imuldiv_rd_val;
 output reg				o_imuldiv_rd_valid;
 
 /* Stall logic */
-wire core_stall;
-assign core_stall	= o_exec_stall || i_mem_stall || i_fetch_stall;
+wire core_stall = o_exec_stall || i_mem_stall || i_fetch_stall;
 assign o_exec_stall = !i_mem_stall && !i_fetch_stall && !muldiv_ready && interlock_instr;
 
 
@@ -74,8 +73,7 @@ reg [2*`CPU_REG_WIDTH-1:0] hilor;	/* HI and LO registers */
 
 
 /* Interlocked instruction arrived */
-wire interlock_instr;
-assign interlock_instr = (i_imuldiv_op == `CPU_IMDOP_MFLO) || (i_imuldiv_op == `CPU_IMDOP_MFHI) ||
+wire interlock_instr = (i_imuldiv_op == `CPU_IMDOP_MFLO) || (i_imuldiv_op == `CPU_IMDOP_MFHI) ||
 			(i_imuldiv_op == `CPU_IMDOP_MUL) || (i_imuldiv_op == `CPU_IMDOP_MULU) ||
 			(i_imuldiv_op == `CPU_IMDOP_DIV) || (i_imuldiv_op == `CPU_IMDOP_DIVU);
 
