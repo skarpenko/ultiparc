@@ -75,6 +75,7 @@ test_entry:
 	mtc0 $t0, $SR
 	/* Do syscall exception */
 	syscall 0x0
+	nop
 	/* Check that SR was restored from PSR */
 	mfc0 $t0, $SR
 	andi $t0, $t0, 1
