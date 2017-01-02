@@ -53,12 +53,12 @@ output wire [2*`CPU_REG_WIDTH-1:0]	product;
 
 
 /* Local registers */
-reg [5:0]			bit;
+reg [5:0]			nbit;
 reg [2*`CPU_REG_WIDTH-1:0]	prod;
 reg [`CPU_REG_WIDTH-1:0]	abs_multiplicand;
 
 
-assign ready	= !bit && !start;
+assign ready	= !nbit && !start;
 assign product	= (signd && (multiplicand[`CPU_REG_WIDTH-1] ^ multiplier[`CPU_REG_WIDTH-1])) ?
 			-prod : prod;
 
@@ -67,7 +67,7 @@ always @(posedge clk or negedge nrst)
 begin
 	if(!nrst)
 	begin
-		bit <= 6'b0;
+		nbit <= 6'b0;
 		prod <= {(2*`CPU_REG_WIDTH){1'b0}};
 		abs_multiplicand <= {(`CPU_REG_WIDTH){1'b0}};
 	end
@@ -75,21 +75,21 @@ begin
 	begin
 		if(!multiplicand || !multiplier)
 		begin
-			bit <= 6'b0;
+			nbit <= 6'b0;
 			prod <= {(2*`CPU_REG_WIDTH){1'b0}};
 		end
 		else
 		begin
-			bit <= 6'd`CPU_REG_WIDTH;
+			nbit <= 6'd`CPU_REG_WIDTH;
 			prod <= { {(`CPU_REG_WIDTH){1'b0}}, signd && multiplier[`CPU_REG_WIDTH-1] ?
 					-multiplier : multiplier };
 			abs_multiplicand <= signd && multiplicand[`CPU_REG_WIDTH-1] ?
 					-multiplicand : multiplicand;
 		end
 	end
-	else if(bit)
+	else if(nbit)
 	begin
-		bit <= bit - 1;
+		nbit <= nbit - 1'b1;
 		if(prod[0])
 		begin
 			prod[2*`CPU_REG_WIDTH-1:`CPU_REG_WIDTH-1] <= prod[2*`CPU_REG_WIDTH-1:`CPU_REG_WIDTH]

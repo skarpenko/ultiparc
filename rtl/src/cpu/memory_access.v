@@ -139,7 +139,7 @@ begin
 
 		if(!core_stall)
 		begin
-			o_rd_no <= !i_nullify ? i_rd_no : 0;
+			o_rd_no <= !i_nullify ? i_rd_no : {(`CPU_REGNO_WIDTH){1'b0}};
 
 			lsu_err_bus_r <= 1'b0;
 			lsu_err_align_r <= 1'b0;

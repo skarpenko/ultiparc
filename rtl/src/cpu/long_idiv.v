@@ -54,12 +54,12 @@ output wire [2*`CPU_REG_WIDTH-1:0]	remquot;
 
 /* Local registers and wires */
 reg [2*`CPU_REG_WIDTH-1:0]	qr;
-reg [5:0]			bit;
+reg [5:0]			nbit;
 wire [`CPU_REG_WIDTH:0]		diff;
 reg [`CPU_REG_WIDTH-1:0]	abs_divider;
 
 
-assign ready	= !bit && !start;
+assign ready	= !nbit && !start;
 
 
 /* Result: remainder and quotient */
@@ -81,7 +81,7 @@ begin
 	if(!nrst)
 	begin
 		qr <= {(2*`CPU_REG_WIDTH){1'b0}};
-		bit <= 6'b0;
+		nbit <= 6'b0;
 		abs_divider <= {(`CPU_REG_WIDTH){1'b0}};
 	end
 	else if(start)
@@ -89,19 +89,19 @@ begin
 		if(!dividend || !divider)
 		begin
 			qr <= {(2*`CPU_REG_WIDTH){1'b0}};
-			bit <= 6'b0;
+			nbit <= 6'b0;
 		end
 		else
 		begin
-			bit <= 6'd`CPU_REG_WIDTH;
+			nbit <= 6'd`CPU_REG_WIDTH;
 			qr <= { {(`CPU_REG_WIDTH){1'b0}}, signd && dividend[`CPU_REG_WIDTH-1] ?
 					-dividend : dividend };
 			abs_divider <= signd && divider[`CPU_REG_WIDTH-1] ? -divider : divider;
 		end
 	end
-	else if(bit)
+	else if(nbit)
 	begin
-		bit <= bit - 1;
+		nbit <= nbit - 1'b1;
 		if(diff[`CPU_REG_WIDTH])
 			qr <= { qr[2*`CPU_REG_WIDTH-2:0], 1'b0 };
 		else

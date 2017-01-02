@@ -74,7 +74,7 @@ begin
 	end
 	else if(!core_stall)
 	begin
-		o_rd_no <= !i_nullify ? i_rd_no : 0;
+		o_rd_no <= !i_nullify ? i_rd_no : {(`CPU_REGNO_WIDTH){1'b0}};
 		o_rd_val <= i_rd_val;
 	end
 end
