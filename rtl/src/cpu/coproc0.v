@@ -345,7 +345,7 @@ end
 
 reg [2*`CPU_REG_WIDTH-1:0] tsc_reg;		/* Counter register */
 reg [`CPU_REG_WIDTH-1:0] tsc_latched_lo;	/* Latched lower half */
-reg [`CPU_REG_WIDTH-1:0] tsc_latched_hi;	/* Latched higher half */
+reg [`CPU_REG_WIDTH-1:0] tsc_latched_hi;	/* Latched upper half */
 
 /* Latch counter on read of lower half */
 wire tsc_latch = (i_instr[31:26] == `CPU_OP_COP0) &&

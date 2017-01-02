@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,9 +39,12 @@
 #define CPU_ID		0x001A8100	/* Processor Id */
 
 /* Coprocessor 0 registers */
+#define TSCLO	8	/* Low half of timestamp counter */
+#define TSCHI	9	/* Upper half of timestamp counter */
 #define IVTB	10	/* IVT Base */
 #define PSR	11	/* Prev. Status Register  */
 #define SR	12	/* Status Register */
+#define CAUSE	13	/* Cause Register */
 #define EPC	14	/* Exception PC */
 #define PRID	15	/* Processor Id */
 
@@ -127,6 +130,8 @@ static inline unsigned long interrupts_disable(void)
 		"and $t0, $t1, $t0 ;"
 		"mtc0 $t1, $12     ;"
 		"move %0, $t1      ;"
+		"nop               ;"
+		"nop               ;"
 		: "=r" (v)
 		:
 		: "$t0", "$t1"
@@ -147,6 +152,43 @@ static inline void interrupts_restore(unsigned long state)
 		: "r" (state)
 		: "$t0"
 	);
+}
+
+
+/* Read lower half of timestamp counter */
+static inline u32 rdtsc_lo(void)
+{
+	u32 v;
+	__asm__ __volatile__ (
+		"mfc0 %0, $8     ;"
+		: "=r" (v)
+		:
+		:
+	);
+
+	return v;
+}
+
+
+/* Read upper half of timestamp counter */
+static inline u32 rdtsc_hi(void)
+{
+	u32 v;
+	__asm__ __volatile__ (
+		"mfc0 %0, $9     ;"
+		: "=r" (v)
+		:
+		:
+	);
+
+	return v;
+}
+
+
+/* Read timestamp counter */
+static inline u64 rdtsc(void)
+{
+	return ((u64)rdtsc_hi() << 32) | rdtsc_lo();
 }
 
 

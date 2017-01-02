@@ -38,6 +38,11 @@ my @tests = (
 		hex_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/basic_tests/status_reg.hex"
 	},
 	{
+		name => "Cause Register",
+		bin_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/basic_tests/cause_reg.bin",
+		hex_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/basic_tests/cause_reg.hex"
+	},
+	{
 		name => "Address Error Exception",
 		bin_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/basic_tests/addr_err.bin",
 		hex_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/basic_tests/addr_err.hex"
@@ -81,6 +86,11 @@ my @tests = (
 		name => "Pipeline hazards",
 		bin_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/basic_tests/hazards.bin",
 		hex_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/basic_tests/hazards.hex"
+	},
+	{
+		name => "Timestamp counter read",
+		bin_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/basic_tests/tsc_read.bin",
+		hex_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/basic_tests/tsc_read.hex"
 	},
 	{
 		name => "Timer Interrupt",

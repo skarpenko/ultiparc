@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -127,9 +127,48 @@ void print_integer(int v)
 
 void print_unsigned(unsigned v)
 {
-	int d;
-	int o = 1000000000;
-	int f = 0;
+	unsigned d;
+	unsigned o = 1000000000;
+	unsigned f = 0;
+
+	while(o != 1) {
+		d = v / o;
+		v = v % o;
+		o = o / 10;
+		f = f | d;
+		if(f) print_char('0' + d);
+	}
+	print_char('0' + v);
+}
+
+
+void print_integer64(long long v)
+{
+	long long d;
+	long long o = 1000000000000000000;
+	long long f = 0;
+
+	if(v<0)
+		print_char('-');
+
+	while(o != 1) {
+		d = v / o;
+		v = v % o;
+		o = o / 10;
+		d = (d<0 ? -d : d);
+		v = (v<0 ? -v : v);
+		f = f | d;
+		if(f) print_char('0' + d);
+	}
+	print_char('0' + v);
+}
+
+
+void print_unsigned64(unsigned long long v)
+{
+	unsigned long long d;
+	unsigned long long o = 1000000000000000000;
+	unsigned long long f = 0;
 
 	while(o != 1) {
 		d = v / o;
