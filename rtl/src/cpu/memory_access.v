@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,6 +41,7 @@ module memory_access(
 	i_fetch_stall,
 	o_bus_error,
 	o_addr_error,
+	i_nullify,
 	/* LSU interface */
 	lsu_addr,
 	lsu_wdata,
@@ -78,6 +79,7 @@ output wire				o_mem_stall;
 input wire				i_fetch_stall;
 output wire				o_bus_error;
 output wire				o_addr_error;
+input wire				i_nullify;
 /* LSU interface */
 output reg [`CPU_ADDR_WIDTH-1:0]	lsu_addr;
 output reg [`CPU_DATA_WIDTH-1:0]	lsu_wdata;
@@ -99,18 +101,19 @@ output reg [`CPU_REGNO_WIDTH-1:0]	o_rd_no;
 output reg [`CPU_REG_WIDTH-1:0]		o_rd_val;
 
 
-
 wire core_stall = i_exec_stall || o_mem_stall || i_fetch_stall;
 
+
 assign o_mem_stall = lsu_busy;
+assign o_bus_error = lsu_err_bus | lsu_err_bus_r;
+assign o_addr_error = lsu_err_align | lsu_err_align_r;
 
-assign o_bus_error = lsu_err_bus;
-assign o_addr_error = lsu_err_align;
 
-
-reg [3:0] lsu_mux;	/* Destination result MUX */
-
-reg [`CPU_REG_WIDTH-1:0] alu_result;
+/** Local wires and registers **/
+reg				lsu_err_bus_r;
+reg				lsu_err_align_r;
+reg [3:0]			lsu_mux;	/* Destination result MUX */
+reg [`CPU_REG_WIDTH-1:0]	alu_result;
 
 
 /* LSU operation */
@@ -124,19 +127,28 @@ begin
 		lsu_rnw <= 1'b0;
 		lsu_mux <= MUX_RD_ALU;
 		alu_result <= {(`CPU_REG_WIDTH){1'b0}};
+		o_rd_no <= {(`CPU_REGNO_WIDTH){1'b0}};
+		lsu_err_align_r <= 1'b0;
+		lsu_err_bus_r <= 1'b0;
 	end
 	else
 	begin
 		lsu_cmd <= `CPU_LSU_IDLE;
+		lsu_err_bus_r <= lsu_err_bus_r | lsu_err_bus;
+		lsu_err_align_r <= lsu_err_align_r | lsu_err_align;
+
 		if(!core_stall)
 		begin
-			o_rd_no <= i_rd_no;
+			o_rd_no <= !i_nullify ? i_rd_no : 0;
+
+			lsu_err_bus_r <= 1'b0;
+			lsu_err_align_r <= 1'b0;
 
 			alu_result <= i_alu_result;
 
 			lsu_addr <= i_alu_result;
 			lsu_wdata <= i_mem_data;
-			lsu_cmd <= i_lsu_op;
+			lsu_cmd <= !i_nullify ? i_lsu_op : `CPU_LSU_IDLE;
 			lsu_rnw <= i_lsu_lns;
 
 			if(i_lsu_op == `CPU_LSU_BYTE && i_lsu_ext == 1'b1)
@@ -168,5 +180,6 @@ begin
 	default: o_rd_val = alu_result;
 	endcase
 end
+
 
 endmodule /* memory_access */

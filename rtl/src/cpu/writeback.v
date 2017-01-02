@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,6 +39,7 @@ module writeback(
 	i_exec_stall,
 	i_mem_stall,
 	i_fetch_stall,
+	i_nullify,
 	/* Data for writeback */
 	i_rd_no,
 	i_rd_val,
@@ -52,13 +53,13 @@ input wire				nrst;
 input wire				i_exec_stall;
 input wire				i_mem_stall;
 input wire				i_fetch_stall;
+input wire				i_nullify;
 /* Input from memory access stage */
 input wire [`CPU_REGNO_WIDTH-1:0]	i_rd_no;
 input wire [`CPU_REG_WIDTH-1:0]		i_rd_val;
 /* Output for write to register file */
 output reg [`CPU_REGNO_WIDTH-1:0]	o_rd_no;
 output reg [`CPU_REG_WIDTH-1:0]		o_rd_val;
-
 
 
 wire core_stall = i_exec_stall || i_mem_stall || i_fetch_stall;
@@ -73,7 +74,7 @@ begin
 	end
 	else if(!core_stall)
 	begin
-		o_rd_no <= i_rd_no;
+		o_rd_no <= !i_nullify ? i_rd_no : 0;
 		o_rd_val <= i_rd_val;
 	end
 end

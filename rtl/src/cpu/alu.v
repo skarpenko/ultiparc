@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -68,8 +68,8 @@ assign neg = result[`CPU_REG_WIDTH-1];
 /* Result is zero */
 assign zero = (result ? 1'b0 : 1'b1);
 /* Integer overflow */
-assign ovflow =  (a[`CPU_REG_WIDTH-1] & b_mux[`CPU_REG_WIDTH-1]) ^
-			(a[`CPU_REG_WIDTH-2] & b_mux[`CPU_REG_WIDTH-2]);
+assign ovflow = ~(a[`CPU_REG_WIDTH-1] ^ b_mux[`CPU_REG_WIDTH-1]) &
+	(a[`CPU_REG_WIDTH-1] ^ result[`CPU_REG_WIDTH-1]);
 
 
 always @(*)

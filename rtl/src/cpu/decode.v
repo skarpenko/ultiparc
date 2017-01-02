@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,6 +41,7 @@ module decode(
 	i_mem_stall,
 	i_fetch_stall,
 	o_decode_error,
+	i_nullify,
 	/* Coprocessor 0 */
 	i_cop0_cop,
 	i_cop0_reg_no,
@@ -75,6 +76,7 @@ input wire				i_exec_stall;
 input wire				i_mem_stall;
 input wire				i_fetch_stall;
 output reg				o_decode_error;
+input wire				i_nullify;
 /* Coprocessor 0 */
 input wire [`CPU_REGNO_WIDTH-1:0]	i_cop0_cop;
 input wire [`CPU_REGNO_WIDTH-1:0]	i_cop0_reg_no;
@@ -463,7 +465,7 @@ begin
 	end
 	else if(!core_stall)
 	begin
-		instr <= i_instr;
+		instr <= !i_nullify ? i_instr : NOP;
 		pc_high <= i_pc[31:28];
 	end
 end

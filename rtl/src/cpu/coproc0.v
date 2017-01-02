@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,6 +40,17 @@ module coproc0(
 	i_mem_stall,
 	i_fetch_stall,
 	o_decode_error,
+	i_except_start,
+	i_except_dly_slt,
+	i_except_raddr,
+	i_except_raddr_dly,
+	i_nullify_decode,
+	i_nullify_execute,
+	i_nullify_mem,
+	i_nullify_wb,
+	/* COP0 signals */
+	o_cop0_ivtbase,
+	o_cop0_ie,
 	/* Fetched instruction */
 	i_instr,
 	/* Decoded instr */
@@ -68,6 +79,17 @@ input wire				i_exec_stall;
 input wire				i_mem_stall;
 input wire				i_fetch_stall;
 output reg				o_decode_error;
+input wire				i_except_start;
+input wire				i_except_dly_slt;
+input wire [`CPU_ADDR_WIDTH-1:0]	i_except_raddr;
+input wire [`CPU_ADDR_WIDTH-1:0]	i_except_raddr_dly;
+input wire				i_nullify_decode;
+input wire				i_nullify_execute;
+input wire				i_nullify_mem;
+input wire				i_nullify_wb;
+/* COP0 signals */
+output wire [`CPU_ADDR_WIDTH-11:0]	o_cop0_ivtbase;
+output wire				o_cop0_ie;
 /* Fetched instruction */
 input wire [`CPU_INSTR_WIDTH-1:0]	i_instr;
 /* Decoded instr */
@@ -80,8 +102,11 @@ output wire [`CPU_REGNO_WIDTH-1:0]	o_cop0_rt_no_p1;
 input wire [`CPU_REG_WIDTH-1:0]		i_cop0_alu_result_p2;
 
 
-
 wire core_stall = i_exec_stall || i_mem_stall || i_fetch_stall;
+
+
+assign o_cop0_ivtbase = reg_ivt;
+assign o_cop0_ie = reg_sr_ie;
 
 
 /* Coprocessor 0 registers */
@@ -181,7 +206,7 @@ begin
 	end
 	else if(!core_stall)
 	begin
-		instr <= i_instr;
+		instr <= !i_nullify_decode ? i_instr : NOP;
 	end
 end
 
@@ -205,12 +230,19 @@ begin
 		cop_reg_no_p2 <= {(`CPU_REGNO_WIDTH){1'b0}};
 		cop_func_p2 <= 6'b0;
 	end
-	else if(!core_stall)
+	else if(!core_stall && !i_nullify_execute)
 	begin
 		cop_instr_p2 <= cop_instr_p1;
 		cop_p2 <= cop_p1;
 		cop_reg_no_p2 <= cop_reg_no_p1;
 		cop_func_p2 <= cop_func_p1;
+	end
+	else if(!core_stall)
+	begin
+		cop_instr_p2 <= 1'b0;
+		cop_p2 <= {(`CPU_REGNO_WIDTH){1'b0}};
+		cop_reg_no_p2 <= {(`CPU_REGNO_WIDTH){1'b0}};
+		cop_func_p2 <= 6'b0;
 	end
 end
 
@@ -236,13 +268,21 @@ begin
 		cop_reg_val_p3 <= {(`CPU_REG_WIDTH){1'b0}};
 		cop_func_p3 <= 6'b0;
 	end
-	else if(!core_stall)
+	else if(!core_stall && !i_nullify_mem)
 	begin
 		cop_instr_p3 <= cop_instr_p2;
 		cop_p3 <= cop_p2;
 		cop_reg_no_p3 <= cop_reg_no_p2;
 		cop_reg_val_p3 <= i_cop0_alu_result_p2;
 		cop_func_p3 <= cop_func_p2;
+	end
+	else if(!core_stall)
+	begin
+		cop_instr_p3 <= 1'b0;
+		cop_p3 <= {(`CPU_REGNO_WIDTH){1'b0}};
+		cop_reg_no_p3 <= {(`CPU_REGNO_WIDTH){1'b0}};
+		cop_reg_val_p3 <= {(`CPU_REG_WIDTH){1'b0}};
+		cop_func_p3 <= 6'b0;
 	end
 end
 
@@ -260,9 +300,9 @@ begin
 		reg_sr_ie <= 1'b0;
 		reg_epc <= {(`CPU_ADDR_WIDTH){1'b0}};
 	end
-	else if(!core_stall && cop_instr_p3)
+	else if(!core_stall && !i_nullify_wb)
 	begin
-		if(cop_p3 == `CPU_COP0_CO)
+		if(cop_instr_p3 && cop_p3 == `CPU_COP0_CO)
 		begin
 			case(cop_func_p3)
 			`CPU_COP0_FUNC_RFE: begin
@@ -271,7 +311,7 @@ begin
 			end
 			endcase
 		end
-		else if(cop_p3 == `CPU_COP0_MT)
+		else if(cop_instr_p3 && cop_p3 == `CPU_COP0_MT)
 		begin
 			case(cop_reg_no_p3)
 			IVT: reg_ivt <= cop_reg_val_p3[`CPU_REG_WIDTH-1:10];
@@ -280,6 +320,12 @@ begin
 			EPC: reg_epc <= cop_reg_val_p3;
 			endcase
 		end
+	end
+	else if(!core_stall && i_except_start)
+	begin
+		reg_psr_ie <= reg_sr_ie;
+		reg_sr_ie <= 1'b0;
+		reg_epc <= !i_except_dly_slt ? i_except_raddr : i_except_raddr_dly;
 	end
 end
 

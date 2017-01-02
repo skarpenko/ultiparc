@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,6 +45,7 @@ module execute(
 	o_addr_error,
 	o_syscall_trap,
 	o_break_trap,
+	i_nullify,
 	/* Coprocessor 0 */
 	i_cop0_op,
 	i_cop0_cop,
@@ -91,6 +92,7 @@ output wire				o_overfl_error;
 output wire				o_addr_error;
 output reg				o_syscall_trap;
 output reg				o_break_trap;
+input wire				i_nullify;
 /* Coprocessor 0 */
 input wire				i_cop0_op;
 input wire [`CPU_REGNO_WIDTH-1:0]	i_cop0_cop;
@@ -156,7 +158,7 @@ begin
 	if(!nrst)
 		rd_no <= {(`CPU_REGNO_WIDTH){1'b0}};
 	else if(!core_stall)
-		rd_no <= i_rd_no;
+		rd_no <= !i_nullify ? i_rd_no : {(`CPU_REGNO_WIDTH){1'b0}};
 end
 
 
@@ -173,7 +175,7 @@ begin
 	else if(!core_stall)
 	begin
 		alu_op <= i_alu_op;
-		ovflow_en <= i_alu_ovf_ex;
+		ovflow_en <= !i_nullify ? i_alu_ovf_ex : 1'b0;
 		case(i_alu_inpt)
 		DECODE_ALU_INPT_RTRS: begin
 			a <= i_rt_val;
@@ -210,7 +212,7 @@ begin
 		o_lsu_ext <= 1'b0;
 		o_mem_data <= {(`CPU_DATA_WIDTH){1'b0}};
 	end
-	else if(!core_stall)
+	else if(!core_stall && !i_nullify)
 	begin
 		o_lsu_op <= i_lsu_op;
 		o_lsu_lns <= i_lsu_lns;
@@ -218,6 +220,8 @@ begin
 		if(i_lsu_op != `CPU_LSU_IDLE) /* Pass only when needed */
 			o_mem_data <= i_rt_val;
 	end
+	else if(!core_stall)
+		o_lsu_op <= `CPU_LSU_IDLE;
 end
 
 
@@ -231,7 +235,7 @@ begin
 		jump_instr <= 1'b0;
 		pc_p0 <= {(`CPU_ADDR_WIDTH){1'b0}};
 	end
-	else if(!core_stall)
+	else if(!core_stall && !i_nullify)
 	begin
 		branch_link <= i_jump_link;
 		jump_instr <= i_jump != DECODE_JUMPT_NONE ? 1'b1 : 1'b0;
@@ -248,6 +252,8 @@ begin
 		default: branch_taken <= 1'b0;
 		endcase
 	end
+	else if(!core_stall)
+		branch_taken <= 1'b0;
 end
 
 
@@ -259,10 +265,15 @@ begin
 		o_syscall_trap <= 1'b0;
 		o_break_trap <= 1'b0;
 	end
-	else if(!core_stall)
+	else if(!core_stall && !i_nullify)
 	begin
 		o_syscall_trap <= (i_sw_trap == `CPU_SWTRP_SYSCALL ? 1'b1 : 1'b0);
 		o_break_trap <= (i_sw_trap == `CPU_SWTRP_BREAK ? 1'b1 : 1'b0);
+	end
+	else if(!core_stall)
+	begin
+		o_syscall_trap <= 1'b0;
+		o_break_trap <= 1'b0;
 	end
 end
 

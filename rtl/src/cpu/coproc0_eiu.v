@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,12 +34,226 @@
 /* Coprocessor 0 EIU */
 module coproc0_eiu(
 	clk,
-	nrst
+	nrst,
+	/* External interrupt */
+	i_intr,
+	/* CU signals */
+	i_exec_stall,
+	i_mem_stall,
+	i_fetch_stall,
+	i_jump_valid,
+	/* COP0 signals */
+	i_cop0_ivtbase,
+	i_cop0_ie,
+	/* Exception signals */
+	o_except_start,
+	o_except_dly_slt,
+	o_except_valid,
+	o_except_haddr,
+	/* Error signals from stages */
+	i_bus_error_p0,
+	i_addr_error_p0,
+	i_decode_error_p1,
+	i_overfl_error_p2,
+	i_addr_error_p2,
+	i_syscall_trap_p2,
+	i_break_trap_p2,
+	i_bus_error_p3,
+	i_addr_error_p3,
+	/* Result nullify signals */
+	o_nullify_fetch,
+	o_nullify_decode,
+	o_nullify_execute,
+	o_nullify_mem,
+	o_nullify_wb
 );
+/* Exceptions */
+localparam [2:0] EX_NONE	= 3'b000;
+localparam [2:0] EX_BUSERR	= 3'b001;
+localparam [2:0] EX_OVERFL	= 3'b010;
+localparam [2:0] EX_ADDRERR	= 3'b011;
+localparam [2:0] EX_RESVDI	= 3'b100;
+localparam [2:0] EX_BREAK	= 3'b101;
+localparam [2:0] EX_SYSCALL	= 3'b110;
+localparam [2:0] EX_HWINTR	= 3'b111;
 /* Inputs */
-input wire	clk;
-input wire	nrst;
+input wire				clk;
+input wire				nrst;
+/* External interrupt */
+input wire 				i_intr;
+/* CU signals */
+input wire				i_exec_stall;
+input wire				i_mem_stall;
+input wire				i_fetch_stall;
+input wire				i_jump_valid;
+/* COP0 signals */
+input wire [`CPU_ADDR_WIDTH-11:0]	i_cop0_ivtbase;
+input wire				i_cop0_ie;
+/* Exception signals */
+output wire				o_except_start;
+output wire				o_except_dly_slt;
+output reg				o_except_valid;
+output reg [`CPU_ADDR_WIDTH-1:0]	o_except_haddr;
+/* Error signals from stages */
+input wire				i_bus_error_p0;
+input wire				i_addr_error_p0;
+input wire				i_decode_error_p1;
+input wire				i_overfl_error_p2;
+input wire				i_addr_error_p2;
+input wire				i_syscall_trap_p2;
+input wire				i_break_trap_p2;
+input wire				i_bus_error_p3;
+input wire				i_addr_error_p3;
+/* Result nullify signals */
+output wire				o_nullify_fetch;
+output wire				o_nullify_decode;
+output wire				o_nullify_execute;
+output wire				o_nullify_mem;
+output wire				o_nullify_wb;
 
-/* Placeholder for Exceptions and Interrupts Unit */
+
+wire core_stall = i_exec_stall || i_mem_stall || i_fetch_stall;
+
+
+assign o_nullify_fetch = ex_state_p0 || ex_state_p1 || ex_state_p2 || ex_state_p3;
+assign o_nullify_decode = ex_state_p0 || ex_state_p1 || ex_state_p2 || ex_state_p3;
+assign o_nullify_execute = ex_state_p1 || ex_state_p2 || ex_state_p3;
+assign o_nullify_mem = ex_state_p2 || ex_state_p3;
+assign o_nullify_wb =  ex_state_p3;
+assign o_except_start = ex_state_p3;
+assign o_except_dly_slt = dly_p3;
+
+
+/* Exception state at stages */
+wire ex_state_p0 = i_bus_error_p0 || i_addr_error_p0;
+wire ex_state_p1 = |ex_p1 || i_decode_error_p1;
+wire ex_state_p2 = |ex_p2 || i_overfl_error_p2 || i_addr_error_p2 ||
+		i_syscall_trap_p2 || i_break_trap_p2;
+wire ex_state_p3 = |ex_p3 || i_bus_error_p3 || i_addr_error_p3;
+/* Global exception state */
+wire ex_state = ex_state_p0 || ex_state_p1 || ex_state_p2 || ex_state_p3;
+
+
+
+/******************************* DECODE STAGE *********************************/
+
+reg [2:0] ex_p1;
+
+always @(posedge clk or negedge nrst)
+begin
+	if(!nrst)
+	begin
+		ex_p1 <= EX_NONE;
+	end
+	else if(!core_stall)
+	begin
+		if(i_bus_error_p0)
+			ex_p1 <= EX_BUSERR;
+		else if(i_addr_error_p0)
+			ex_p1 <= EX_ADDRERR;
+		else if(i_intr && i_cop0_ie && !ex_state)
+			ex_p1 <= EX_HWINTR;
+		else
+			ex_p1 <= EX_NONE;
+	end
+end
+
+
+/****************************** EXECUTE STAGE *********************************/
+
+reg [2:0] ex_p2;
+reg dly_p2;
+
+always @(posedge clk or negedge nrst)
+begin
+	if(!nrst)
+	begin
+		ex_p2 <= EX_NONE;
+		dly_p2 <= 1'b0;
+	end
+	else if(!core_stall)
+	begin
+		if(i_decode_error_p1)
+			ex_p2 <= EX_RESVDI;
+		else
+			ex_p2 <= ex_p1;
+
+		dly_p2 <= i_jump_valid;
+	end
+end
+
+
+/******************************* MEMORY STAGE *********************************/
+
+reg [2:0] ex_p3;
+reg dly_p3;
+
+always @(posedge clk or negedge nrst)
+begin
+	if(!nrst)
+	begin
+		ex_p3 <= EX_NONE;
+		dly_p3 <= 1'b0;
+	end
+	else if(!core_stall)
+	begin
+		if(i_overfl_error_p2)
+			ex_p3 <= EX_OVERFL;
+		else if(i_addr_error_p2)
+			ex_p3 <= EX_ADDRERR;
+		else if(i_syscall_trap_p2)
+			ex_p3 <= EX_SYSCALL;
+		else if(i_break_trap_p2)
+			ex_p3 <= EX_BREAK;
+		else
+			ex_p3 <= ex_p2;
+
+		dly_p3 <= dly_p2;
+	end
+end
+
+
+/***************************** WRITEBACK STAGE ********************************/
+
+always @(posedge clk or negedge nrst)
+begin
+	if(!nrst)
+	begin
+		o_except_valid <= 1'b0;
+		o_except_haddr <= {(`CPU_ADDR_WIDTH){1'b0}};
+	end
+	else if(!core_stall)
+	begin
+		if(i_bus_error_p3)
+		begin
+			o_except_valid <= 1'b1;
+			o_except_haddr <= { i_cop0_ivtbase, `CPU_EXVECT_BUSERR };
+		end
+		else if(i_addr_error_p3)
+		begin
+			o_except_valid <= 1'b1;
+			o_except_haddr <= { i_cop0_ivtbase, `CPU_EXVECT_ADDRERR };
+		end
+		else if(ex_p3)
+		begin
+			o_except_valid <= 1'b1;
+			case(ex_p3)
+			EX_BUSERR:	o_except_haddr <= { i_cop0_ivtbase, `CPU_EXVECT_BUSERR };
+			EX_OVERFL:	o_except_haddr <= { i_cop0_ivtbase, `CPU_EXVECT_OVERFL };
+			EX_ADDRERR:	o_except_haddr <= { i_cop0_ivtbase, `CPU_EXVECT_ADDRERR };
+			EX_RESVDI:	o_except_haddr <= { i_cop0_ivtbase, `CPU_EXVECT_RESVDI };
+			EX_BREAK:	o_except_haddr <= { i_cop0_ivtbase, `CPU_EXVECT_BREAK };
+			EX_SYSCALL:	o_except_haddr <= { i_cop0_ivtbase, `CPU_EXVECT_SYSCALL };
+			EX_HWINTR:	o_except_haddr <= { i_cop0_ivtbase, `CPU_EXVECT_HWINTR };
+			default:	o_except_haddr <= { i_cop0_ivtbase, `CPU_EXVECT_RESET };
+			endcase
+		end
+		else
+		begin
+			o_except_valid <= 1'b0;
+		end
+	end
+end
+
 
 endmodule /* coproc0_eiu */

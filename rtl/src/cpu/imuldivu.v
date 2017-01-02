@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,6 +39,9 @@ module imuldivu(
 	o_exec_stall,
 	i_mem_stall,
 	i_fetch_stall,
+	i_nullify_execute,
+	i_nullify_mem,
+	i_nullify_wb,
 	/* Decoded operation */
 	i_imuldiv_op,
 	/* Operands */
@@ -55,6 +58,9 @@ input wire				nrst;
 output wire				o_exec_stall;
 input wire				i_mem_stall;
 input wire				i_fetch_stall;
+input wire				i_nullify_execute;
+input wire				i_nullify_mem;
+input wire				i_nullify_wb;
 /* Decoded operation */
 input wire [`CPU_IMDOP_WIDTH-1:0]	i_imuldiv_op;
 /* Operands */
@@ -63,6 +69,7 @@ input wire [`CPU_REG_WIDTH-1:0]		i_rt_val;
 /* Result */
 output reg [`CPU_REG_WIDTH-1:0]		o_imuldiv_rd_val;
 output reg				o_imuldiv_rd_valid;
+
 
 /* Stall logic */
 wire core_stall = o_exec_stall || i_mem_stall || i_fetch_stall;
@@ -142,7 +149,7 @@ begin
 		mul_running <= !mul_ready;
 		div_running <= !div_ready;
 
-		if(!core_stall)
+		if(!core_stall && !i_nullify_execute)
 		begin
 			imd_mthi_p2 <= 1'b0;
 			imd_mtlo_p2 <= 1'b0;
@@ -201,6 +208,12 @@ begin
 				div_running <= 1'b1;
 			end
 		end
+		else if(!core_stall)
+		begin
+			imd_mthi_p2 <= 1'b0;
+			imd_mtlo_p2 <= 1'b0;
+			o_imuldiv_rd_valid <= 1'b0;
+		end
 	end
 end
 
@@ -222,11 +235,17 @@ begin
 		imd_mtlo_p3 <= 1'b0;
 		imd_rval_p3 <= {(`CPU_REG_WIDTH){1'b0}};
 	end
-	else if(!core_stall)
+	else if(!core_stall && !i_nullify_mem)
 	begin
 		imd_mthi_p3 <= imd_mthi_p2;
 		imd_mtlo_p3 <= imd_mtlo_p2;
 		imd_rval_p3 <= imd_rval_p2;
+	end
+	else if(!core_stall)
+	begin
+		imd_mthi_p3 <= 1'b0;
+		imd_mtlo_p3 <= 1'b0;
+		imd_rval_p3 <= {(`CPU_REG_WIDTH){1'b0}};
 	end
 end
 
@@ -249,7 +268,7 @@ begin
 	begin
 		hilor <= div_remquot;
 	end
-	else if(!core_stall)
+	else if(!core_stall && !i_nullify_wb)
 	begin
 		if(imd_mthi_p3) hilor[2*`CPU_REG_WIDTH-1:`CPU_REG_WIDTH] <= imd_rval_p3;
 		if(imd_mtlo_p3) hilor[`CPU_REG_WIDTH-1:0] <= imd_rval_p3;

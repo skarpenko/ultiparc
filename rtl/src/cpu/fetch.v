@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,11 +39,14 @@ module fetch(
 	i_pc,
 	i_jump_addr,
 	i_jump_valid,
+	i_except_valid,
+	i_except_haddr,
 	i_exec_stall,
 	i_mem_stall,
 	o_fetch_stall,
 	o_bus_error,
 	o_addr_error,
+	i_nullify,
 	/* IFU signals */
 	o_addr,
 	i_instr_dat,
@@ -52,7 +55,8 @@ module fetch(
 	i_err_align,
 	i_err_bus,
 	/* Fetched instruction */
-	o_instr
+	o_instr,
+	o_pc
 );
 localparam [`CPU_INSTR_WIDTH-1:0] NOP = 32'h0000_0000;
 /* Inputs */
@@ -62,11 +66,16 @@ input wire				nrst;
 input wire [`CPU_ADDR_WIDTH-1:0]	i_pc;
 input wire [`CPU_ADDR_WIDTH-1:0]	i_jump_addr;
 input wire				i_jump_valid;
+
+input wire				i_except_valid;
+input wire [`CPU_ADDR_WIDTH-1:0]	i_except_haddr;
+
 input wire				i_exec_stall;
 input wire				i_mem_stall;
 output wire				o_fetch_stall;
 output wire				o_bus_error;
 output wire				o_addr_error;
+input wire				i_nullify;
 /* IFU interface */
 output reg [`CPU_ADDR_WIDTH-1:0]	o_addr;
 input wire [`CPU_INSTR_WIDTH-1:0]	i_instr_dat;
@@ -76,16 +85,23 @@ input wire				i_err_align;
 input wire				i_err_bus;
 /* Fetched instruction */
 output wire [`CPU_INSTR_WIDTH-1:0]	o_instr;
+output reg [`CPU_ADDR_WIDTH-1:0]	o_pc;
 
 
 wire core_stall = i_exec_stall || i_mem_stall || o_fetch_stall;
 
+
 assign o_fetch_stall = i_busy;
+assign o_bus_error = i_err_bus | err_bus_r;
+assign o_addr_error = i_err_align | err_align_r;
+assign o_instr = (!i_jump_valid && !i_nullify && !i_except_valid ? i_instr_dat : NOP);
 
-assign o_bus_error = i_err_bus;
-assign o_addr_error = i_err_align;
 
-assign o_instr = !i_jump_valid ? i_instr_dat : NOP;
+/** Local wires and registers **/
+reg				err_bus_r;
+reg				err_align_r;
+wire [`CPU_ADDR_WIDTH-1:0]	new_pc = !i_except_valid ?
+					(!i_jump_valid ? i_pc : i_jump_addr) : i_except_haddr;
 
 
 /* IFU operation */
@@ -94,15 +110,23 @@ begin
 	if(!nrst)
 	begin
 		o_addr <= {(`CPU_ADDR_WIDTH){1'b0}};
+		o_pc <= {(`CPU_ADDR_WIDTH){1'b0}};
 		o_rd_cmd <= 1'b0;
+		err_align_r <= 1'b0;
+		err_bus_r <= 1'b0;
 	end
 	else
 	begin
 		o_rd_cmd <= 1'b0;
+		err_bus_r <= err_bus_r | i_err_bus;
+		err_align_r <= err_align_r | i_err_align;
 		if(!core_stall)
 		begin
-			o_addr <= !i_jump_valid ? i_pc : i_jump_addr;
-			o_rd_cmd <= 1'b1;
+			err_align_r <= 1'b0;
+			err_bus_r <= 1'b0;
+			o_addr <= new_pc;
+			o_pc <= new_pc;
+			o_rd_cmd <= !i_nullify ? 1'b1 : 1'b0;
 		end
 	end
 end

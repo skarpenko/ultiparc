@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -78,7 +78,12 @@ input wire				i_DErr;
 
 /* Program counter */
 reg [`CPU_ADDR_WIDTH-1:0]	pc_next;
-reg [`CPU_ADDR_WIDTH-1:0]	pc_prev;
+/* pc_p0 is the output from fetch stage */
+reg [`CPU_ADDR_WIDTH-1:0]	pc_p1;
+reg [`CPU_ADDR_WIDTH-1:0]	pc_p2;
+reg [`CPU_ADDR_WIDTH-1:0]	pc_p3;
+reg [`CPU_ADDR_WIDTH-1:0]	pc_p4;
+
 
 /* Register file wires */
 wire [`CPU_REGNO_WIDTH-1:0]	rf_rs;
@@ -88,6 +93,7 @@ wire [`CPU_REG_WIDTH-1:0]	rf_rt_data;
 wire [`CPU_REGNO_WIDTH-1:0]	rf_rd;
 wire [`CPU_REG_WIDTH-1:0]	rf_rd_data;
 
+
 /* Instruction fetch unit wires */
 wire [`CPU_ADDR_WIDTH-1:0]	ifu_addr;
 wire [`CPU_INSTR_WIDTH-1:0]	ifu_instr_dat;
@@ -95,6 +101,7 @@ wire				ifu_rd_cmd;
 wire				ifu_busy;
 wire				ifu_err_align;
 wire				ifu_err_bus;
+
 
 /* Load-store unit wires */
 wire [`CPU_ADDR_WIDTH-1:0]	lsu_addr;
@@ -105,6 +112,7 @@ wire				lsu_rnw;
 wire				lsu_busy;
 wire				lsu_err_align;
 wire				lsu_err_bus;
+
 
 /* Control signals */
 wire				exec_stall;
@@ -124,12 +132,26 @@ wire				bus_error_p3;
 wire				addr_error_p3;
 
 
+/* Exception handling signals */
+wire				except_start_p3;
+wire				except_dly_slt_p3;
+wire				except_valid_p4;
+wire [`CPU_ADDR_WIDTH-1:0]	except_haddr_p4;
+wire				nullify_fetch;
+wire				nullify_decode;
+wire				nullify_execute;
+wire				nullify_mem;
+wire				nullify_wb;
+
+
 /* Coprocessor 0 wires */
 wire				cop0_op_p1;
 wire [`CPU_REGNO_WIDTH-1:0]	cop0_cop_p1;
 wire [`CPU_REGNO_WIDTH-1:0]	cop0_reg_no_p1;
 wire [`CPU_REG_WIDTH-1:0]	cop0_reg_val_p1;
 wire [`CPU_REGNO_WIDTH-1:0]	cop0_rt_no_p1;
+wire [`CPU_ADDR_WIDTH-11:0]	cop0_ivtbase;		/* IVT base */
+wire				cop0_ie;		/* IE status */
 
 
 /* Integer multiplication and division unit wires */
@@ -139,6 +161,7 @@ wire				imuldiv_rd_valid;
 
 /* Fetch stage output */
 wire [`CPU_INSTR_WIDTH-1:0]	instr_p0;
+wire [`CPU_ADDR_WIDTH-1:0]	pc_p0;
 
 
 /* Decode stage output */
@@ -261,6 +284,17 @@ coproc0 coproc0(
 	.i_mem_stall(mem_stall),
 	.i_fetch_stall(fetch_stall),
 	.o_decode_error(cop0_decode_error_p1),
+	.i_except_start(except_start_p3),
+	.i_except_dly_slt(except_dly_slt_p3),
+	.i_except_raddr(pc_p3),
+	.i_except_raddr_dly(pc_p4),
+	.i_nullify_decode(nullify_decode),
+	.i_nullify_execute(nullify_execute),
+	.i_nullify_mem(nullify_mem),
+	.i_nullify_wb(nullify_wb),
+	/* COP0 signals */
+	.o_cop0_ivtbase(cop0_ivtbase),
+	.o_cop0_ie(cop0_ie),
 	/* Fetched instruction */
 	.i_instr(instr_p0),
 	/* Decoded coprocessor instruction */
@@ -274,6 +308,44 @@ coproc0 coproc0(
 );
 
 
+/** Coprocessor 0. Exceptions and Interrupts Unit. **/
+coproc0_eiu coproc0_eiu(
+	.clk(clk),
+	.nrst(nrst),
+	/* External interrupt */
+	.i_intr(i_intr),
+	/* CU signals */
+	.i_exec_stall(exec_stall),
+	.i_mem_stall(mem_stall),
+	.i_fetch_stall(fetch_stall),
+	.i_jump_valid(jump_valid_p2),
+	/* COP0 signals */
+	.i_cop0_ivtbase(cop0_ivtbase),
+	.i_cop0_ie(cop0_ie),
+	/* Exception signals */
+	.o_except_start(except_start_p3),
+	.o_except_dly_slt(except_dly_slt_p3),
+	.o_except_valid(except_valid_p4),
+	.o_except_haddr(except_haddr_p4),
+	/* Error signals from stages */
+	.i_bus_error_p0(bus_error_p0),
+	.i_addr_error_p0(addr_error_p0),
+	.i_decode_error_p1(decode_error_p1),
+	.i_overfl_error_p2(overfl_error_p2),
+	.i_addr_error_p2(addr_error_p2),
+	.i_syscall_trap_p2(syscall_trap_p2),
+	.i_break_trap_p2(break_trap_p2),
+	.i_bus_error_p3(bus_error_p3),
+	.i_addr_error_p3(addr_error_p3),
+	/* Result nullify signals */
+	.o_nullify_fetch(nullify_fetch),
+	.o_nullify_decode(nullify_decode),
+	.o_nullify_execute(nullify_execute),
+	.o_nullify_mem(nullify_mem),
+	.o_nullify_wb(nullify_wb)
+);
+
+
 /** Integer multiplication and division unit **/
 imuldivu imuldivu(
 	.clk(clk),
@@ -282,6 +354,9 @@ imuldivu imuldivu(
 	.o_exec_stall(exec_stall),
 	.i_mem_stall(mem_stall),
 	.i_fetch_stall(fetch_stall),
+	.i_nullify_execute(nullify_execute),
+	.i_nullify_mem(nullify_mem),
+	.i_nullify_wb(nullify_wb),
 	/* Decoded operation */
 	.i_imuldiv_op(imuldiv_op_p1),
 	/* Operands */
@@ -305,11 +380,14 @@ fetch fetch(
 	.i_pc(pc_next),
 	.i_jump_addr(jump_addr_p2),
 	.i_jump_valid(jump_valid_p2),
+	.i_except_valid(except_valid_p4),
+	.i_except_haddr(except_haddr_p4),
 	.i_exec_stall(exec_stall),
 	.i_mem_stall(mem_stall),
 	.o_fetch_stall(fetch_stall),
 	.o_bus_error(bus_error_p0),
 	.o_addr_error(addr_error_p0),
+	.i_nullify(nullify_fetch),
 	/* IFU signals */
 	.o_addr(ifu_addr),
 	.i_instr_dat(ifu_instr_dat),
@@ -318,7 +396,8 @@ fetch fetch(
 	.i_err_align(ifu_err_align),
 	.i_err_bus(ifu_err_bus),
 	/* Fetched instruction */
-	.o_instr(instr_p0)
+	.o_instr(instr_p0),
+	.o_pc(pc_p0)
 );
 
 
@@ -327,11 +406,12 @@ decode decode(
 	.clk(clk),
 	.nrst(nrst),
 	/* Control signals */
-	.i_pc(pc_prev),
+	.i_pc(pc_p0),
 	.i_exec_stall(exec_stall),
 	.i_mem_stall(mem_stall),
 	.i_fetch_stall(fetch_stall),
 	.o_decode_error(base_decode_error_p1),
+	.i_nullify(nullify_decode),
 	/* Coprocessor 0 */
 	.i_cop0_cop(cop0_cop_p1),
 	.i_cop0_reg_no(cop0_reg_no_p1),
@@ -362,7 +442,7 @@ execute execute(
 	.nrst(nrst),
 	/* Control signals */
 	.i_pc_p0(pc_next),
-	.i_pc_p1(pc_prev),
+	.i_pc_p1(pc_p0),
 	.i_exec_stall(exec_stall),
 	.i_mem_stall(mem_stall),
 	.i_fetch_stall(fetch_stall),
@@ -370,6 +450,7 @@ execute execute(
 	.o_addr_error(addr_error_p2),
 	.o_syscall_trap(syscall_trap_p2),
 	.o_break_trap(break_trap_p2),
+	.i_nullify(nullify_execute),
 	/* Coprocessor 0 */
 	.i_cop0_op(cop0_op_p1),
 	.i_cop0_cop(cop0_cop_p1),
@@ -413,6 +494,7 @@ memory_access memory_access(
 	.i_fetch_stall(fetch_stall),
 	.o_bus_error(bus_error_p3),
 	.o_addr_error(addr_error_p3),
+	.i_nullify(nullify_mem),
 	/* LSU interface */
 	.lsu_addr(lsu_addr),
 	.lsu_wdata(lsu_wdata),
@@ -443,6 +525,7 @@ writeback writeback(
 	.i_exec_stall(exec_stall),
 	.i_mem_stall(mem_stall),
 	.i_fetch_stall(fetch_stall),
+	.i_nullify(nullify_wb),
 	/* Data for writeback */
 	.i_rd_no(rd_no_p3),
 	.i_rd_val(rd_val_p3),
@@ -457,12 +540,20 @@ begin
 	if(!nrst)
 	begin
 		pc_next <= `CPU_RESET_ADDR;
-		pc_prev <= `CPU_RESET_ADDR;
+		pc_p1 <= `CPU_RESET_ADDR + 1*`CPU_INSTR_SIZE;
+		pc_p2 <= `CPU_RESET_ADDR + 2*`CPU_INSTR_SIZE;
+		pc_p3 <= `CPU_RESET_ADDR + 3*`CPU_INSTR_SIZE;
+		pc_p4 <= `CPU_RESET_ADDR + 4*`CPU_INSTR_SIZE;
 	end
 	else if(!core_stall)
 	begin
-		pc_next <= (!jump_valid_p2 ? pc_next : jump_addr_p2) + `CPU_INSTR_SIZE;
-		pc_prev <= pc_next;
+		pc_next <= ( !except_valid_p4 ?
+			(!jump_valid_p2 ? pc_next : jump_addr_p2) : except_haddr_p4 ) +
+			`CPU_INSTR_SIZE;
+		pc_p1 <= pc_p0;
+		pc_p2 <= pc_p1;
+		pc_p3 <= pc_p2;
+		pc_p4 <= pc_p3;
 	end
 end
 

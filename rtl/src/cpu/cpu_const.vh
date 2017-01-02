@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -149,6 +149,17 @@
 
 /* Coprocessor 0 function codes */
 `define CPU_COP0_FUNC_RFE	6'b010000
+
+
+/* Exception vectors */
+`define CPU_EXVECT_RESET	10'h00
+`define CPU_EXVECT_BUSERR	10'h08
+`define CPU_EXVECT_OVERFL	10'h10
+`define CPU_EXVECT_ADDRERR	10'h18
+`define CPU_EXVECT_RESVDI	10'h20
+`define CPU_EXVECT_BREAK	10'h28
+`define CPU_EXVECT_SYSCALL	10'h30
+`define CPU_EXVECT_HWINTR	10'h38
 
 
 `endif /* _CPU_CONST_VH_ */
