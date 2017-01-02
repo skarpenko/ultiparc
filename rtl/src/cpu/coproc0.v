@@ -66,6 +66,8 @@ module coproc0(
 `include "decode_const.vh"
 localparam [`CPU_INSTR_WIDTH-1:0] NOP = 32'h0000_0000;
 /* Coprocessor 0 register numbers */
+localparam [`CPU_REGNO_WIDTH-1:0] TSCLO	= 5'h08;
+localparam [`CPU_REGNO_WIDTH-1:0] TSCHI	= 5'h09;
 localparam [`CPU_REGNO_WIDTH-1:0] IVT	= 5'h0A;
 localparam [`CPU_REGNO_WIDTH-1:0] PSR	= 5'h0B;
 localparam [`CPU_REGNO_WIDTH-1:0] SR	= 5'h0C;
@@ -170,6 +172,8 @@ begin
 	if(cop_instr_p1 && cop_p1 == `CPU_COP0_MF)
 	begin
 		case(cop_reg_no_p1)
+		TSCLO: o_cop0_reg_val_p1 = tsc_latched_lo;
+		TSCHI: o_cop0_reg_val_p1 = tsc_latched_hi;
 		IVT: o_cop0_reg_val_p1 = { reg_ivt, 10'b0 };
 		PSR: o_cop0_reg_val_p1 = { {(`CPU_REG_WIDTH-1){1'b0}}, reg_psr_ie };
 		SR: o_cop0_reg_val_p1 = { {(`CPU_REG_WIDTH-1){1'b0}}, reg_sr_ie };
@@ -332,6 +336,49 @@ begin
 		reg_sr_ie <= 1'b0;
 		reg_cause_bd <= !i_except_dly_slt ? 1'b0 : 1'b1;
 		reg_epc <= !i_except_dly_slt ? i_except_raddr : i_except_raddr_dly;
+	end
+end
+
+
+/*************************** TIME STAMP COUNTER *******************************/
+
+
+reg [2*`CPU_REG_WIDTH-1:0] tsc_reg;		/* Counter register */
+reg [`CPU_REG_WIDTH-1:0] tsc_latched_lo;	/* Latched lower half */
+reg [`CPU_REG_WIDTH-1:0] tsc_latched_hi;	/* Latched higher half */
+
+/* Latch counter on read of lower half */
+wire tsc_latch = (i_instr[31:26] == `CPU_OP_COP0) &&
+			(i_instr[25:21] == `CPU_COP0_MF) &&
+			(i_instr[15:11] == TSCLO) ? 1'b1 : 1'b0;
+
+
+/* Counter */
+always @(posedge clk or negedge nrst)
+begin
+	if(!nrst)
+	begin
+		tsc_reg <= {(2*`CPU_ADDR_WIDTH){1'b0}};
+	end
+	else
+	begin
+		tsc_reg <= tsc_reg + 1'b1;
+	end
+end
+
+
+/* Counter latch logic */
+always @(posedge clk or negedge nrst)
+begin
+	if(!nrst)
+	begin
+		tsc_latched_lo <= {(`CPU_ADDR_WIDTH){1'b0}};
+		tsc_latched_hi <= {(`CPU_ADDR_WIDTH){1'b0}};
+	end
+	else if(!core_stall && !i_nullify_decode && tsc_latch)
+	begin
+		tsc_latched_lo <= tsc_reg[`CPU_REG_WIDTH-1:0];
+		tsc_latched_hi <= tsc_reg[2*`CPU_REG_WIDTH-1:`CPU_REG_WIDTH];
 	end
 end
 
