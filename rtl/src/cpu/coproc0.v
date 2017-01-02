@@ -69,6 +69,7 @@ localparam [`CPU_INSTR_WIDTH-1:0] NOP = 32'h0000_0000;
 localparam [`CPU_REGNO_WIDTH-1:0] IVT	= 5'h0A;
 localparam [`CPU_REGNO_WIDTH-1:0] PSR	= 5'h0B;
 localparam [`CPU_REGNO_WIDTH-1:0] SR	= 5'h0C;
+localparam [`CPU_REGNO_WIDTH-1:0] CAUSE	= 5'h0D;
 localparam [`CPU_REGNO_WIDTH-1:0] EPC	= 5'h0E;
 localparam [`CPU_REGNO_WIDTH-1:0] PRID	= 5'h0F;
 /* Inputs */
@@ -113,6 +114,7 @@ assign o_cop0_ie = reg_sr_ie;
 reg [`CPU_ADDR_WIDTH-11:0]	reg_ivt;	/* High 22 bits of IVT base (reg 0xA) */
 reg				reg_psr_ie;	/* Copy of IE flag from Status register (reg 0xB) */
 reg				reg_sr_ie;	/* IE flag from Status register (reg 0xC) */
+reg				reg_cause_bd;	/* BD flag from Cause register (reg 0xD) */
 reg [`CPU_ADDR_WIDTH-1:0]	reg_epc;	/* Program counter on exception entrance (reg 0xE) */
 wire [`CPU_DATA_WIDTH-1:0]	reg_prid;	/* Processor ID R/O register (reg 0xF) */
 assign reg_prid = `CPU_PROCID_CODE;
@@ -171,6 +173,7 @@ begin
 		IVT: o_cop0_reg_val_p1 = { reg_ivt, 10'b0 };
 		PSR: o_cop0_reg_val_p1 = { {(`CPU_REG_WIDTH-1){1'b0}}, reg_psr_ie };
 		SR: o_cop0_reg_val_p1 = { {(`CPU_REG_WIDTH-1){1'b0}}, reg_sr_ie };
+		CAUSE: o_cop0_reg_val_p1 = { reg_cause_bd, {(`CPU_REG_WIDTH-1){1'b0}} };
 		EPC: o_cop0_reg_val_p1 = reg_epc;
 		PRID: o_cop0_reg_val_p1 = reg_prid;
 		default: o_cop0_reg_val_p1 = {(`CPU_REG_WIDTH){1'b0}};
@@ -298,6 +301,7 @@ begin
 		reg_ivt <= {(`CPU_ADDR_WIDTH-10){1'b0}};
 		reg_psr_ie <= 1'b0;
 		reg_sr_ie <= 1'b0;
+		reg_cause_bd <= 1'b0;
 		reg_epc <= {(`CPU_ADDR_WIDTH){1'b0}};
 	end
 	else if(!core_stall && !i_nullify_wb)
@@ -317,6 +321,7 @@ begin
 			IVT: reg_ivt <= cop_reg_val_p3[`CPU_REG_WIDTH-1:10];
 			PSR: reg_psr_ie <= cop_reg_val_p3[0];
 			SR: reg_sr_ie <= cop_reg_val_p3[0];
+			CAUSE: reg_cause_bd <= cop_reg_val_p3[31];
 			EPC: reg_epc <= cop_reg_val_p3;
 			endcase
 		end
@@ -325,6 +330,7 @@ begin
 	begin
 		reg_psr_ie <= reg_sr_ie;
 		reg_sr_ie <= 1'b0;
+		reg_cause_bd <= !i_except_dly_slt ? 1'b0 : 1'b1;
 		reg_epc <= !i_except_dly_slt ? i_except_raddr : i_except_raddr_dly;
 	end
 end
