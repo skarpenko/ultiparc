@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -235,9 +235,12 @@ int sc_main(int argc, char *argv[])
 		sc_trace_x(sys_trace, top.cpu.cpu_reg_lo);
 		sc_trace_x(sys_trace, top.cpu.cpu_reg_prid);
 		sc_trace_x(sys_trace, top.cpu.cpu_reg_epc);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_cause);
 		sc_trace_x(sys_trace, top.cpu.cpu_reg_sr);
 		sc_trace_x(sys_trace, top.cpu.cpu_reg_psr);
 		sc_trace_x(sys_trace, top.cpu.cpu_reg_ivtb);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_tschi);
+		sc_trace_x(sys_trace, top.cpu.cpu_reg_tsclo);
 
 		// Interrupt controller
 		sc_trace_x(sys_trace, top.intctl.i_MAddr);

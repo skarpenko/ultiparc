@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,27 +36,27 @@
 
 // CPU top
 SC_MODULE(cpu_top) {
-	sc_in<bool>          clk;
-	sc_in<bool>          nrst;
+	sc_in<bool>		clk;
+	sc_in<bool>		nrst;
 
-	sc_in<bool>          intr_i;
+	sc_in<bool>		intr_i;
 
 	// I-Bus port
-	sc_out<sc_uint<32> > ib_addr_o;
-	sc_out<bool>         ib_rdc_o;
-	sc_in<sc_uint<32> >  ib_data_i;
-	sc_in<bool>          ib_rdy_i;
-	sc_in<bool>          ib_err_i;
+	sc_out<sc_uint<32> >	ib_addr_o;
+	sc_out<bool>		ib_rdc_o;
+	sc_in<sc_uint<32> >	ib_data_i;
+	sc_in<bool>		ib_rdy_i;
+	sc_in<bool>		ib_err_i;
 
 	// D-Bus port
-	sc_out<sc_uint<32> > db_addr_o;
-	sc_out<bool>         db_cmd_o;
-	sc_out<bool>         db_rnw_o;
-	sc_out<sc_uint<4> >  db_ben_o;
-	sc_out<sc_uint<32> > db_data_o;
-	sc_in<sc_uint<32> >  db_data_i;
-	sc_in<bool>          db_rdy_i;
-	sc_in<bool>          db_err_i;
+	sc_out<sc_uint<32> >	db_addr_o;
+	sc_out<bool>		db_cmd_o;
+	sc_out<bool>		db_rnw_o;
+	sc_out<sc_uint<4> >	db_ben_o;
+	sc_out<sc_uint<32> >	db_data_o;
+	sc_in<sc_uint<32> >	db_data_i;
+	sc_in<bool>		db_rdy_i;
+	sc_in<bool>		db_err_i;
 
 
 	SC_CTOR(cpu_top)
@@ -67,13 +67,16 @@ SC_MODULE(cpu_top) {
 			sensitive << clk.pos();
 
 		// Program counter
-		m_pc = 0x00000000;  // Reset vector address
+		m_pc = 0x00000000;	// Reset vector address
 		m_next_pc = 0x00000004;
 
 		// Special registers
+		m_cause = 0x00000000;
 		m_sr = 0x00000000;
 		m_psr = 0x00000000;
 		m_ivtb = 0x00000000;
+		m_tsc = 0x0000000000000000;
+		m_tschi_latched = 0x00000000;
 
 		// Internal state
 		m_except = EX_NONE;
@@ -123,9 +126,12 @@ public:
 	sc_signal<sc_uint<32> > cpu_reg_lo;
 	sc_signal<sc_uint<32> > cpu_reg_prid;
 	sc_signal<sc_uint<32> > cpu_reg_epc;
+	sc_signal<sc_uint<32> > cpu_reg_cause;
 	sc_signal<sc_uint<32> > cpu_reg_sr;
 	sc_signal<sc_uint<32> > cpu_reg_psr;
 	sc_signal<sc_uint<32> > cpu_reg_ivtb;
+	sc_signal<sc_uint<32> > cpu_reg_tschi;
+	sc_signal<sc_uint<32> > cpu_reg_tsclo;
 
 private:
 	static const unsigned IVT_ENTRY_SZ = 8;	// IVT entry size
@@ -221,7 +227,7 @@ private:
 	void store_word(uint32_t addr, uint32_t v);
 
 	// Check exception state
-	bool check_except(void);
+	bool check_except(bool delay_slot = false);
 	// Check external interrupt active state
 	bool check_intr(void);
 
@@ -1635,12 +1641,16 @@ private:
 	//
 	// Execute Coprocessor 0 instructions
 	// Registers supported:
-	//   0xA  - IVTB (Interrupt Vector Table Base, ten LSB bits are ignored)
-	//   0xB  - PSR  (Copy of SR register on interrupt/exception entrance)
-	//   0xC  - SR   (Status Register)
+	//   0x8  - TSCLO (Lower part of Time Stamp Counter, read latches upper part)
+	//   0x9  - TSCHI (Upper part of Time Stamp Counter)
+	//   0xA  - IVTB  (Interrupt Vector Table Base, ten LSB bits are ignored)
+	//   0xB  - PSR   (Copy of SR register on interrupt/exception entrance)
+	//   0xC  - SR    (Status Register)
 	//             Bit 0 - IE (Interrupt enable)
-	//   0xE  - EPC  (Program counter saved on interrupt/exception entrance)
-	//   0xF  - PRId (Processor Id)
+	//   0xD  - CAUSE (Cause register)
+	//             Bit 31 - BD (Exception at branch delay slot)
+	//   0xE  - EPC   (Program counter saved on interrupt/exception entrance)
+	//   0xF  - PRId  (Processor Id)
 	//
 	void exec_cop0(uint32_t instr, bool dslot);
 
@@ -1687,9 +1697,12 @@ private:
 
 	const uint32_t m_prid;		// Processor Id
 	uint32_t m_epc;			// Return address from exception
+	uint32_t m_cause;		// Cause register
 	uint32_t m_sr;			// Status register
 	uint32_t m_psr;			// Previous value of Status Register stored on exception
 	uint32_t m_ivtb;		// Base address of interrupt vectors table
+	uint64_t m_tsc;			// Time Stamp Counter
+	uint32_t m_tschi_latched;	// Latched upper part of TSC
 
 	cpu_exception m_except;		// Current exceptions state
 
@@ -1943,12 +1956,13 @@ inline void cpu_top::store_word(uint32_t addr, uint32_t v)
 }
 
 
-inline bool cpu_top::check_except(void)
+inline bool cpu_top::check_except(bool delay_slot)
 {
 	if(m_except) {
 		m_epc = m_pc;
 		m_psr = m_sr;
 		m_sr = 0;
+		m_cause = (delay_slot ? 0x80000000 : 0);
 		m_pc = m_ivtb + (m_except-1)*IVT_ENTRY_SZ;
 		m_next_pc = m_pc + 4;
 		m_except = EX_NONE;
@@ -1964,6 +1978,7 @@ inline bool cpu_top::check_intr(void)
 		m_epc = m_next_pc;
 		m_psr = m_sr;
 		m_sr = 0;
+		m_cause = 0;
 		m_pc = m_ivtb + (EX_HW_INTR-1)*IVT_ENTRY_SZ;
 		m_next_pc = m_pc + 4;
 		return true;
@@ -1983,6 +1998,13 @@ inline void cpu_top::instr_mfc0(uint32_t instr)
 	}
 
 	switch(iw.r.rd) {
+		case 8:  // TSCLO register
+			m_tschi_latched = (uint32_t)(m_tsc >> 32);
+			m_gp_regs[iw.r.rt] = (uint32_t)(m_tsc & 0xFFFFFFFF);
+			break;
+		case 9:  // TSCHI register
+			m_gp_regs[iw.r.rt] = m_tschi_latched;
+			break;
 		case 10: // IVTB register
 			m_gp_regs[iw.r.rt] = m_ivtb;
 			break;
@@ -1991,6 +2013,9 @@ inline void cpu_top::instr_mfc0(uint32_t instr)
 			break;
 		case 12: // SR Register
 			m_gp_regs[iw.r.rt] = m_sr;
+			break;
+		case 13: // CAUSE Register
+			m_gp_regs[iw.r.rt] = m_cause;
 			break;
 		case 14: // EPC Register
 			m_gp_regs[iw.r.rt] = m_epc;
@@ -2015,6 +2040,10 @@ inline void cpu_top::instr_mtc0(uint32_t instr)
 	}
 
 	switch(iw.r.rd) {
+		case 8:  // TSCLO register
+			break;
+		case 9:  // TSCHI register
+			break;
 		case 10: // IVTB register
 			m_ivtb = m_gp_regs[iw.r.rt] & (~0x3FF);
 			break;
@@ -2023,6 +2052,9 @@ inline void cpu_top::instr_mtc0(uint32_t instr)
 			break;
 		case 12: // SR Register
 			m_sr = m_gp_regs[iw.r.rt] & (0x1);
+			break;
+		case 13: // CAUSE Register
+			m_cause = m_gp_regs[iw.r.rt] & (0x80000000);
 			break;
 		case 14: // EPC Register
 			m_epc = m_gp_regs[iw.r.rt];
@@ -3179,6 +3211,8 @@ inline void cpu_top::cpu_thread(void) {
 	while(true) {
 		export_register_values(m_pc);
 
+		m_tsc += 3; // update time stamp
+
 		uint32_t instr = fetch_instr(m_pc);
 		if(check_except())
 			continue;
@@ -3190,12 +3224,14 @@ inline void cpu_top::cpu_thread(void) {
 		export_register_values(m_pc);
 
 		if(m_delay_slot) {
+			m_tsc += 3; // update time stamp
+
 			m_delay_slot = false;
 			instr = fetch_instr(m_pc+4);
-			if(check_except())
+			if(check_except(true))
 				continue;
 			execute(instr, true);
-			if(check_except())
+			if(check_except(true))
 				continue;
 
 			export_register_values(m_pc+4);
@@ -3263,7 +3299,10 @@ inline void cpu_top::export_register_values(uint32_t pc)
 
 	cpu_reg_prid.write(m_prid);
 	cpu_reg_epc.write(m_epc);
+	cpu_reg_cause.write(m_cause);
 	cpu_reg_sr.write(m_sr);
 	cpu_reg_psr.write(m_psr);
 	cpu_reg_ivtb.write(m_ivtb);
+	cpu_reg_tschi.write((uint32_t)(m_tsc >> 32));
+	cpu_reg_tsclo.write((uint32_t)(m_tsc & 0xFFFFFFFF));
 }

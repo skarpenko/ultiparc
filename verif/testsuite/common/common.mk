@@ -26,4 +26,4 @@ ASFLAGS := -D__ASSEMBLY__
 
 # Linker flags
 LDFLAGS := --gc-sections
-LDFLAGS += -L$(LIBGCC_PATH) -lgcc
+LDFLAGS += -L$(LIBGCC_PATH) $(LIBGCC)
