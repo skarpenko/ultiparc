@@ -151,8 +151,6 @@ begin
 			ex_p1 <= EX_BUSERR;
 		else if(i_addr_error_p0)
 			ex_p1 <= EX_ADDRERR;
-		else if(i_intr && i_cop0_ie && !ex_state)
-			ex_p1 <= EX_HWINTR;
 		else
 			ex_p1 <= EX_NONE;
 	end
@@ -205,6 +203,8 @@ begin
 			ex_p3 <= EX_SYSCALL;
 		else if(i_break_trap_p2)
 			ex_p3 <= EX_BREAK;
+		else if(i_intr && i_cop0_ie && !ex_state)
+			ex_p3 <= EX_HWINTR;
 		else
 			ex_p3 <= ex_p2;
 
