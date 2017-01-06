@@ -2650,7 +2650,7 @@ inline void cpu_top::instr_bgtz(uint32_t instr)
 
 	uint32_t target = sign_extend16(iw.i.imm) << 2;
 	uint32_t rs = rd_gpreg(iw.i.rs);
-	bool cond = ((rs & (1<<31)) == 0 || rs != 0);
+	bool cond = ((rs & (1<<31)) == 0 && rs != 0);
 	if(cond) {
 		m_next_pc = m_pc + 4 + target;
 	} else {
