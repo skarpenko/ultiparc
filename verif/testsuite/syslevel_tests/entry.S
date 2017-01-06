@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -130,14 +130,15 @@ __exception_entry:
 	/* Adjust stack to store interrupt frame */
 	addiu $sp, $sp, -INTR_FRAME_LEN*CPU_REG_SIZE
 
-	/* Save previous status register (PSR) */
+	/* Save vector number */
 	sw $k0, 0*CPU_REG_SIZE($sp)
+	/* Save previous status register (PSR) */
 	mfc0 $k0, $PSR
-	/* Save return address */
 	sw $k0, 1*CPU_REG_SIZE($sp)
+	/* Save return address */
 	mfc0 $k0, $EPC
-	/* Save HI/LO pair */
 	sw $k0, 2*CPU_REG_SIZE($sp)
+	/* Save HI/LO pair */
 	mflo $k0
 	sw $k0, 3*CPU_REG_SIZE($sp)
 	mfhi $k0
