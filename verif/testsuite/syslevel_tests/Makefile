@@ -7,7 +7,8 @@ TESTS := \
 	memcopy.elf \
 	matrix_mul.elf \
 	fxp_fft.elf \
-	fxp_taylor.elf
+	fxp_taylor.elf \
+	flt_fft_tmr.elf
 
 
 # Lists of object files
@@ -16,6 +17,7 @@ memcopy.elf := entry.o memcopy.o common.o
 matrix_mul.elf := entry.o matrix_mul.o
 fxp_fft.elf := entry.o fxp_fft.o
 fxp_taylor.elf := entry.o fxp_taylor.o
+flt_fft_tmr.elf := entry.o flt_fft_tmr.o common.o
 
 
 # List of final targets
@@ -51,6 +53,10 @@ fxp_fft.elf: $(fxp_fft.elf)
 
 fxp_taylor.elf: $(fxp_taylor.elf)
 	$(GCC_PREFIX)ld -T $(ULTIPARC_HOME)/verif/testsuite/common/hw.ld -o $@ $(fxp_taylor.elf) $(LDFLAGS)
+
+
+flt_fft_tmr.elf: $(flt_fft_tmr.elf)
+	$(GCC_PREFIX)ld -T $(ULTIPARC_HOME)/verif/testsuite/common/hw.ld -o $@ $(flt_fft_tmr.elf) -lm $(LDFLAGS)
 
 
 %.bin: %.elf

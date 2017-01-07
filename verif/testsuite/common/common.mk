@@ -5,12 +5,15 @@
 GCC_PREFIX ?= mipsisa32-elf-
 
 # Architecture specific C flags
-ARCH_CFLAGS := -mel -mips1 -march=r3000
+ARCH_CFLAGS := -mel -mips1 -march=r3000 -msoft-float
 
 # Find libgcc
 LIBGCC         := -lgcc
 LIBGCC_PATH    := $(dir $(shell $(GCC_PREFIX)gcc $(ARCH_CFLAGS) -print-libgcc-file-name))
 LIBGCC_INCLUDE := $(LIBGCC_PATH)/include
+
+# Find C libraries
+LIBC_PATH := $(dir $(shell $(GCC_PREFIX)gcc $(ARCH_CFLAGS) -print-file-name=libc.a))
 
 # C flags
 CFLAGS := -O2 $(ARCH_CFLAGS)
@@ -26,4 +29,4 @@ ASFLAGS := -D__ASSEMBLY__
 
 # Linker flags
 LDFLAGS := --gc-sections
-LDFLAGS += -L$(LIBGCC_PATH) $(LIBGCC)
+LDFLAGS += -L$(LIBGCC_PATH) -L$(LIBC_PATH) $(LIBGCC)
