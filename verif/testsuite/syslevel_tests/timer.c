@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -69,6 +69,11 @@ void user_entry()
 	/* Wait for expected timer ticks count */
 	while(int_count < NEXPECT)
 		;
+
+	/* Disable interrupts and recheck the result */
+	interrupts_disable();
+	if(int_count != NEXPECT)
+		test_failed();
 
 	test_passed();
 }
