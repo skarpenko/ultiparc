@@ -55,6 +55,7 @@
 struct interrupt_frame {
 	u32 vec;	/* Vector number */
 	u32 psr;	/* Previous status */
+	u32 cause;	/* Cause register */
 	u32 epc;	/* EPC */
 	u32 lo;		/* LO special register */
 	u32 hi;		/* HI special register */
@@ -130,8 +131,6 @@ static inline unsigned long interrupts_disable(void)
 		"and $t0, $t1, $t0 ;"
 		"mtc0 $t1, $12     ;"
 		"move %0, $t1      ;"
-		"nop               ;"
-		"nop               ;"
 		: "=r" (v)
 		:
 		: "$t0", "$t1"

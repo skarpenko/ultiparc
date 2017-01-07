@@ -132,47 +132,55 @@ __exception_entry:
 
 	/* Save vector number */
 	sw $k0, 0*CPU_REG_SIZE($sp)
+
 	/* Save previous status register (PSR) */
 	mfc0 $k0, $PSR
 	sw $k0, 1*CPU_REG_SIZE($sp)
+
+	/* Save Cause register */
+	mfc0 $k0, $CAUSE
+	sw $k0, 2*CPU_REG_SIZE($sp)
+
 	/* Save return address */
 	mfc0 $k0, $EPC
-	sw $k0, 2*CPU_REG_SIZE($sp)
+	sw $k0, 3*CPU_REG_SIZE($sp)
+
 	/* Save HI/LO pair */
 	mflo $k0
-	sw $k0, 3*CPU_REG_SIZE($sp)
-	mfhi $k0
 	sw $k0, 4*CPU_REG_SIZE($sp)
+	mfhi $k0
+	sw $k0, 5*CPU_REG_SIZE($sp)
+
 	/* Save general purpose registers */
-	sw $ra, 5*CPU_REG_SIZE($sp)
-	sw $fp, 6*CPU_REG_SIZE($sp)
-	sw $k1, 7*CPU_REG_SIZE($sp)	/* Save original $sp */
-	sw $gp, 8*CPU_REG_SIZE($sp)
-	sw $t9, 9*CPU_REG_SIZE($sp)
-	sw $t8, 10*CPU_REG_SIZE($sp)
-	sw $s7, 11*CPU_REG_SIZE($sp)
-	sw $s6, 12*CPU_REG_SIZE($sp)
-	sw $s5, 13*CPU_REG_SIZE($sp)
-	sw $s4, 14*CPU_REG_SIZE($sp)
-	sw $s3, 15*CPU_REG_SIZE($sp)
-	sw $s2, 16*CPU_REG_SIZE($sp)
-	sw $s1, 17*CPU_REG_SIZE($sp)
-	sw $s0, 18*CPU_REG_SIZE($sp)
-	sw $t7, 19*CPU_REG_SIZE($sp)
-	sw $t6, 20*CPU_REG_SIZE($sp)
-	sw $t5, 21*CPU_REG_SIZE($sp)
-	sw $t4, 22*CPU_REG_SIZE($sp)
-	sw $t3, 23*CPU_REG_SIZE($sp)
-	sw $t2, 24*CPU_REG_SIZE($sp)
-	sw $t1, 25*CPU_REG_SIZE($sp)
-	sw $t0, 26*CPU_REG_SIZE($sp)
-	sw $a3, 27*CPU_REG_SIZE($sp)
-	sw $a2, 28*CPU_REG_SIZE($sp)
-	sw $a1, 29*CPU_REG_SIZE($sp)
-	sw $a0, 30*CPU_REG_SIZE($sp)
-	sw $v1, 31*CPU_REG_SIZE($sp)
-	sw $v0, 32*CPU_REG_SIZE($sp)
-	sw $at, 33*CPU_REG_SIZE($sp)
+	sw $ra, 6*CPU_REG_SIZE($sp)
+	sw $fp, 7*CPU_REG_SIZE($sp)
+	sw $k1, 8*CPU_REG_SIZE($sp)	/* Save original $sp */
+	sw $gp, 9*CPU_REG_SIZE($sp)
+	sw $t9, 10*CPU_REG_SIZE($sp)
+	sw $t8, 11*CPU_REG_SIZE($sp)
+	sw $s7, 12*CPU_REG_SIZE($sp)
+	sw $s6, 13*CPU_REG_SIZE($sp)
+	sw $s5, 14*CPU_REG_SIZE($sp)
+	sw $s4, 15*CPU_REG_SIZE($sp)
+	sw $s3, 16*CPU_REG_SIZE($sp)
+	sw $s2, 17*CPU_REG_SIZE($sp)
+	sw $s1, 18*CPU_REG_SIZE($sp)
+	sw $s0, 19*CPU_REG_SIZE($sp)
+	sw $t7, 20*CPU_REG_SIZE($sp)
+	sw $t6, 21*CPU_REG_SIZE($sp)
+	sw $t5, 22*CPU_REG_SIZE($sp)
+	sw $t4, 23*CPU_REG_SIZE($sp)
+	sw $t3, 24*CPU_REG_SIZE($sp)
+	sw $t2, 25*CPU_REG_SIZE($sp)
+	sw $t1, 26*CPU_REG_SIZE($sp)
+	sw $t0, 27*CPU_REG_SIZE($sp)
+	sw $a3, 28*CPU_REG_SIZE($sp)
+	sw $a2, 29*CPU_REG_SIZE($sp)
+	sw $a1, 30*CPU_REG_SIZE($sp)
+	sw $a0, 31*CPU_REG_SIZE($sp)
+	sw $v1, 32*CPU_REG_SIZE($sp)
+	sw $v0, 33*CPU_REG_SIZE($sp)
+	sw $at, 34*CPU_REG_SIZE($sp)
 
 	/* Pass control to user exception handler */
 	move $a0, $sp
@@ -188,50 +196,59 @@ __exception_entry:
 	mtc0 $t1, $SR
 
 	/* Restore general purpose registers */
-	lw $at, 33*CPU_REG_SIZE($sp)
-	lw $v0, 32*CPU_REG_SIZE($sp)
-	lw $v1, 31*CPU_REG_SIZE($sp)
-	lw $a0, 30*CPU_REG_SIZE($sp)
-	lw $a1, 29*CPU_REG_SIZE($sp)
-	lw $a2, 28*CPU_REG_SIZE($sp)
-	lw $a3, 27*CPU_REG_SIZE($sp)
-	lw $t0, 26*CPU_REG_SIZE($sp)
-	lw $t1, 25*CPU_REG_SIZE($sp)
-	lw $t2, 24*CPU_REG_SIZE($sp)
-	lw $t3, 23*CPU_REG_SIZE($sp)
-	lw $t4, 22*CPU_REG_SIZE($sp)
-	lw $t5, 21*CPU_REG_SIZE($sp)
-	lw $t6, 20*CPU_REG_SIZE($sp)
-	lw $t7, 19*CPU_REG_SIZE($sp)
-	lw $s0, 18*CPU_REG_SIZE($sp)
-	lw $s1, 17*CPU_REG_SIZE($sp)
-	lw $s2, 16*CPU_REG_SIZE($sp)
-	lw $s3, 15*CPU_REG_SIZE($sp)
-	lw $s4, 14*CPU_REG_SIZE($sp)
-	lw $s5, 13*CPU_REG_SIZE($sp)
-	lw $s6, 12*CPU_REG_SIZE($sp)
-	lw $s7, 11*CPU_REG_SIZE($sp)
-	lw $t8, 10*CPU_REG_SIZE($sp)
-	lw $t9, 9*CPU_REG_SIZE($sp)
-	lw $gp, 8*CPU_REG_SIZE($sp)
-	lw $k1, 7*CPU_REG_SIZE($sp)	/* $sp value goes to $k1 */
-	lw $fp, 6*CPU_REG_SIZE($sp)
-	lw $ra, 5*CPU_REG_SIZE($sp)
+	lw $at, 34*CPU_REG_SIZE($sp)
+	lw $v0, 33*CPU_REG_SIZE($sp)
+	lw $v1, 32*CPU_REG_SIZE($sp)
+	lw $a0, 31*CPU_REG_SIZE($sp)
+	lw $a1, 30*CPU_REG_SIZE($sp)
+	lw $a2, 29*CPU_REG_SIZE($sp)
+	lw $a3, 28*CPU_REG_SIZE($sp)
+	lw $t0, 27*CPU_REG_SIZE($sp)
+	lw $t1, 26*CPU_REG_SIZE($sp)
+	lw $t2, 25*CPU_REG_SIZE($sp)
+	lw $t3, 24*CPU_REG_SIZE($sp)
+	lw $t4, 23*CPU_REG_SIZE($sp)
+	lw $t5, 22*CPU_REG_SIZE($sp)
+	lw $t6, 21*CPU_REG_SIZE($sp)
+	lw $t7, 20*CPU_REG_SIZE($sp)
+	lw $s0, 19*CPU_REG_SIZE($sp)
+	lw $s1, 18*CPU_REG_SIZE($sp)
+	lw $s2, 17*CPU_REG_SIZE($sp)
+	lw $s3, 16*CPU_REG_SIZE($sp)
+	lw $s4, 15*CPU_REG_SIZE($sp)
+	lw $s5, 14*CPU_REG_SIZE($sp)
+	lw $s6, 13*CPU_REG_SIZE($sp)
+	lw $s7, 12*CPU_REG_SIZE($sp)
+	lw $t8, 11*CPU_REG_SIZE($sp)
+	lw $t9, 10*CPU_REG_SIZE($sp)
+	lw $gp, 9*CPU_REG_SIZE($sp)
+	lw $k1, 8*CPU_REG_SIZE($sp)	/* $sp value goes to $k1 */
+	lw $fp, 7*CPU_REG_SIZE($sp)
+	lw $ra, 6*CPU_REG_SIZE($sp)
 
 	/* Restore HI/LO pair */
-	lw $k0, 4*CPU_REG_SIZE($sp)
+	lw $k0, 5*CPU_REG_SIZE($sp)
 	nop
 	mthi $k0
-	lw $k0, 3*CPU_REG_SIZE($sp)
+	lw $k0, 4*CPU_REG_SIZE($sp)
 	nop
 	mtlo $k0
+
 	/* Restore previous status register  */
 	lw $k0, 1*CPU_REG_SIZE($sp)
 	nop
 	mtc0 $k0, $PSR
-	/* Load return address */
+
+	/* Restore Cause register  */
 	lw $k0, 2*CPU_REG_SIZE($sp)
+	nop
+	mtc0 $k0, $CAUSE
+
+	/* Load return address */
+	lw $k0, 3*CPU_REG_SIZE($sp)
+
 	move $sp, $k1	/* Restore original $sp */
+
 	/* Return from exception */
 	jr $k0
 	rfe
