@@ -130,8 +130,6 @@ wire ex_state_p1 = |ex_p1 || i_decode_error_p1;
 wire ex_state_p2 = |ex_p2 || i_overfl_error_p2 || i_addr_error_p2 ||
 		i_syscall_trap_p2 || i_break_trap_p2;
 wire ex_state_p3 = |ex_p3 || i_bus_error_p3 || i_addr_error_p3;
-/* Global exception state */
-wire ex_state = ex_state_p0 || ex_state_p1 || ex_state_p2 || ex_state_p3;
 /* External interrupt registered flag */
 wire intr_reg = intr_reg_p3 | intr_reg_p4;
 
