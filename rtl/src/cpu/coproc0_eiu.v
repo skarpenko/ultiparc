@@ -132,18 +132,22 @@ wire ex_state_p2 = |ex_p2 || i_overfl_error_p2 || i_addr_error_p2 ||
 wire ex_state_p3 = |ex_p3 || i_bus_error_p3 || i_addr_error_p3;
 /* Global exception state */
 wire ex_state = ex_state_p0 || ex_state_p1 || ex_state_p2 || ex_state_p3;
+/* External interrupt registered flag */
+wire intr_reg = intr_reg_p3 | intr_reg_p4;
 
 
 
 /******************************* DECODE STAGE *********************************/
 
 reg [2:0] ex_p1;
+reg bubble_p1;
 
 always @(posedge clk or negedge nrst)
 begin
 	if(!nrst)
 	begin
 		ex_p1 <= EX_NONE;
+		bubble_p1 <= 1'b0;
 	end
 	else if(!core_stall)
 	begin
@@ -153,6 +157,9 @@ begin
 			ex_p1 <= EX_ADDRERR;
 		else
 			ex_p1 <= EX_NONE;
+
+		/* Mark bubble instructions (nullified instructions) */
+		bubble_p1 <= (o_nullify_fetch || i_jump_valid || o_except_valid) ? 1'b1 : 1'b0;
 	end
 end
 
@@ -161,6 +168,7 @@ end
 
 reg [2:0] ex_p2;
 reg dly_p2;
+reg bubble_p2;
 
 always @(posedge clk or negedge nrst)
 begin
@@ -168,6 +176,7 @@ begin
 	begin
 		ex_p2 <= EX_NONE;
 		dly_p2 <= 1'b0;
+		bubble_p2 <= 1'b0;
 	end
 	else if(!core_stall)
 	begin
@@ -177,6 +186,7 @@ begin
 			ex_p2 <= ex_p1;
 
 		dly_p2 <= i_jump_valid;
+		bubble_p2 <= bubble_p1;
 	end
 end
 
@@ -185,6 +195,7 @@ end
 
 reg [2:0] ex_p3;
 reg dly_p3;
+reg intr_reg_p3;
 
 always @(posedge clk or negedge nrst)
 begin
@@ -192,10 +203,16 @@ begin
 	begin
 		ex_p3 <= EX_NONE;
 		dly_p3 <= 1'b0;
+		intr_reg_p3 <= 1'b0;
 	end
 	else if(!core_stall)
 	begin
-		if(i_overfl_error_p2)
+		if(intr_valid && !bubble_p2 && !intr_reg)
+		begin
+			ex_p3 <= EX_HWINTR;
+			intr_reg_p3 <= 1'b1;
+		end
+		else if(i_overfl_error_p2)
 			ex_p3 <= EX_OVERFL;
 		else if(i_addr_error_p2)
 			ex_p3 <= EX_ADDRERR;
@@ -203,10 +220,11 @@ begin
 			ex_p3 <= EX_SYSCALL;
 		else if(i_break_trap_p2)
 			ex_p3 <= EX_BREAK;
-		else if(i_intr && i_cop0_ie && !ex_state)
-			ex_p3 <= EX_HWINTR;
 		else
+		begin
 			ex_p3 <= ex_p2;
+			intr_reg_p3 <= 1'b0;
+		end
 
 		dly_p3 <= dly_p2;
 	end
@@ -215,15 +233,20 @@ end
 
 /***************************** WRITEBACK STAGE ********************************/
 
+reg intr_reg_p4;
+
 always @(posedge clk or negedge nrst)
 begin
 	if(!nrst)
 	begin
 		o_except_valid <= 1'b0;
 		o_except_haddr <= {(`CPU_ADDR_WIDTH){1'b0}};
+		intr_reg_p4 <= 1'b0;
 	end
 	else if(!core_stall)
 	begin
+		intr_reg_p4 <= intr_reg_p3;
+
 		if(i_bus_error_p3)
 		begin
 			o_except_valid <= 1'b1;
@@ -251,6 +274,31 @@ begin
 		else
 		begin
 			o_except_valid <= 1'b0;
+		end
+	end
+end
+
+
+/************************* EXTERNAL INTERRUPT CAPTURE *************************/
+
+reg intr_valid;
+reg intr_latch;
+
+always @(posedge clk or negedge nrst)
+begin
+	if(!nrst)
+	begin
+		intr_valid <= 1'b0;
+		intr_latch <= 1'b0;
+	end
+	else
+	begin
+		intr_latch <= intr_latch | ((i_intr && i_cop0_ie && !intr_valid) ? 1'b1 : 1'b0);
+
+		if(!core_stall)
+		begin
+			intr_valid <= intr_latch & ~intr_reg;
+			intr_latch <= 1'b0;
 		end
 	end
 end
