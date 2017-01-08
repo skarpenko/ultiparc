@@ -34,7 +34,7 @@
 
 
 #define CPU_REG_SIZE	4	/* CPU register size */
-#define INTR_FRAME_LEN	34	/* Interrupt stack frame length */
+#define INTR_FRAME_LEN	35	/* Interrupt stack frame length */
 
 #define CPU_ID		0x001A8100	/* Processor Id */
 
