@@ -124,14 +124,17 @@ assign o_except_start = ex_state_p3;
 assign o_except_dly_slt = dly_p3;
 
 
+/* External interrupt registered flag */
+wire intr_reg = intr_reg_p3 | intr_reg_p4;
+
+
 /* Exception state at stages */
 wire ex_state_p0 = i_bus_error_p0 || i_addr_error_p0;
 wire ex_state_p1 = |ex_p1 || i_decode_error_p1;
 wire ex_state_p2 = |ex_p2 || i_overfl_error_p2 || i_addr_error_p2 ||
-		i_syscall_trap_p2 || i_break_trap_p2;
+		i_syscall_trap_p2 || i_break_trap_p2 ||
+		(intr_valid && !bubble_p2 && !intr_reg);
 wire ex_state_p3 = |ex_p3 || i_bus_error_p3 || i_addr_error_p3;
-/* External interrupt registered flag */
-wire intr_reg = intr_reg_p3 | intr_reg_p4;
 
 
 
