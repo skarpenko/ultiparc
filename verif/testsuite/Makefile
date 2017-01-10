@@ -7,6 +7,7 @@ TESTSUITES := \
 
 
 TESTSUITES_CLEAN := $(addsuffix .clean_target,$(TESTSUITES))
+override undefine XTENSIVE
 
 
 .PHONY: all
@@ -17,18 +18,32 @@ all: $(TESTSUITES)
 runtests: runtests_slm runtests_rtl
 
 
+.PHONY: runtests_xt
+runtests_xt: runtests_slm_xt runtests_rtl_xt
+
+
+.PHONY: runtests_slm_xt
+runtests_slm_xt: runtests_slm
+runtests_slm_xt: XTENSIVE:=xt
+
+
+.PHONY: runtests_rtl_xt
+runtests_rtl_xt: runtests_rtl
+runtests_rtl_xt: XTENSIVE:=xt
+
+
 .PHONY: runtests_slm
 runtests_slm: $(TESTSUITES)
 	@echo
 	@echo "Running SLM tests..."
-	perl run_tests.pl slm
+	perl run_tests.pl slm $(XTENSIVE)
 
 
 .PHONY: runtests_rtl
 runtests_rtl: $(TESTSUITES)
 	@echo
 	@echo "Running RTL tests..."
-	perl run_tests.pl rtl
+	perl run_tests.pl rtl $(XTENSIVE)
 
 
 .PHONY: clean

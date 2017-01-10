@@ -33,7 +33,7 @@
 #include "common.h"
 
 
-#define MAKE_NOISE	1
+#define MAKE_NOISE	0
 #define ROUND_ERROR	1E-10
 #define TMRCOUNT	2000	/* Timer counter value */
 
