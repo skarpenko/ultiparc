@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,6 +43,7 @@
  *             Bits:
  *              [31:8] - ignored;
  *              [7:0]  - cycles to delay.
+ *    0x08  -  bus error register (access generates bus error response).
  */
 module sim_control(
 	clk,
@@ -59,6 +60,7 @@ module sim_control(
 /* Register offsets */
 localparam [`ADDR_WIDTH-1:0] CTRLREG = 32'h000;	/* Control register */
 localparam [`ADDR_WIDTH-1:0] DELYREG = 32'h004;	/* Delay register */
+localparam [`ADDR_WIDTH-1:0] BUSEREG = 32'h008;	/* Bus error register */
 
 /* Inputs and outputs */
 input wire			clk;
@@ -112,8 +114,10 @@ begin
 				delay <= i_MData[7:0];
 			end
 
-			/* Respond if no delay */
-			if(delay == 8'h00)
+			/* Respond if no delay needed or bus error response needed */
+			if(i_MAddr == BUSEREG)
+				o_SResp <= `OCP_RESP_ERR;
+			else if(delay == 8'h00)
 				o_SResp <= `OCP_RESP_DVA;
 			else
 				counter <= delay;
@@ -130,13 +134,16 @@ begin
 			else
 				o_SData <= 32'hDEADDEAD;
 
-			/* Respond if no delay */
-			if(delay == 8'h00)
+			/* Respond if no delay needed or bus error response needed */
+			if(i_MAddr == BUSEREG)
+				o_SResp <= `OCP_RESP_ERR;
+			else if(delay == 8'h00)
 				o_SResp <= `OCP_RESP_DVA;
 			else
 				counter <= delay;
 		end
 		default: begin
+			o_SData <= { (`DATA_WIDTH){1'b0} };
 			o_SResp <= `OCP_RESP_NULL;
 		end
 		endcase
