@@ -2777,9 +2777,11 @@ inline void cpu_top::instr_lb(uint32_t instr)
 	uint32_t addr = rd_gpreg(iw.i.rs) + sign_extend16(iw.i.imm);
 	uint32_t data = sign_extend8( load_byte(addr) );
 
-	m_ld_delay_slot = true;
-	m_ld_dst_reg = iw.i.rt;
-	m_ld_data = data;
+	if(m_except == EX_NONE) {
+		m_ld_delay_slot = true;
+		m_ld_dst_reg = iw.i.rt;
+		m_ld_data = data;
+	}
 }
 
 
@@ -2796,9 +2798,11 @@ inline void cpu_top::instr_lh(uint32_t instr)
 
 	uint32_t data = sign_extend16( load_halfword(addr) );
 
-	m_ld_delay_slot = true;
-	m_ld_dst_reg = iw.i.rt;
-	m_ld_data = data;
+	if(m_except == EX_NONE) {
+		m_ld_delay_slot = true;
+		m_ld_dst_reg = iw.i.rt;
+		m_ld_data = data;
+	}
 }
 
 
@@ -2815,9 +2819,11 @@ inline void cpu_top::instr_lw(uint32_t instr)
 
 	uint32_t data = load_word(addr);
 
-	m_ld_delay_slot = true;
-	m_ld_dst_reg = iw.i.rt;
-	m_ld_data = data;
+	if(m_except == EX_NONE) {
+		m_ld_delay_slot = true;
+		m_ld_dst_reg = iw.i.rt;
+		m_ld_data = data;
+	}
 }
 
 
@@ -2829,9 +2835,11 @@ inline void cpu_top::instr_lbu(uint32_t instr)
 	uint32_t addr = rd_gpreg(iw.i.rs) + sign_extend16(iw.i.imm);
 	uint32_t data = zero_extend8( load_byte(addr) );
 
-	m_ld_delay_slot = true;
-	m_ld_dst_reg = iw.i.rt;
-	m_ld_data = data;
+	if(m_except == EX_NONE) {
+		m_ld_delay_slot = true;
+		m_ld_dst_reg = iw.i.rt;
+		m_ld_data = data;
+	}
 }
 
 
@@ -2848,9 +2856,11 @@ inline void cpu_top::instr_lhu(uint32_t instr)
 
 	uint32_t data = zero_extend16( load_halfword(addr) );
 
-	m_ld_delay_slot = true;
-	m_ld_dst_reg = iw.i.rt;
-	m_ld_data = data;
+	if(m_except == EX_NONE) {
+		m_ld_delay_slot = true;
+		m_ld_dst_reg = iw.i.rt;
+		m_ld_data = data;
+	}
 }
 
 
