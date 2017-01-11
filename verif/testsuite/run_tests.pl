@@ -67,6 +67,12 @@ my @tests = (
 		hex_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/basic_tests/cause_reg.hex"
 	},
 	{
+		name => "Bus Error Exception",
+		type => TEST_BASIC,
+		bin_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/basic_tests/bus_err.bin",
+		hex_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/basic_tests/bus_err.hex"
+	},
+	{
 		name => "Address Error Exception",
 		type => TEST_BASIC,
 		bin_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/basic_tests/addr_err.bin",

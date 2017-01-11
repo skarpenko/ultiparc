@@ -9,6 +9,7 @@ TESTS := \
 	proc_id.elf \
 	status_reg.elf \
 	cause_reg.elf \
+	bus_err.elf \
 	addr_err.elf \
 	load_store.elf \
 	int_overflow.elf \
