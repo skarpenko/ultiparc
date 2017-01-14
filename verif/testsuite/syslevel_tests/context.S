@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2017 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -24,114 +24,35 @@
  */
 
 /*
- * Firmware startup code
+ * Thread context switching
  */
 
 #include <arch.h>
 
 
 .text
+
 .set noreorder
-.globl __reset
-/********************************* Reset Vector *******************************/
-__reset:
-	j __entry	/* Jump to program entry point */
-	nop
-/*********************************** Bus Error ********************************/
-__bus_error_exception:
-	j __exception_entry
-	addiu $k0, $zero, 1
-/******************************* Integer Overflow *****************************/
-__overflow_exception:
-	j __exception_entry
-	addiu $k0, $zero, 2
-/********************************* Address Error ******************************/
-__address_error_exception:
-	j __exception_entry
-	addiu $k0, $zero, 3
-/***************************** Reserved Instruction ***************************/
-__resvd_instr_exception:
-	j __exception_entry
-	addiu $k0, $zero, 4
-/********************************** Breakpoint ********************************/
-__break_exception:
-	j __exception_entry
-	addiu $k0, $zero, 5
-/********************************** System Call *******************************/
-__syscall_exception:
-	j __exception_entry
-	addiu $k0, $zero, 6
-/****************************** Hardware Interrupt ****************************/
-__hardware_interrupt:
-	j __exception_entry
-	addiu $k0, $zero, 7
-
-/********************************** ENTRY POINT *******************************/
-__entry:
-	/* Set stack and global pointer */
-	la $sp, __stack_top
-	la $gp, _gp
-
-	/* Zero .bss section */
-	la $t0, __bss_start
-	la $t1, __bss_end
-__zero_bss:
-	beq $t0, $t1, __zero_bss_end
-	nop
-	sw $zero, 0($t0)
-	j __zero_bss
-	addiu $t0, $t0, 4
-__zero_bss_end:
-
-	/* Zero .sbss section */
-	la $t0, __sbss_start
-	la $t1, __sbss_end
-__zero_sbss:
-	beq $t0, $t1, __zero_sbss_end
-	nop
-	sw $zero, 0($t0)
-	j __zero_sbss
-	addiu $t0, $t0, 4
-__zero_sbss_end:
-
-	/* Zero .sbss2 section */
-	la $t0, __sbss2_start
-	la $t1, __sbss2_end
-__zero_sbss2:
-	beq $t0, $t1, __zero_sbss2_end
-	nop
-	sw $zero, 0($t0)
-	j __zero_sbss
-	addiu $t0, $t0, 4
-__zero_sbss2_end:
-
-	/* Pass control to user code */
-	.extern user_entry
-	jal user_entry
-	nop
-
-	/* Return is not expected. Hang the system. */
-	li $t0, ~1
-	mfc0 $t1, $SR
-	and $t1, $t1, $t0
-	mtc0 $t1, $SR	/* Disable interrupts */
-__hang:
-	j __hang
-	nop
-
-
-/************************ Exception handler entry *****************************/
-
 .set noat
-__exception_entry:
+
+
+/*
+ * void arch_switch_task_context(struct arch_task *from, struct arch_task *to);
+ * Arguments:
+ *   $a0 = pointer to current task context (from);
+ *   $a1 = pointer to next task context (to).
+ */
+.globl arch_switch_task_context
+.type arch_switch_task_context, @function
+arch_switch_task_context:
 	/* Registers $k0 and $k1 are ours! */
 
 	move $k1, $sp	/* Save stack pointer */
 	/* Adjust stack to store interrupt frame */
 	addiu $sp, $sp, -INTR_FRAME_LEN*CPU_REG_SIZE
 
-	/* Save vector number */
-	sw $k0, 0*CPU_REG_SIZE($sp)
+	/* Save zero in place of vector number */
+	sw $zero, 0*CPU_REG_SIZE($sp)
 
 	/* Save Previous Status register (PSR) */
 	mfc0 $k0, $PSR
@@ -186,18 +107,9 @@ __exception_entry:
 	sw $v0, 34*CPU_REG_SIZE($sp)
 	sw $at, 35*CPU_REG_SIZE($sp)
 
-	/* Pass control to user exception handler */
-	move $a0, $sp
-	/* void interrupt_entry(struct interrupt_frame*) */
-	.extern interrupt_entry
-	jal interrupt_entry
-	nop
-
-	/* Disable interrupts before continue */
-	li $t0, ~1
-	mfc0 $t1, $SR
-	and $t1, $t1, $t0
-	mtc0 $t1, $SR
+	/* Save old and load new context */
+	lw $sp, 0($a1)
+	sw $sp, 0($a0)	/* Use load delay slot as a nice feature */
 
 	/* Restore general purpose registers */
 	lw $at, 35*CPU_REG_SIZE($sp)
@@ -243,37 +155,18 @@ __exception_entry:
 	nop
 	mtc0 $k0, $PSR
 
-	/* Restore Status register  */
-	lw $k0, 2*CPU_REG_SIZE($sp)
-	nop
-	mtc0 $k0, $SR
-	/* This assumes that SR.IE = 0. Otherwise we are in big trouble since
-	 * nested interrupt can clobber $k0 and $k1.
-	 */
-
 	/* Restore Cause register  */
 	lw $k0, 3*CPU_REG_SIZE($sp)
 	nop
 	mtc0 $k0, $CAUSE
 
-	/* Load return address */
-	lw $k0, 4*CPU_REG_SIZE($sp)
-
+	/* Restore Status register  */
+	lw $k0, 2*CPU_REG_SIZE($sp)
 	move $sp, $k1	/* Restore original $sp */
+	mtc0 $k0, $SR
 
-	/* Return from exception */
-	jr $k0
-	rfe
-.set at
+	/* Now it is safe to clobber $k0 and $k1. */
 
-/************************* Default interrupt handler **************************/
-.weak interrupt_entry
-interrupt_entry:
+	/* Return */
 	jr $ra
-	nop
-
-/*************************** Default user entry *******************************/
-.weak user_entry
-user_entry:
-	jr $ra
-	nop
+	nop	/* Delay slot */

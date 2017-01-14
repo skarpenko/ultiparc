@@ -34,7 +34,7 @@
 
 
 #define CPU_REG_SIZE	4	/* CPU register size */
-#define INTR_FRAME_LEN	35	/* Interrupt stack frame length */
+#define INTR_FRAME_LEN	36	/* Interrupt stack frame length */
 
 #define CPU_ID		0x001A8100	/* Processor Id */
 
@@ -55,6 +55,7 @@
 struct interrupt_frame {
 	u32 vec;	/* Vector number */
 	u32 psr;	/* Previous status */
+	u32 sr;		/* Status register */
 	u32 cause;	/* Cause register */
 	u32 epc;	/* EPC */
 	u32 lo;		/* LO special register */
@@ -89,6 +90,12 @@ struct interrupt_frame {
 	u32 v1;
 	u32 v0;
 	u32 at;
+};
+
+
+/* Task state */
+struct arch_task {
+	u32 sp;
 };
 
 
@@ -188,6 +195,32 @@ static inline u32 rdtsc_hi(void)
 static inline u64 rdtsc(void)
 {
 	return ((u64)rdtsc_hi() << 32) | rdtsc_lo();
+}
+
+
+/* Switch task context macro */
+void arch_switch_task_context(struct arch_task *from, struct arch_task *to);
+#define switch_task_context(from, to)				\
+	do {							\
+		arch_switch_task_context(from, to);		\
+		__asm__ __volatile__("" : : : "memory");	\
+	} while(0)
+
+
+/* Initialize task stack */
+static inline u32* init_task_stack(u32 *stack, u32 entry)
+{
+	extern u32 _gp;
+	int i;
+	struct interrupt_frame *iframe;
+	u32 top = (u32)stack;
+	for(i = 0; i < INTR_FRAME_LEN; ++i) *--stack = 0;
+	iframe = (struct interrupt_frame *)stack;
+	iframe->sr = 0x01;	/* Interrupts enable */
+	iframe->ra = entry;
+	iframe->sp = top;
+	iframe->gp = (u32)&_gp;
+	return stack;
 }
 
 

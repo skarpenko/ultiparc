@@ -8,7 +8,8 @@ TESTS := \
 	matrix_mul.elf \
 	fxp_fft.elf \
 	fxp_taylor.elf \
-	flt_fft_tmr.elf
+	flt_fft_tmr.elf \
+	multitask.elf
 
 
 # Lists of object files
@@ -18,6 +19,7 @@ matrix_mul.elf := entry.o matrix_mul.o
 fxp_fft.elf := entry.o fxp_fft.o
 fxp_taylor.elf := entry.o fxp_taylor.o
 flt_fft_tmr.elf := entry.o flt_fft_tmr.o common.o
+multitask.elf := entry.o multitask.o common.o context.o
 
 
 # List of final targets
@@ -57,6 +59,10 @@ fxp_taylor.elf: $(fxp_taylor.elf)
 
 flt_fft_tmr.elf: $(flt_fft_tmr.elf)
 	$(GCC_PREFIX)ld -T $(ULTIPARC_HOME)/verif/testsuite/common/hw.ld -o $@ $(flt_fft_tmr.elf) -lm $(LDFLAGS)
+
+
+multitask.elf: $(multitask.elf)
+	$(GCC_PREFIX)ld -T $(ULTIPARC_HOME)/verif/testsuite/common/hw.ld -o $@ $(multitask.elf) -lm $(LDFLAGS)
 
 
 %.bin: %.elf
