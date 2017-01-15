@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -187,6 +187,20 @@ test_entry:
 	bne $t1, $t2, test_failed
 	nop
 
+	/* Load delay slot corner case */
+	la $t0, load_store_pattern
+	li $t1, 0xDEADBEEF
+	/* Load/store word */
+	lw $t1, 0($t0)
+	sw $t1, 0($t0)			/* $t1 == 0xDEADBEEF */
+	li $t2, 0xF3F2F1F0
+	bne $t1, $t2, test_failed	/* $t1 == 0xF3F2F1F0 */
+	nop
+	lw $t1, 0($t0)			/* $t1 == 0xDEADBEEF */
+	li $t2, 0xDEADBEEF
+	bne $t1, $t2, test_failed
+	nop
+
 test_passed:
 	/* Report success to simulator */
 	li $t0, SIM_CTRL_CTLREG
@@ -214,3 +228,5 @@ sh_data:
 	.long 0
 sb_data:
 	.long 0
+load_store_pattern:
+	.long 0xF3F2F1F0
