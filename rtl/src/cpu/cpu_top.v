@@ -196,6 +196,7 @@ wire [`CPU_LSUOP_WIDTH-1:0]	lsu_op_p2;
 wire				lsu_lns_p2;
 wire				lsu_ext_p2;
 wire [`CPU_DATA_WIDTH-1:0]	mem_data_p2;
+wire				pend_mem_load_p2 = |lsu_op_p2 & lsu_lns_p2;
 
 
 /* Memory access stage output */
@@ -268,6 +269,7 @@ fwdu fwdu(
 	.rt_data(rf_rt_data),
 	.rd_p2(rd_no_p2),
 	.rd_data_p2(alu_result_p2),
+	.pend_mem_load_p2(pend_mem_load_p2),
 	.rd_p3(rd_no_p3),
 	.rd_data_p3(rd_val_p3),
 	.rs_data_p1(rs_val_p1),

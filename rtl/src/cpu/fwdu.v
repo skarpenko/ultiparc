@@ -39,6 +39,7 @@ module fwdu(
 	rt_data,
 	rd_p2,
 	rd_data_p2,
+	pend_mem_load_p2,
 	rd_p3,
 	rd_data_p3,
 	rs_data_p1,
@@ -52,6 +53,8 @@ input wire [`CPU_REG_WIDTH-1:0]		rt_data;
 /* Destination at execute stage */
 input wire [`CPU_REGNO_WIDTH-1:0]	rd_p2;
 input wire [`CPU_REG_WIDTH-1:0]		rd_data_p2;
+/* Pending memory load */
+input wire				pend_mem_load_p2;
 /* Destination at memory stage */
 input wire [`CPU_REGNO_WIDTH-1:0]	rd_p3;
 input wire [`CPU_REG_WIDTH-1:0]		rd_data_p3;
@@ -73,7 +76,7 @@ end
 
 always @(*)
 begin
-	if(rt && rt == rd_p2)
+	if(rt && rt == rd_p2 && !pend_mem_load_p2)
 		rt_data_p1 = rd_data_p2;
 	else if(rt && rt == rd_p3)
 		rt_data_p1 = rd_data_p3;
@@ -81,5 +84,10 @@ begin
 		rt_data_p1 = rt_data;
 end
 
+/*
+ * Note: We cannot forward value to RT if there is pending memory load.
+ * This means that the value is not valid yet and we just use old value of RT.
+ * (Load delay slot)
+ */
 
 endmodule /* fwdu */
