@@ -168,6 +168,12 @@ my @tests = (
 		bin_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/syslevel_tests/flt_fft_tmr.bin",
 		hex_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/syslevel_tests/flt_fft_tmr.hex"
 	},
+	{
+		name => "Preemptive multitasking",
+		type => TEST_XTENSIVE,
+		bin_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/syslevel_tests/multitask.bin",
+		hex_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/syslevel_tests/multitask.hex"
+	},
 );
 
 

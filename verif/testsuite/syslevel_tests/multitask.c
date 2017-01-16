@@ -34,7 +34,7 @@
 #include "fxp24.h"
 
 
-#define MAKE_NOISE	1
+#define MAKE_NOISE	0
 #define TMRCOUNT	5000	/* Timer counter value */
 #define DEFINE_STACK(name, size)	\
 	u8 name[size] __attribute__((aligned(4)));
@@ -134,6 +134,8 @@ void create_new_task(struct task *t, unsigned ttr, u8 *stack, unsigned stack_sz,
 }
 
 
+#define NTASKS	3
+
 /* Floating-point FFT task */
 DEFINE_STACK(flp_fft_task_stack, STACK_SIZE);
 struct task flp_fft_task;
@@ -145,6 +147,12 @@ DEFINE_STACK(fxp_fft_task_stack, STACK_SIZE);
 struct task fxp_fft_task;
 void fxp_fft_task_func(void);
 volatile int fxp_fft_task_compl = 0;
+
+/* Bubble sort task */
+DEFINE_STACK(bubble_sort_task_stack, STACK_SIZE);
+struct task bubble_sort_task;
+void bubble_sort_task_func(void);
+volatile int bubble_sort_task_compl = 0;
 
 
 /* Test start */
@@ -174,8 +182,10 @@ void user_entry()
 #endif
 	create_new_task(&flp_fft_task, 20, flp_fft_task_stack, sizeof(flp_fft_task_stack),
 		flp_fft_task_func);
-	create_new_task(&fxp_fft_task, 20, fxp_fft_task_stack, sizeof(fxp_fft_task_stack),
+	create_new_task(&fxp_fft_task, 15, fxp_fft_task_stack, sizeof(fxp_fft_task_stack),
 		fxp_fft_task_func);
+	create_new_task(&bubble_sort_task, 10, bubble_sort_task_stack, sizeof(bubble_sort_task_stack),
+		bubble_sort_task_func);
 
 #if MAKE_NOISE == 1
 	print_str("Starting\n");
@@ -189,7 +199,8 @@ void user_entry()
 		nf = 0;
 		nf += flp_fft_task_compl;
 		nf += fxp_fft_task_compl;
-		if(nf == 2)
+		nf += bubble_sort_task_compl;
+		if(nf == NTASKS)
 			break;
 	}
 
@@ -310,6 +321,7 @@ void flp_fft_task_func(void)
 #if MAKE_NOISE == 1
 	print_str("FLP FFT: Verifying result\n");
 #endif
+
 	for(i=0; i<FLP_FFT_SIZE; ++i) {
 		if(fabs(flp_f_r[i] - flp_g_r[i]) > ROUND_ERROR)
 			test_failed();
@@ -407,15 +419,32 @@ void fxp_fft_task_func(void)
 	print_str("Fixed-point FFT task started.\n");
 #endif
 
+#if MAKE_NOISE == 1
+	print_str("FXP FFT: FFT\n");
+#endif
+
 	/* Forward transform */
 	fxp_fft(f_r, f_i, N, 1);
+
+#if MAKE_NOISE == 1
+	print_str("FXP FFT: Verifying result\n");
+#endif
 
 	for(i=0; i<N; ++i)
 		if(f_r[i] != F_r[i] || f_i[i] != F_i[i])
 			test_failed();
 
+#if MAKE_NOISE == 1
+	print_str("FXP FFT: IFFT\n");
+#endif
+
 	/* Inverse transform */
+
 	fxp_fft(f_r, f_i, N, -1);
+
+#if MAKE_NOISE == 1
+	print_str("FXP FFT: Verifying result\n");
+#endif
 
 	/*
 	 * We don't do FFT/IFFT scaling as a result amplitude of
@@ -425,10 +454,73 @@ void fxp_fft_task_func(void)
 		if(f_r[i] != f2_r[i] || f_i[i] != f2_i[i])
 			test_failed();
 
+#if MAKE_NOISE == 1
+	print_str("FXP FFT: Done\n");
+#endif
 
 	fxp_fft_task_compl = 1;	/* Mark as completed */
 
 	/* No task termination support. Just spin forever */
+	while(1)
+		;
+}
+
+
+/**************************** Bubble sort task ********************************/
+
+#define SORT_DATA_LEN	256
+int b_sort[SORT_DATA_LEN];
+
+
+/* Bubble sort task entry */
+void bubble_sort_task_func(void)
+{
+	int a = 16807;
+	int m = 2147483647;
+	int seed = SORT_DATA_LEN >> 1;
+	int i, j, tmp;
+
+#if MAKE_NOISE == 1
+	print_str("Bubble sort task started.\n");
+#endif
+
+#if MAKE_NOISE == 1
+	print_str("Bubble: Generating test data\n");
+#endif
+	for(i = 0; i < SORT_DATA_LEN; ++i) {
+		seed = (a * seed) % m;
+		b_sort[i] = seed % (SORT_DATA_LEN << 12);
+	}
+
+#if MAKE_NOISE == 1
+	print_str("Bubble: Sorting\n");
+#endif
+
+	for(j = 0 ; j < SORT_DATA_LEN - 1; ++j) {
+		for(i = 0; i < SORT_DATA_LEN - j - 1; ++i) {
+			if (b_sort[i] > b_sort[i + 1]) {
+				tmp = b_sort[i];
+				b_sort[i] = b_sort[i + 1];
+				b_sort[i + 1] = tmp;
+			}
+		}
+	}
+
+#if MAKE_NOISE == 1
+	print_str("Bubble: Verifying result\n");
+#endif
+
+	for(i = 1; i < SORT_DATA_LEN; ++i)
+		if(b_sort[i-1] > b_sort[i])
+			test_failed();
+
+#if MAKE_NOISE == 1
+	print_str("Bubble: Done\n");
+#endif
+
+	bubble_sort_task_compl = 1;	/* Mark as completed */
+
+	/* Spin forever */
 	while(1)
 		;
 }
