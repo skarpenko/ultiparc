@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -74,10 +74,6 @@ always @(*)
 begin
 	case(i_MCmd)
 	`OCP_CMD_WRITE: begin
-		if(i_MAddr == CHARREG)
-		begin
-			$write("%c", i_MData[7:0]);
-		end
 		o_SData = { (`DATA_WIDTH){1'b0} };
 		o_SResp = `OCP_RESP_DVA;
 	end
@@ -96,6 +92,14 @@ begin
 		o_SResp = `OCP_RESP_NULL;
 	end
 	endcase
+end
+
+
+/* Print character */
+always @(posedge clk)
+begin
+	if(i_MCmd == `OCP_CMD_WRITE && i_MAddr == CHARREG)
+			$write("%c", i_MData[7:0]);
 end
 
 endmodule /* micro_uart */
