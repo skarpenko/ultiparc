@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -55,8 +55,8 @@ module lsu(
 	i_DErr
 );
 /* D-Bus FSM states */
-localparam READY = 1'b0;	/* Ready to accept response */
-localparam WAIT  = 1'b1;	/* Waiting for response */
+localparam IDLE = 1'b0;		/* Ready to accept response */
+localparam WAIT = 1'b1;		/* Waiting for response */
 
 /* Inputs */
 input wire				clk;
@@ -69,7 +69,7 @@ input wire [1:0]			cmd;
 input wire				rnw;
 output wire				busy;
 output wire				err_align;
-output reg				err_bus;
+output wire				err_bus;
 /* D-Bus interface */
 output reg [`CPU_ADDR_WIDTH-1:0]	o_DAddr;
 output reg				o_DCmd;
@@ -81,14 +81,18 @@ input wire				i_DRdy;
 input wire				i_DErr;
 
 
+/* Address alignment error */
 assign err_align = (cmd == `CPU_LSU_HWORD && addr[0] != 1'b0) ||
 	(cmd == `CPU_LSU_WORD && addr[1:0] != 2'b0);
-assign busy = (!err_align && cmd != `CPU_LSU_IDLE) || state;
+/* Active LSU transfer */
+wire active = (!err_align && !i_DErr && cmd != `CPU_LSU_IDLE);
+/* Busy LSU state */
+assign busy = ((active || (state == WAIT)) && !i_DRdy);
+
+assign err_bus = i_DErr;	/* Bus error occurred */
 
 
-reg state;	/* Load-store FSM state */
-
-
+/* Transfer start logic */
 always @(*)
 begin
 	o_DAddr = {(`CPU_ADDR_WIDTH){1'b0}};
@@ -180,49 +184,51 @@ end
 endfunction
 
 
-reg [`CPU_BEN_WIDTH-1:0] ben; /* Latched byte enable mask */
+reg [`CPU_BEN_WIDTH-1:0]	lch_ben; 	/* Latched byte enable mask */
+reg [`CPU_DATA_WIDTH-1:0]	lch_rddata;	/* Latched received data */
+reg 				state;		/* Load-store FSM state */
 
+
+/* D-Bus response wait FSM */
 always @(posedge clk or negedge nrst)
 begin
 	if(!nrst)
 	begin
-		state <= READY;
-		rdata <= {(`CPU_DATA_WIDTH){1'b0}};
-		err_bus <= 1'b0;
-		ben <= {(`CPU_BEN_WIDTH){1'b0}};
+		state <= IDLE;
+		lch_ben <= {(`CPU_BEN_WIDTH){1'b0}};
+		lch_rddata <= {(`CPU_DATA_WIDTH){1'b0}};
 	end
 	else
 	begin
-		err_bus <= 1'b0;
-
-		if(state == READY && !err_align && cmd != `CPU_LSU_IDLE)
+		if(state == IDLE && (active && i_DRdy))
 		begin
-			ben <= o_DBen;
-
-			/* Set response if available on current clock,
-			 * otherwise switch to wait.
-			 */
-			if(i_DErr)
-				err_bus <= 1'b1;
-			else if(i_DRdy)
-				rdata <= shift_sdata(i_DData, o_DBen);
-			else
-				state <= WAIT;
+			lch_ben <= o_DBen;
+			lch_rddata <= i_DData;
 		end
-		else if(state == WAIT)
+		if(state == IDLE && (active && !i_DRdy))
 		begin
-			if(i_DErr)
-			begin
-				err_bus <= 1'b1;
-				state <= READY;
-			end
-			else if(i_DRdy)
-			begin
-				rdata <= shift_sdata(i_DData, ben);
-				state <= READY;
-			end
+			state <= !i_DErr ? WAIT : IDLE;
+			lch_ben <= o_DBen;
+		end
+		else if(state == WAIT && i_DRdy)
+		begin
+			state <= IDLE;
+			lch_rddata <= i_DData;
 		end
 	end
 end
+
+
+/* Output logic */
+always @(*)
+begin
+	if(active)
+		rdata = shift_sdata(i_DData, o_DBen);
+	else if(state == WAIT)
+		rdata = shift_sdata(i_DData, lch_ben);
+	else
+		rdata = shift_sdata(lch_rddata, lch_ben);
+end
+
 
 endmodule /* lsu */
