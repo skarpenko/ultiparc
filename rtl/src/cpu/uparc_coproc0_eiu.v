@@ -27,12 +27,12 @@
  * Coprocessor 0. Exceptions and Interrupts Unit.
  */
 
-`include "cpu_common.vh"
-`include "cpu_const.vh"
+`include "uparc_cpu_common.vh"
+`include "uparc_cpu_const.vh"
 
 
 /* Coprocessor 0 EIU */
-module coproc0_eiu(
+module uparc_coproc0_eiu(
 	clk,
 	nrst,
 	/* External interrupt */
@@ -87,13 +87,13 @@ input wire				i_mem_stall;
 input wire				i_fetch_stall;
 input wire				i_jump_valid;
 /* COP0 signals */
-input wire [`CPU_ADDR_WIDTH-11:0]	i_cop0_ivtbase;
+input wire [`UPARC_ADDR_WIDTH-11:0]	i_cop0_ivtbase;
 input wire				i_cop0_ie;
 /* Exception signals */
 output wire				o_except_start;
 output wire				o_except_dly_slt;
 output reg				o_except_valid;
-output reg [`CPU_ADDR_WIDTH-1:0]	o_except_haddr;
+output reg [`UPARC_ADDR_WIDTH-1:0]	o_except_haddr;
 /* Error signals from stages */
 input wire				i_bus_error_p0;
 input wire				i_addr_error_p0;
@@ -241,7 +241,7 @@ begin
 	if(!nrst)
 	begin
 		o_except_valid <= 1'b0;
-		o_except_haddr <= {(`CPU_ADDR_WIDTH){1'b0}};
+		o_except_haddr <= {(`UPARC_ADDR_WIDTH){1'b0}};
 		intr_reg_p4 <= 1'b0;
 	end
 	else if(!core_stall)
@@ -251,25 +251,25 @@ begin
 		if(i_bus_error_p3)
 		begin
 			o_except_valid <= 1'b1;
-			o_except_haddr <= { i_cop0_ivtbase, `CPU_EXVECT_BUSERR };
+			o_except_haddr <= { i_cop0_ivtbase, `UPARC_EXVECT_BUSERR };
 		end
 		else if(i_addr_error_p3)
 		begin
 			o_except_valid <= 1'b1;
-			o_except_haddr <= { i_cop0_ivtbase, `CPU_EXVECT_ADDRERR };
+			o_except_haddr <= { i_cop0_ivtbase, `UPARC_EXVECT_ADDRERR };
 		end
 		else if(ex_p3)
 		begin
 			o_except_valid <= 1'b1;
 			case(ex_p3)
-			EX_BUSERR:	o_except_haddr <= { i_cop0_ivtbase, `CPU_EXVECT_BUSERR };
-			EX_OVERFL:	o_except_haddr <= { i_cop0_ivtbase, `CPU_EXVECT_OVERFL };
-			EX_ADDRERR:	o_except_haddr <= { i_cop0_ivtbase, `CPU_EXVECT_ADDRERR };
-			EX_RESVDI:	o_except_haddr <= { i_cop0_ivtbase, `CPU_EXVECT_RESVDI };
-			EX_BREAK:	o_except_haddr <= { i_cop0_ivtbase, `CPU_EXVECT_BREAK };
-			EX_SYSCALL:	o_except_haddr <= { i_cop0_ivtbase, `CPU_EXVECT_SYSCALL };
-			EX_HWINTR:	o_except_haddr <= { i_cop0_ivtbase, `CPU_EXVECT_HWINTR };
-			default:	o_except_haddr <= { i_cop0_ivtbase, `CPU_EXVECT_RESET };
+			EX_BUSERR:	o_except_haddr <= { i_cop0_ivtbase, `UPARC_EXVECT_BUSERR };
+			EX_OVERFL:	o_except_haddr <= { i_cop0_ivtbase, `UPARC_EXVECT_OVERFL };
+			EX_ADDRERR:	o_except_haddr <= { i_cop0_ivtbase, `UPARC_EXVECT_ADDRERR };
+			EX_RESVDI:	o_except_haddr <= { i_cop0_ivtbase, `UPARC_EXVECT_RESVDI };
+			EX_BREAK:	o_except_haddr <= { i_cop0_ivtbase, `UPARC_EXVECT_BREAK };
+			EX_SYSCALL:	o_except_haddr <= { i_cop0_ivtbase, `UPARC_EXVECT_SYSCALL };
+			EX_HWINTR:	o_except_haddr <= { i_cop0_ivtbase, `UPARC_EXVECT_HWINTR };
+			default:	o_except_haddr <= { i_cop0_ivtbase, `UPARC_EXVECT_RESET };
 			endcase
 		end
 		else
@@ -303,4 +303,4 @@ begin
 end
 
 
-endmodule /* coproc0_eiu */
+endmodule /* uparc_coproc0_eiu */

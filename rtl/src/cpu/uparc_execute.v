@@ -27,12 +27,12 @@
  * Execute pipeline stage
  */
 
-`include "cpu_common.vh"
-`include "cpu_const.vh"
+`include "uparc_cpu_common.vh"
+`include "uparc_cpu_const.vh"
 
 
 /* Execute stage */
-module execute(
+module uparc_execute(
 	clk,
 	nrst,
 	/* CU signals */
@@ -77,14 +77,14 @@ module execute(
 	o_lsu_ext,
 	o_mem_data
 );
-`include "reg_names.vh"
-`include "decode_const.vh"
+`include "uparc_reg_names.vh"
+`include "uparc_decode_const.vh"
 /* Inputs */
 input wire				clk;
 input wire				nrst;
 /* CU signals */
-input wire [`CPU_ADDR_WIDTH-1:0]	i_pc_p0;
-input wire [`CPU_ADDR_WIDTH-1:0]	i_pc_p1;
+input wire [`UPARC_ADDR_WIDTH-1:0]	i_pc_p0;
+input wire [`UPARC_ADDR_WIDTH-1:0]	i_pc_p1;
 input wire				i_exec_stall;
 input wire				i_mem_stall;
 input wire				i_fetch_stall;
@@ -95,34 +95,34 @@ output reg				o_break_trap;
 input wire				i_nullify;
 /* Coprocessor 0 */
 input wire				i_cop0_op;
-input wire [`CPU_REGNO_WIDTH-1:0]	i_cop0_cop;
-input wire [`CPU_REG_WIDTH-1:0]		i_cop0_reg_val;
+input wire [`UPARC_REGNO_WIDTH-1:0]	i_cop0_cop;
+input wire [`UPARC_REG_WIDTH-1:0]	i_cop0_reg_val;
 /* Integer multiplication and division unit */
-input wire [`CPU_REG_WIDTH-1:0]		i_imuldiv_rd_val;
+input wire [`UPARC_REG_WIDTH-1:0]	i_imuldiv_rd_val;
 input wire				i_imuldiv_rd_valid;
 /* Decoded instr */
-input wire [`CPU_REGNO_WIDTH-1:0]	i_rd_no;
-input wire [`CPU_REG_WIDTH-1:0]		i_rs_val;
-input wire [`CPU_REG_WIDTH-1:0]		i_rt_val;
-input wire [`CPU_DATA_WIDTH-1:0]	i_imm;
-input wire [`CPU_ALUOP_WIDTH-1:0]	i_alu_op;
+input wire [`UPARC_REGNO_WIDTH-1:0]	i_rd_no;
+input wire [`UPARC_REG_WIDTH-1:0]	i_rs_val;
+input wire [`UPARC_REG_WIDTH-1:0]	i_rt_val;
+input wire [`UPARC_DATA_WIDTH-1:0]	i_imm;
+input wire [`UPARC_ALUOP_WIDTH-1:0]	i_alu_op;
 input wire [4:0]			i_alu_inpt;
 input wire				i_alu_ovf_ex;
 input wire [4:0]			i_jump;
 input wire				i_jump_link;
-input wire [`CPU_SWTRP_WIDTH-1:0]	i_sw_trap;
-input wire [`CPU_LSUOP_WIDTH-1:0]	i_lsu_op;
+input wire [`UPARC_SWTRP_WIDTH-1:0]	i_sw_trap;
+input wire [`UPARC_LSUOP_WIDTH-1:0]	i_lsu_op;
 input wire				i_lsu_lns;
 input wire				i_lsu_ext;
 /* Stage output */
-output wire [`CPU_REGNO_WIDTH-1:0]	o_rd_no;
-output wire [`CPU_REG_WIDTH-1:0]	o_alu_result;
-output wire [`CPU_ADDR_WIDTH-1:0]	o_jump_addr;
+output wire [`UPARC_REGNO_WIDTH-1:0]	o_rd_no;
+output wire [`UPARC_REG_WIDTH-1:0]	o_alu_result;
+output wire [`UPARC_ADDR_WIDTH-1:0]	o_jump_addr;
 output wire				o_jump_valid;
-output reg [`CPU_LSUOP_WIDTH-1:0]	o_lsu_op;
+output reg [`UPARC_LSUOP_WIDTH-1:0]	o_lsu_op;
 output reg				o_lsu_lns;
 output reg				o_lsu_ext;
-output reg [`CPU_DATA_WIDTH-1:0]	o_mem_data;
+output reg [`UPARC_DATA_WIDTH-1:0]	o_mem_data;
 
 
 wire core_stall = i_exec_stall || i_mem_stall || i_fetch_stall;
@@ -137,16 +137,16 @@ assign o_addr_error = (branch_taken && alu_result[1:0] ? 1'b1 : 1'b0);
 reg jump_instr;				/* Current operation is jump */
 reg branch_taken;			/* Set if branch taken */
 reg branch_link;			/* Branch requires link */
-reg [`CPU_REGNO_WIDTH-1:0] rd_no;	/* Captured destination register number */
-reg [`CPU_ADDR_WIDTH-1:0] pc_p0;	/* Captured PC of instruction after delay slot */
+reg [`UPARC_REGNO_WIDTH-1:0] rd_no;	/* Captured destination register number */
+reg [`UPARC_ADDR_WIDTH-1:0] pc_p0;	/* Captured PC of instruction after delay slot */
 
 
 /* ALU interconnect */
-reg [`CPU_ALUOP_WIDTH-1:0]	alu_op;
-reg [`CPU_REG_WIDTH-1:0]	a;
-reg [`CPU_REG_WIDTH-1:0]	b;
+reg [`UPARC_ALUOP_WIDTH-1:0]	alu_op;
+reg [`UPARC_REG_WIDTH-1:0]	a;
+reg [`UPARC_REG_WIDTH-1:0]	b;
 reg				ovflow_en;
-wire [`CPU_REG_WIDTH-1:0]	alu_result;
+wire [`UPARC_REG_WIDTH-1:0]	alu_result;
 wire				ovflow;
 wire				zero;
 wire				neg;
@@ -156,9 +156,9 @@ wire				neg;
 always @(posedge clk or negedge nrst)
 begin
 	if(!nrst)
-		rd_no <= {(`CPU_REGNO_WIDTH){1'b0}};
+		rd_no <= {(`UPARC_REGNO_WIDTH){1'b0}};
 	else if(!core_stall)
-		rd_no <= !i_nullify ? i_rd_no : {(`CPU_REGNO_WIDTH){1'b0}};
+		rd_no <= !i_nullify ? i_rd_no : {(`UPARC_REGNO_WIDTH){1'b0}};
 end
 
 
@@ -167,9 +167,9 @@ always @(posedge clk or negedge nrst)
 begin
 	if(!nrst)
 	begin
-		alu_op <= `CPU_ALUOP_ADD;
-		a <= {(`CPU_REG_WIDTH){1'b0}};
-		b <= {(`CPU_REG_WIDTH){1'b0}};
+		alu_op <= `UPARC_ALUOP_ADD;
+		a <= {(`UPARC_REG_WIDTH){1'b0}};
+		b <= {(`UPARC_REG_WIDTH){1'b0}};
 		ovflow_en <= 1'b0;
 	end
 	else if(!core_stall)
@@ -195,7 +195,7 @@ begin
 		end
 		default: begin /* DECODE_ALU_INPT_RSRT */
 			a <= i_rs_val;
-			b <= (i_cop0_op && i_cop0_cop == `CPU_COP0_MF ? i_cop0_reg_val : i_rt_val);
+			b <= (i_cop0_op && i_cop0_cop == `UPARC_COP0_MF ? i_cop0_reg_val : i_rt_val);
 		end
 		endcase
 	end
@@ -207,21 +207,21 @@ always @(posedge clk or negedge nrst)
 begin
 	if(!nrst)
 	begin
-		o_lsu_op <= `CPU_LSU_IDLE;
+		o_lsu_op <= `UPARC_LSU_IDLE;
 		o_lsu_lns <= 1'b0;
 		o_lsu_ext <= 1'b0;
-		o_mem_data <= {(`CPU_DATA_WIDTH){1'b0}};
+		o_mem_data <= {(`UPARC_DATA_WIDTH){1'b0}};
 	end
 	else if(!core_stall && !i_nullify)
 	begin
 		o_lsu_op <= i_lsu_op;
 		o_lsu_lns <= i_lsu_lns;
 		o_lsu_ext <= i_lsu_ext;
-		if(i_lsu_op != `CPU_LSU_IDLE) /* Pass only when needed */
+		if(i_lsu_op != `UPARC_LSU_IDLE) /* Pass only when needed */
 			o_mem_data <= i_rt_val;
 	end
 	else if(!core_stall)
-		o_lsu_op <= `CPU_LSU_IDLE;
+		o_lsu_op <= `UPARC_LSU_IDLE;
 end
 
 
@@ -233,7 +233,7 @@ begin
 		branch_taken <= 1'b0;
 		branch_link <= 1'b0;
 		jump_instr <= 1'b0;
-		pc_p0 <= {(`CPU_ADDR_WIDTH){1'b0}};
+		pc_p0 <= {(`UPARC_ADDR_WIDTH){1'b0}};
 	end
 	else if(!core_stall && !i_nullify)
 	begin
@@ -267,8 +267,8 @@ begin
 	end
 	else if(!core_stall && !i_nullify)
 	begin
-		o_syscall_trap <= (i_sw_trap == `CPU_SWTRP_SYSCALL ? 1'b1 : 1'b0);
-		o_break_trap <= (i_sw_trap == `CPU_SWTRP_BREAK ? 1'b1 : 1'b0);
+		o_syscall_trap <= (i_sw_trap == `UPARC_SWTRP_SYSCALL ? 1'b1 : 1'b0);
+		o_break_trap <= (i_sw_trap == `UPARC_SWTRP_BREAK ? 1'b1 : 1'b0);
 	end
 	else if(!core_stall)
 	begin
@@ -286,7 +286,7 @@ assign o_alu_result = jump_instr && branch_link ? pc_p0 :
 
 
 /* ALU instance */
-alu alu(
+uparc_alu alu(
 	.alu_op(alu_op),
 	.a(a),
 	.b(b),
@@ -297,4 +297,4 @@ alu alu(
 );
 
 
-endmodule /* execute */
+endmodule /* uparc_execute */

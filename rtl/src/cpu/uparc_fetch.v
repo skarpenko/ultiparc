@@ -27,12 +27,12 @@
  * Instruction fetch pipeline stage
  */
 
-`include "cpu_common.vh"
-`include "cpu_const.vh"
+`include "uparc_cpu_common.vh"
+`include "uparc_cpu_const.vh"
 
 
 /* Fetch stage */
-module fetch(
+module uparc_fetch(
 	clk,
 	nrst,
 	/* CU signals */
@@ -58,18 +58,16 @@ module fetch(
 	o_instr,
 	o_pc
 );
-localparam [`CPU_INSTR_WIDTH-1:0] NOP = 32'h0000_0000;
+localparam [`UPARC_INSTR_WIDTH-1:0] NOP = 32'h0000_0000;
 /* Inputs */
 input wire				clk;
 input wire				nrst;
 /* CU signals */
-input wire [`CPU_ADDR_WIDTH-1:0]	i_pc;
-input wire [`CPU_ADDR_WIDTH-1:0]	i_jump_addr;
+input wire [`UPARC_ADDR_WIDTH-1:0]	i_pc;
+input wire [`UPARC_ADDR_WIDTH-1:0]	i_jump_addr;
 input wire				i_jump_valid;
-
 input wire				i_except_valid;
-input wire [`CPU_ADDR_WIDTH-1:0]	i_except_haddr;
-
+input wire [`UPARC_ADDR_WIDTH-1:0]	i_except_haddr;
 input wire				i_exec_stall;
 input wire				i_mem_stall;
 output wire				o_fetch_stall;
@@ -77,15 +75,15 @@ output wire				o_bus_error;
 output wire				o_addr_error;
 input wire				i_nullify;
 /* IFU interface */
-output reg [`CPU_ADDR_WIDTH-1:0]	o_addr;
-input wire [`CPU_INSTR_WIDTH-1:0]	i_instr_dat;
+output reg [`UPARC_ADDR_WIDTH-1:0]	o_addr;
+input wire [`UPARC_INSTR_WIDTH-1:0]	i_instr_dat;
 output reg				o_rd_cmd;
 input wire				i_busy;
 input wire				i_err_align;
 input wire				i_err_bus;
 /* Fetched instruction */
-output wire [`CPU_INSTR_WIDTH-1:0]	o_instr;
-output reg [`CPU_ADDR_WIDTH-1:0]	o_pc;
+output wire [`UPARC_INSTR_WIDTH-1:0]	o_instr;
+output reg [`UPARC_ADDR_WIDTH-1:0]	o_pc;
 
 
 wire core_stall = i_exec_stall || i_mem_stall || o_fetch_stall;
@@ -100,7 +98,7 @@ assign o_instr = (!i_jump_valid && !i_nullify && !i_except_valid ? i_instr_dat :
 /** Local wires and registers **/
 reg				err_bus_r;
 reg				err_align_r;
-wire [`CPU_ADDR_WIDTH-1:0]	new_pc = !i_except_valid ?
+wire [`UPARC_ADDR_WIDTH-1:0]	new_pc = !i_except_valid ?
 					(!i_jump_valid ? i_pc : i_jump_addr) : i_except_haddr;
 
 
@@ -109,8 +107,8 @@ always @(posedge clk or negedge nrst)
 begin
 	if(!nrst)
 	begin
-		o_addr <= {(`CPU_ADDR_WIDTH){1'b0}};
-		o_pc <= {(`CPU_ADDR_WIDTH){1'b0}};
+		o_addr <= {(`UPARC_ADDR_WIDTH){1'b0}};
+		o_pc <= {(`UPARC_ADDR_WIDTH){1'b0}};
 		o_rd_cmd <= 1'b0;
 		err_align_r <= 1'b0;
 		err_bus_r <= 1'b0;
@@ -132,4 +130,4 @@ begin
 end
 
 
-endmodule /* fetch */
+endmodule /* uparc_fetch */

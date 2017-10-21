@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -27,12 +27,12 @@
  * Register file
  */
 
-`include "cpu_common.vh"
-`include "cpu_const.vh"
+`include "uparc_cpu_common.vh"
+`include "uparc_cpu_const.vh"
 
 
 /* RF */
-module reg_file(
+module uparc_reg_file(
 	clk,
 	nrst,
 	rs,
@@ -42,90 +42,90 @@ module reg_file(
 	rd,
 	rd_data
 );
-`include "reg_names.vh"
+`include "uparc_reg_names.vh"
 
-input wire clk;
-input wire nrst;
+input wire				clk;
+input wire				nrst;
 /* First source register */
-input wire [`CPU_REGNO_WIDTH-1:0] rs;
-output reg [`CPU_REG_WIDTH-1:0]   rs_data;
+input wire [`UPARC_REGNO_WIDTH-1:0]	rs;
+output reg [`UPARC_REG_WIDTH-1:0]	rs_data;
 /* Second source register */
-input wire [`CPU_REGNO_WIDTH-1:0] rt;
-output reg [`CPU_REG_WIDTH-1:0]   rt_data;
+input wire [`UPARC_REGNO_WIDTH-1:0]	rt;
+output reg [`UPARC_REG_WIDTH-1:0]	rt_data;
 /* Destination register */
-input wire [`CPU_REGNO_WIDTH-1:0] rd;
-input wire [`CPU_REG_WIDTH-1:0]   rd_data;
+input wire [`UPARC_REGNO_WIDTH-1:0]	rd;
+input wire [`UPARC_REG_WIDTH-1:0]	rd_data;
 
 
 /* Registers */
-reg [`CPU_REG_WIDTH-1:0] r1;
-reg [`CPU_REG_WIDTH-1:0] r2;
-reg [`CPU_REG_WIDTH-1:0] r3;
-reg [`CPU_REG_WIDTH-1:0] r4;
-reg [`CPU_REG_WIDTH-1:0] r5;
-reg [`CPU_REG_WIDTH-1:0] r6;
-reg [`CPU_REG_WIDTH-1:0] r7;
-reg [`CPU_REG_WIDTH-1:0] r8;
-reg [`CPU_REG_WIDTH-1:0] r9;
-reg [`CPU_REG_WIDTH-1:0] r10;
-reg [`CPU_REG_WIDTH-1:0] r11;
-reg [`CPU_REG_WIDTH-1:0] r12;
-reg [`CPU_REG_WIDTH-1:0] r13;
-reg [`CPU_REG_WIDTH-1:0] r14;
-reg [`CPU_REG_WIDTH-1:0] r15;
-reg [`CPU_REG_WIDTH-1:0] r16;
-reg [`CPU_REG_WIDTH-1:0] r17;
-reg [`CPU_REG_WIDTH-1:0] r18;
-reg [`CPU_REG_WIDTH-1:0] r19;
-reg [`CPU_REG_WIDTH-1:0] r20;
-reg [`CPU_REG_WIDTH-1:0] r21;
-reg [`CPU_REG_WIDTH-1:0] r22;
-reg [`CPU_REG_WIDTH-1:0] r23;
-reg [`CPU_REG_WIDTH-1:0] r24;
-reg [`CPU_REG_WIDTH-1:0] r25;
-reg [`CPU_REG_WIDTH-1:0] r26;
-reg [`CPU_REG_WIDTH-1:0] r27;
-reg [`CPU_REG_WIDTH-1:0] r28;
-reg [`CPU_REG_WIDTH-1:0] r29;
-reg [`CPU_REG_WIDTH-1:0] r30;
-reg [`CPU_REG_WIDTH-1:0] r31;
+reg [`UPARC_REG_WIDTH-1:0] r1;
+reg [`UPARC_REG_WIDTH-1:0] r2;
+reg [`UPARC_REG_WIDTH-1:0] r3;
+reg [`UPARC_REG_WIDTH-1:0] r4;
+reg [`UPARC_REG_WIDTH-1:0] r5;
+reg [`UPARC_REG_WIDTH-1:0] r6;
+reg [`UPARC_REG_WIDTH-1:0] r7;
+reg [`UPARC_REG_WIDTH-1:0] r8;
+reg [`UPARC_REG_WIDTH-1:0] r9;
+reg [`UPARC_REG_WIDTH-1:0] r10;
+reg [`UPARC_REG_WIDTH-1:0] r11;
+reg [`UPARC_REG_WIDTH-1:0] r12;
+reg [`UPARC_REG_WIDTH-1:0] r13;
+reg [`UPARC_REG_WIDTH-1:0] r14;
+reg [`UPARC_REG_WIDTH-1:0] r15;
+reg [`UPARC_REG_WIDTH-1:0] r16;
+reg [`UPARC_REG_WIDTH-1:0] r17;
+reg [`UPARC_REG_WIDTH-1:0] r18;
+reg [`UPARC_REG_WIDTH-1:0] r19;
+reg [`UPARC_REG_WIDTH-1:0] r20;
+reg [`UPARC_REG_WIDTH-1:0] r21;
+reg [`UPARC_REG_WIDTH-1:0] r22;
+reg [`UPARC_REG_WIDTH-1:0] r23;
+reg [`UPARC_REG_WIDTH-1:0] r24;
+reg [`UPARC_REG_WIDTH-1:0] r25;
+reg [`UPARC_REG_WIDTH-1:0] r26;
+reg [`UPARC_REG_WIDTH-1:0] r27;
+reg [`UPARC_REG_WIDTH-1:0] r28;
+reg [`UPARC_REG_WIDTH-1:0] r29;
+reg [`UPARC_REG_WIDTH-1:0] r30;
+reg [`UPARC_REG_WIDTH-1:0] r31;
 
 
-wire [`CPU_REG_WIDTH-1:0] r0_wire;
-wire [`CPU_REG_WIDTH-1:0] r1_wire;
-wire [`CPU_REG_WIDTH-1:0] r2_wire;
-wire [`CPU_REG_WIDTH-1:0] r3_wire;
-wire [`CPU_REG_WIDTH-1:0] r4_wire;
-wire [`CPU_REG_WIDTH-1:0] r5_wire;
-wire [`CPU_REG_WIDTH-1:0] r6_wire;
-wire [`CPU_REG_WIDTH-1:0] r7_wire;
-wire [`CPU_REG_WIDTH-1:0] r8_wire;
-wire [`CPU_REG_WIDTH-1:0] r9_wire;
-wire [`CPU_REG_WIDTH-1:0] r10_wire;
-wire [`CPU_REG_WIDTH-1:0] r11_wire;
-wire [`CPU_REG_WIDTH-1:0] r12_wire;
-wire [`CPU_REG_WIDTH-1:0] r13_wire;
-wire [`CPU_REG_WIDTH-1:0] r14_wire;
-wire [`CPU_REG_WIDTH-1:0] r15_wire;
-wire [`CPU_REG_WIDTH-1:0] r16_wire;
-wire [`CPU_REG_WIDTH-1:0] r17_wire;
-wire [`CPU_REG_WIDTH-1:0] r18_wire;
-wire [`CPU_REG_WIDTH-1:0] r19_wire;
-wire [`CPU_REG_WIDTH-1:0] r20_wire;
-wire [`CPU_REG_WIDTH-1:0] r21_wire;
-wire [`CPU_REG_WIDTH-1:0] r22_wire;
-wire [`CPU_REG_WIDTH-1:0] r23_wire;
-wire [`CPU_REG_WIDTH-1:0] r24_wire;
-wire [`CPU_REG_WIDTH-1:0] r25_wire;
-wire [`CPU_REG_WIDTH-1:0] r26_wire;
-wire [`CPU_REG_WIDTH-1:0] r27_wire;
-wire [`CPU_REG_WIDTH-1:0] r28_wire;
-wire [`CPU_REG_WIDTH-1:0] r29_wire;
-wire [`CPU_REG_WIDTH-1:0] r30_wire;
-wire [`CPU_REG_WIDTH-1:0] r31_wire;
+wire [`UPARC_REG_WIDTH-1:0] r0_wire;
+wire [`UPARC_REG_WIDTH-1:0] r1_wire;
+wire [`UPARC_REG_WIDTH-1:0] r2_wire;
+wire [`UPARC_REG_WIDTH-1:0] r3_wire;
+wire [`UPARC_REG_WIDTH-1:0] r4_wire;
+wire [`UPARC_REG_WIDTH-1:0] r5_wire;
+wire [`UPARC_REG_WIDTH-1:0] r6_wire;
+wire [`UPARC_REG_WIDTH-1:0] r7_wire;
+wire [`UPARC_REG_WIDTH-1:0] r8_wire;
+wire [`UPARC_REG_WIDTH-1:0] r9_wire;
+wire [`UPARC_REG_WIDTH-1:0] r10_wire;
+wire [`UPARC_REG_WIDTH-1:0] r11_wire;
+wire [`UPARC_REG_WIDTH-1:0] r12_wire;
+wire [`UPARC_REG_WIDTH-1:0] r13_wire;
+wire [`UPARC_REG_WIDTH-1:0] r14_wire;
+wire [`UPARC_REG_WIDTH-1:0] r15_wire;
+wire [`UPARC_REG_WIDTH-1:0] r16_wire;
+wire [`UPARC_REG_WIDTH-1:0] r17_wire;
+wire [`UPARC_REG_WIDTH-1:0] r18_wire;
+wire [`UPARC_REG_WIDTH-1:0] r19_wire;
+wire [`UPARC_REG_WIDTH-1:0] r20_wire;
+wire [`UPARC_REG_WIDTH-1:0] r21_wire;
+wire [`UPARC_REG_WIDTH-1:0] r22_wire;
+wire [`UPARC_REG_WIDTH-1:0] r23_wire;
+wire [`UPARC_REG_WIDTH-1:0] r24_wire;
+wire [`UPARC_REG_WIDTH-1:0] r25_wire;
+wire [`UPARC_REG_WIDTH-1:0] r26_wire;
+wire [`UPARC_REG_WIDTH-1:0] r27_wire;
+wire [`UPARC_REG_WIDTH-1:0] r28_wire;
+wire [`UPARC_REG_WIDTH-1:0] r29_wire;
+wire [`UPARC_REG_WIDTH-1:0] r30_wire;
+wire [`UPARC_REG_WIDTH-1:0] r31_wire;
 
 
-assign r0_wire  = {(`CPU_REG_WIDTH){1'b0}};	/* Always 0 */
+assign r0_wire  = {(`UPARC_REG_WIDTH){1'b0}};	/* Always 0 */
 assign r1_wire  = (rd == R1 ?  rd_data : r1);
 assign r2_wire  = (rd == R2 ?  rd_data : r2);
 assign r3_wire  = (rd == R3 ?  rd_data : r3);
@@ -241,37 +241,37 @@ always @(posedge clk or negedge nrst)
 begin
 	if (!nrst)
 	begin
-		r1 <= {(`CPU_REG_WIDTH){1'b0}};
-		r2 <= {(`CPU_REG_WIDTH){1'b0}};
-		r3 <= {(`CPU_REG_WIDTH){1'b0}};
-		r4 <= {(`CPU_REG_WIDTH){1'b0}};
-		r5 <= {(`CPU_REG_WIDTH){1'b0}};
-		r6 <= {(`CPU_REG_WIDTH){1'b0}};
-		r7 <= {(`CPU_REG_WIDTH){1'b0}};
-		r8 <= {(`CPU_REG_WIDTH){1'b0}};
-		r9 <= {(`CPU_REG_WIDTH){1'b0}};
-		r10 <= {(`CPU_REG_WIDTH){1'b0}};
-		r11 <= {(`CPU_REG_WIDTH){1'b0}};
-		r12 <= {(`CPU_REG_WIDTH){1'b0}};
-		r13 <= {(`CPU_REG_WIDTH){1'b0}};
-		r14 <= {(`CPU_REG_WIDTH){1'b0}};
-		r15 <= {(`CPU_REG_WIDTH){1'b0}};
-		r16 <= {(`CPU_REG_WIDTH){1'b0}};
-		r17 <= {(`CPU_REG_WIDTH){1'b0}};
-		r18 <= {(`CPU_REG_WIDTH){1'b0}};
-		r19 <= {(`CPU_REG_WIDTH){1'b0}};
-		r20 <= {(`CPU_REG_WIDTH){1'b0}};
-		r21 <= {(`CPU_REG_WIDTH){1'b0}};
-		r22 <= {(`CPU_REG_WIDTH){1'b0}};
-		r23 <= {(`CPU_REG_WIDTH){1'b0}};
-		r24 <= {(`CPU_REG_WIDTH){1'b0}};
-		r25 <= {(`CPU_REG_WIDTH){1'b0}};
-		r26 <= {(`CPU_REG_WIDTH){1'b0}};
-		r27 <= {(`CPU_REG_WIDTH){1'b0}};
-		r28 <= {(`CPU_REG_WIDTH){1'b0}};
-		r29 <= {(`CPU_REG_WIDTH){1'b0}};
-		r30 <= {(`CPU_REG_WIDTH){1'b0}};
-		r31 <= {(`CPU_REG_WIDTH){1'b0}};
+		r1 <= {(`UPARC_REG_WIDTH){1'b0}};
+		r2 <= {(`UPARC_REG_WIDTH){1'b0}};
+		r3 <= {(`UPARC_REG_WIDTH){1'b0}};
+		r4 <= {(`UPARC_REG_WIDTH){1'b0}};
+		r5 <= {(`UPARC_REG_WIDTH){1'b0}};
+		r6 <= {(`UPARC_REG_WIDTH){1'b0}};
+		r7 <= {(`UPARC_REG_WIDTH){1'b0}};
+		r8 <= {(`UPARC_REG_WIDTH){1'b0}};
+		r9 <= {(`UPARC_REG_WIDTH){1'b0}};
+		r10 <= {(`UPARC_REG_WIDTH){1'b0}};
+		r11 <= {(`UPARC_REG_WIDTH){1'b0}};
+		r12 <= {(`UPARC_REG_WIDTH){1'b0}};
+		r13 <= {(`UPARC_REG_WIDTH){1'b0}};
+		r14 <= {(`UPARC_REG_WIDTH){1'b0}};
+		r15 <= {(`UPARC_REG_WIDTH){1'b0}};
+		r16 <= {(`UPARC_REG_WIDTH){1'b0}};
+		r17 <= {(`UPARC_REG_WIDTH){1'b0}};
+		r18 <= {(`UPARC_REG_WIDTH){1'b0}};
+		r19 <= {(`UPARC_REG_WIDTH){1'b0}};
+		r20 <= {(`UPARC_REG_WIDTH){1'b0}};
+		r21 <= {(`UPARC_REG_WIDTH){1'b0}};
+		r22 <= {(`UPARC_REG_WIDTH){1'b0}};
+		r23 <= {(`UPARC_REG_WIDTH){1'b0}};
+		r24 <= {(`UPARC_REG_WIDTH){1'b0}};
+		r25 <= {(`UPARC_REG_WIDTH){1'b0}};
+		r26 <= {(`UPARC_REG_WIDTH){1'b0}};
+		r27 <= {(`UPARC_REG_WIDTH){1'b0}};
+		r28 <= {(`UPARC_REG_WIDTH){1'b0}};
+		r29 <= {(`UPARC_REG_WIDTH){1'b0}};
+		r30 <= {(`UPARC_REG_WIDTH){1'b0}};
+		r31 <= {(`UPARC_REG_WIDTH){1'b0}};
 	end
 	else
 	begin
@@ -312,4 +312,4 @@ begin
 end
 
 
-endmodule /* reg_file */
+endmodule /* uparc_reg_file */

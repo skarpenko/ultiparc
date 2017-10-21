@@ -27,12 +27,12 @@
  * CPU top level
  */
 
-`include "cpu_common.vh"
-`include "cpu_const.vh"
+`include "uparc_cpu_common.vh"
+`include "uparc_cpu_const.vh"
 
 
 /* CPU */
-module cpu_top(
+module uparc_cpu_top(
 	clk,
 	nrst,
 	/* Interrupt input */
@@ -58,18 +58,18 @@ input wire				nrst;
 /* Interrupt input */
 input wire				i_intr;
 /* I-Port */
-output wire [`CPU_ADDR_WIDTH-1:0]	o_IAddr;
+output wire [`UPARC_ADDR_WIDTH-1:0]	o_IAddr;
 output wire				o_IRdC;
-input wire [`CPU_DATA_WIDTH-1:0]	i_IData;
+input wire [`UPARC_DATA_WIDTH-1:0]	i_IData;
 input wire				i_IRdy;
 input wire				i_IErr;
 /* D-Port */
-output wire [`CPU_ADDR_WIDTH-1:0]	o_DAddr;
+output wire [`UPARC_ADDR_WIDTH-1:0]	o_DAddr;
 output wire				o_DCmd;
 output wire				o_DRnW;
-output wire [`CPU_BEN_WIDTH-1:0]	o_DBen;
-output wire [`CPU_DATA_WIDTH-1:0]	o_DData;
-input wire [`CPU_DATA_WIDTH-1:0]	i_DData;
+output wire [`UPARC_BEN_WIDTH-1:0]	o_DBen;
+output wire [`UPARC_DATA_WIDTH-1:0]	o_DData;
+input wire [`UPARC_DATA_WIDTH-1:0]	i_DData;
 input wire				i_DRdy;
 input wire				i_DErr;
 
@@ -77,26 +77,26 @@ input wire				i_DErr;
 /************************ INTERNAL INTERCONNECT *******************************/
 
 /* Program counter */
-reg [`CPU_ADDR_WIDTH-1:0]	pc_next;
+reg [`UPARC_ADDR_WIDTH-1:0]	pc_next;
 /* pc_p0 is the output from fetch stage */
-reg [`CPU_ADDR_WIDTH-1:0]	pc_p1;
-reg [`CPU_ADDR_WIDTH-1:0]	pc_p2;
-reg [`CPU_ADDR_WIDTH-1:0]	pc_p3;
-reg [`CPU_ADDR_WIDTH-1:0]	pc_p4;
+reg [`UPARC_ADDR_WIDTH-1:0]	pc_p1;
+reg [`UPARC_ADDR_WIDTH-1:0]	pc_p2;
+reg [`UPARC_ADDR_WIDTH-1:0]	pc_p3;
+reg [`UPARC_ADDR_WIDTH-1:0]	pc_p4;
 
 
 /* Register file wires */
-wire [`CPU_REGNO_WIDTH-1:0]	rf_rs;
-wire [`CPU_REG_WIDTH-1:0]	rf_rs_data;
-wire [`CPU_REGNO_WIDTH-1:0]	rf_rt;
-wire [`CPU_REG_WIDTH-1:0]	rf_rt_data;
-wire [`CPU_REGNO_WIDTH-1:0]	rf_rd;
-wire [`CPU_REG_WIDTH-1:0]	rf_rd_data;
+wire [`UPARC_REGNO_WIDTH-1:0]	rf_rs;
+wire [`UPARC_REG_WIDTH-1:0]	rf_rs_data;
+wire [`UPARC_REGNO_WIDTH-1:0]	rf_rt;
+wire [`UPARC_REG_WIDTH-1:0]	rf_rt_data;
+wire [`UPARC_REGNO_WIDTH-1:0]	rf_rd;
+wire [`UPARC_REG_WIDTH-1:0]	rf_rd_data;
 
 
 /* Instruction fetch unit wires */
-wire [`CPU_ADDR_WIDTH-1:0]	ifu_addr;
-wire [`CPU_INSTR_WIDTH-1:0]	ifu_instr_dat;
+wire [`UPARC_ADDR_WIDTH-1:0]	ifu_addr;
+wire [`UPARC_INSTR_WIDTH-1:0]	ifu_instr_dat;
 wire				ifu_rd_cmd;
 wire				ifu_busy;
 wire				ifu_err_align;
@@ -104,9 +104,9 @@ wire				ifu_err_bus;
 
 
 /* Load-store unit wires */
-wire [`CPU_ADDR_WIDTH-1:0]	lsu_addr;
-wire [`CPU_DATA_WIDTH-1:0]	lsu_wdata;
-wire [`CPU_DATA_WIDTH-1:0]	lsu_rdata;
+wire [`UPARC_ADDR_WIDTH-1:0]	lsu_addr;
+wire [`UPARC_DATA_WIDTH-1:0]	lsu_wdata;
+wire [`UPARC_DATA_WIDTH-1:0]	lsu_rdata;
 wire [1:0]			lsu_cmd;
 wire				lsu_rnw;
 wire				lsu_busy;
@@ -136,7 +136,7 @@ wire				addr_error_p3;
 wire				except_start_p3;
 wire				except_dly_slt_p3;
 wire				except_valid_p4;
-wire [`CPU_ADDR_WIDTH-1:0]	except_haddr_p4;
+wire [`UPARC_ADDR_WIDTH-1:0]	except_haddr_p4;
 wire				nullify_fetch;
 wire				nullify_decode;
 wire				nullify_execute;
@@ -146,69 +146,69 @@ wire				nullify_wb;
 
 /* Coprocessor 0 wires */
 wire				cop0_op_p1;
-wire [`CPU_REGNO_WIDTH-1:0]	cop0_cop_p1;
-wire [`CPU_REGNO_WIDTH-1:0]	cop0_reg_no_p1;
-wire [`CPU_REG_WIDTH-1:0]	cop0_reg_val_p1;
-wire [`CPU_REGNO_WIDTH-1:0]	cop0_rt_no_p1;
-wire [`CPU_ADDR_WIDTH-11:0]	cop0_ivtbase;		/* IVT base */
+wire [`UPARC_REGNO_WIDTH-1:0]	cop0_cop_p1;
+wire [`UPARC_REGNO_WIDTH-1:0]	cop0_reg_no_p1;
+wire [`UPARC_REG_WIDTH-1:0]	cop0_reg_val_p1;
+wire [`UPARC_REGNO_WIDTH-1:0]	cop0_rt_no_p1;
+wire [`UPARC_ADDR_WIDTH-11:0]	cop0_ivtbase;		/* IVT base */
 wire				cop0_ie;		/* IE status */
 
 
 /* Integer multiplication and division unit wires */
-wire [`CPU_REG_WIDTH-1:0]	imuldiv_rd_val;
+wire [`UPARC_REG_WIDTH-1:0]	imuldiv_rd_val;
 wire				imuldiv_rd_valid;
 
 
 /* Fetch stage output */
-wire [`CPU_INSTR_WIDTH-1:0]	instr_p0;
-wire [`CPU_ADDR_WIDTH-1:0]	pc_p0;
+wire [`UPARC_INSTR_WIDTH-1:0]	instr_p0;
+wire [`UPARC_ADDR_WIDTH-1:0]	pc_p0;
 
 
 /* Decode stage output */
-wire [`CPU_REGNO_WIDTH-1:0]	rd_no_p1;
-wire [`CPU_REGNO_WIDTH-1:0]	rs_no_p1;
-wire [`CPU_REGNO_WIDTH-1:0]	rt_no_p1;
-wire [`CPU_DATA_WIDTH-1:0]	imm_p1;
-wire [`CPU_ALUOP_WIDTH-1:0]	alu_op_p1;
+wire [`UPARC_REGNO_WIDTH-1:0]	rd_no_p1;
+wire [`UPARC_REGNO_WIDTH-1:0]	rs_no_p1;
+wire [`UPARC_REGNO_WIDTH-1:0]	rt_no_p1;
+wire [`UPARC_DATA_WIDTH-1:0]	imm_p1;
+wire [`UPARC_ALUOP_WIDTH-1:0]	alu_op_p1;
 wire [4:0]			alu_inpt_p1;
 wire				alu_ovf_ex_p1;
 wire [4:0]			jump_p1;
 wire				jump_link_p1;
-wire [`CPU_IMDOP_WIDTH-1:0]	imuldiv_op_p1;
-wire [`CPU_SWTRP_WIDTH-1:0]	sw_trap_p1;
-wire [`CPU_LSUOP_WIDTH-1:0]	lsu_op_p1;
+wire [`UPARC_IMDOP_WIDTH-1:0]	imuldiv_op_p1;
+wire [`UPARC_SWTRP_WIDTH-1:0]	sw_trap_p1;
+wire [`UPARC_LSUOP_WIDTH-1:0]	lsu_op_p1;
 wire				lsu_lns_p1;
 wire				lsu_ext_p1;
 
 assign rf_rs = rs_no_p1;
 assign rf_rt = rt_no_p1;
 
-wire [`CPU_REG_WIDTH-1:0]	rs_val_p1;
-wire [`CPU_REG_WIDTH-1:0]	rt_val_p1;
+wire [`UPARC_REG_WIDTH-1:0]	rs_val_p1;
+wire [`UPARC_REG_WIDTH-1:0]	rt_val_p1;
 
 
 /* Execute stage output */
-wire [`CPU_REGNO_WIDTH-1:0]	rd_no_p2;
-wire [`CPU_REG_WIDTH-1:0]	alu_result_p2;
-wire [`CPU_ADDR_WIDTH-1:0]	jump_addr_p2;
+wire [`UPARC_REGNO_WIDTH-1:0]	rd_no_p2;
+wire [`UPARC_REG_WIDTH-1:0]	alu_result_p2;
+wire [`UPARC_ADDR_WIDTH-1:0]	jump_addr_p2;
 wire				jump_valid_p2;
-wire [`CPU_LSUOP_WIDTH-1:0]	lsu_op_p2;
+wire [`UPARC_LSUOP_WIDTH-1:0]	lsu_op_p2;
 wire				lsu_lns_p2;
 wire				lsu_ext_p2;
-wire [`CPU_DATA_WIDTH-1:0]	mem_data_p2;
+wire [`UPARC_DATA_WIDTH-1:0]	mem_data_p2;
 wire				pend_mem_load_p2 = |lsu_op_p2 & lsu_lns_p2;
 
 
 /* Memory access stage output */
-wire [`CPU_REGNO_WIDTH-1:0]	rd_no_p3;
-wire [`CPU_REG_WIDTH-1:0]	rd_val_p3;
+wire [`UPARC_REGNO_WIDTH-1:0]	rd_no_p3;
+wire [`UPARC_REG_WIDTH-1:0]	rd_val_p3;
 
 
 
 /************************** UNITS INSTANCE  ***********************************/
 
 /** Register File **/
-reg_file rf(
+uparc_reg_file rf(
 	.clk(clk),
 	.nrst(nrst),
 	.rs(rf_rs),
@@ -221,7 +221,7 @@ reg_file rf(
 
 
 /** Instruction Fetch Unit **/
-ifu ifu(
+uparc_ifu ifu(
 	.clk(clk),
 	.nrst(nrst),
 	.addr(ifu_addr),
@@ -239,7 +239,7 @@ ifu ifu(
 
 
 /** Load-Store Unit **/
-lsu lsu(
+uparc_lsu lsu(
 	.clk(clk),
 	.nrst(nrst),
 	.addr(lsu_addr),
@@ -262,7 +262,7 @@ lsu lsu(
 
 
 /** Forwarding Unit **/
-fwdu fwdu(
+uparc_fwdu fwdu(
 	.rs(rs_no_p1),
 	.rs_data(rf_rs_data),
 	.rt(rt_no_p1),
@@ -278,7 +278,7 @@ fwdu fwdu(
 
 
 /** Coprocessor 0 **/
-coproc0 coproc0(
+uparc_coproc0 coproc0(
 	.clk(clk),
 	.nrst(nrst),
 	/* Control signals */
@@ -311,7 +311,7 @@ coproc0 coproc0(
 
 
 /** Coprocessor 0. Exceptions and Interrupts Unit. **/
-coproc0_eiu coproc0_eiu(
+uparc_coproc0_eiu coproc0_eiu(
 	.clk(clk),
 	.nrst(nrst),
 	/* External interrupt */
@@ -349,7 +349,7 @@ coproc0_eiu coproc0_eiu(
 
 
 /** Integer multiplication and division unit **/
-imuldivu imuldivu(
+uparc_imuldivu imuldivu(
 	.clk(clk),
 	.nrst(nrst),
 	/* Control signals */
@@ -375,7 +375,7 @@ imuldivu imuldivu(
 /*************************** PIPELINE STAGES **********************************/
 
 /** Fetch stage **/
-fetch fetch(
+uparc_fetch fetch(
 	.clk(clk),
 	.nrst(nrst),
 	/* Control signals */
@@ -404,7 +404,7 @@ fetch fetch(
 
 
 /** Decode stage **/
-decode decode(
+uparc_decode decode(
 	.clk(clk),
 	.nrst(nrst),
 	/* Control signals */
@@ -439,7 +439,7 @@ decode decode(
 
 
 /** Execute stage **/
-execute execute(
+uparc_execute execute(
 	.clk(clk),
 	.nrst(nrst),
 	/* Control signals */
@@ -487,7 +487,7 @@ execute execute(
 
 
 /** Memory access stage **/
-memory_access memory_access(
+uparc_memory_access memory_access(
 	.clk(clk),
 	.nrst(nrst),
 	/* Control signals */
@@ -520,7 +520,7 @@ memory_access memory_access(
 
 
 /** Writeback stage **/
-writeback writeback(
+uparc_writeback writeback(
 	.clk(clk),
 	.nrst(nrst),
 	/* Control signals */
@@ -541,17 +541,17 @@ always @(posedge clk or negedge nrst)
 begin
 	if(!nrst)
 	begin
-		pc_next <= `CPU_RESET_ADDR;
-		pc_p1 <= `CPU_RESET_ADDR + 1*`CPU_INSTR_SIZE;
-		pc_p2 <= `CPU_RESET_ADDR + 2*`CPU_INSTR_SIZE;
-		pc_p3 <= `CPU_RESET_ADDR + 3*`CPU_INSTR_SIZE;
-		pc_p4 <= `CPU_RESET_ADDR + 4*`CPU_INSTR_SIZE;
+		pc_next <= `UPARC_RESET_ADDR;
+		pc_p1 <= `UPARC_RESET_ADDR + 1*`UPARC_INSTR_SIZE;
+		pc_p2 <= `UPARC_RESET_ADDR + 2*`UPARC_INSTR_SIZE;
+		pc_p3 <= `UPARC_RESET_ADDR + 3*`UPARC_INSTR_SIZE;
+		pc_p4 <= `UPARC_RESET_ADDR + 4*`UPARC_INSTR_SIZE;
 	end
 	else if(!core_stall)
 	begin
 		pc_next <= ( !except_valid_p4 ?
 			(!jump_valid_p2 ? pc_next : jump_addr_p2) : except_haddr_p4 ) +
-			`CPU_INSTR_SIZE;
+			`UPARC_INSTR_SIZE;
 		pc_p1 <= pc_p0;
 		pc_p2 <= pc_p1;
 		pc_p3 <= pc_p2;
@@ -560,4 +560,4 @@ begin
 end
 
 
-endmodule /* cpu_top */
+endmodule /* uparc_cpu_top */

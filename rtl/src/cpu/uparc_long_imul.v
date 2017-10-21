@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -24,90 +24,82 @@
  */
 
 /*
- * Long integer division
+ * Long integer multiplication
  */
 
-`include "cpu_common.vh"
-`include "cpu_const.vh"
+`include "uparc_cpu_common.vh"
+`include "uparc_cpu_const.vh"
 
 
-/* Division */
-module long_idiv(
+/* Multiplication */
+module uparc_long_imul(
 	clk,
 	nrst,
-	dividend,
-	divider,
+	multiplicand,
+	multiplier,
 	start,
 	signd,
 	ready,
-	remquot
+	product
 );
 input wire				clk;
 input wire				nrst;
-input wire [`CPU_REG_WIDTH-1:0]		dividend;
-input wire [`CPU_REG_WIDTH-1:0]		divider;
+input wire [`UPARC_REG_WIDTH-1:0]	multiplicand;
+input wire [`UPARC_REG_WIDTH-1:0]	multiplier;
 input wire				start;
 input wire				signd;
 output wire				ready;
-output wire [2*`CPU_REG_WIDTH-1:0]	remquot;
+output wire [2*`UPARC_REG_WIDTH-1:0]	product;
 
 
-/* Local registers and wires */
-reg [2*`CPU_REG_WIDTH-1:0]	qr;
+/* Local registers */
 reg [5:0]			nbit;
-wire [`CPU_REG_WIDTH:0]		diff;
-reg [`CPU_REG_WIDTH-1:0]	abs_divider;
+reg [2*`UPARC_REG_WIDTH-1:0]	prod;
+reg [`UPARC_REG_WIDTH-1:0]	abs_multiplicand;
 
 
 assign ready	= !nbit && !start;
-
-
-/* Result: remainder and quotient */
-assign remquot[2*`CPU_REG_WIDTH-1:`CPU_REG_WIDTH]	=
-			(signd && dividend[`CPU_REG_WIDTH-1]) ?
-				-qr[2*`CPU_REG_WIDTH-1:`CPU_REG_WIDTH] :
-				qr[2*`CPU_REG_WIDTH-1:`CPU_REG_WIDTH];
-assign remquot[`CPU_REG_WIDTH-1:0]			=
-			(signd && (dividend[`CPU_REG_WIDTH-1] ^ divider[`CPU_REG_WIDTH-1])) ?
-				-qr[`CPU_REG_WIDTH-1:0] : qr[`CPU_REG_WIDTH-1:0];
-
-
-/* Difference between divider and working portion of dividend */
-assign diff	= qr[2*`CPU_REG_WIDTH-1:`CPU_REG_WIDTH-1] - { 1'b0, abs_divider };
+assign product	= (signd && (multiplicand[`UPARC_REG_WIDTH-1] ^ multiplier[`UPARC_REG_WIDTH-1])) ?
+			-prod : prod;
 
 
 always @(posedge clk or negedge nrst)
 begin
 	if(!nrst)
 	begin
-		qr <= {(2*`CPU_REG_WIDTH){1'b0}};
 		nbit <= 6'b0;
-		abs_divider <= {(`CPU_REG_WIDTH){1'b0}};
+		prod <= {(2*`UPARC_REG_WIDTH){1'b0}};
+		abs_multiplicand <= {(`UPARC_REG_WIDTH){1'b0}};
 	end
 	else if(start)
 	begin
-		if(!dividend || !divider)
+		if(!multiplicand || !multiplier)
 		begin
-			qr <= {(2*`CPU_REG_WIDTH){1'b0}};
 			nbit <= 6'b0;
+			prod <= {(2*`UPARC_REG_WIDTH){1'b0}};
 		end
 		else
 		begin
-			nbit <= 6'd`CPU_REG_WIDTH;
-			qr <= { {(`CPU_REG_WIDTH){1'b0}}, signd && dividend[`CPU_REG_WIDTH-1] ?
-					-dividend : dividend };
-			abs_divider <= signd && divider[`CPU_REG_WIDTH-1] ? -divider : divider;
+			nbit <= 6'd`UPARC_REG_WIDTH;
+			prod <= { {(`UPARC_REG_WIDTH){1'b0}}, signd && multiplier[`UPARC_REG_WIDTH-1] ?
+					-multiplier : multiplier };
+			abs_multiplicand <= signd && multiplicand[`UPARC_REG_WIDTH-1] ?
+					-multiplicand : multiplicand;
 		end
 	end
 	else if(nbit)
 	begin
 		nbit <= nbit - 1'b1;
-		if(diff[`CPU_REG_WIDTH])
-			qr <= { qr[2*`CPU_REG_WIDTH-2:0], 1'b0 };
+		if(prod[0])
+		begin
+			prod[2*`UPARC_REG_WIDTH-1:`UPARC_REG_WIDTH-1] <=
+					prod[2*`UPARC_REG_WIDTH-1:`UPARC_REG_WIDTH] + abs_multiplicand;
+			prod[`UPARC_REG_WIDTH-2:0] <= prod[`UPARC_REG_WIDTH-1:1];
+		end
 		else
-			qr <= { diff[`CPU_REG_WIDTH-1:0], qr[`CPU_REG_WIDTH-2:0], 1'b1 };
+			prod <= { 1'b0, prod[2*`UPARC_REG_WIDTH-1:1] };
 	end
 end
 
 
-endmodule /* long_idiv */
+endmodule /* uparc_long_imul */

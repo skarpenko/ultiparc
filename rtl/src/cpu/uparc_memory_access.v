@@ -27,12 +27,12 @@
  * Memory access pipeline stage
  */
 
-`include "cpu_common.vh"
-`include "cpu_const.vh"
+`include "uparc_cpu_common.vh"
+`include "uparc_cpu_const.vh"
 
 
 /* Memory access stage */
-module memory_access(
+module uparc_memory_access(
 	clk,
 	nrst,
 	/* CU signals */
@@ -62,7 +62,7 @@ module memory_access(
 	o_rd_no,
 	o_rd_val
 );
-`include "reg_names.vh"
+`include "uparc_reg_names.vh"
 /* Destination result */
 localparam [3:0] MUX_RD_ALU		= 4'b0000;	/* ALU result */
 localparam [3:0] MUX_RD_BYTE_SE		= 4'b1000;	/* Sign-extended byte */
@@ -81,24 +81,24 @@ output wire				o_bus_error;
 output wire				o_addr_error;
 input wire				i_nullify;
 /* LSU interface */
-output reg [`CPU_ADDR_WIDTH-1:0]	lsu_addr;
-output reg [`CPU_DATA_WIDTH-1:0]	lsu_wdata;
-input wire [`CPU_DATA_WIDTH-1:0]	lsu_rdata;
+output reg [`UPARC_ADDR_WIDTH-1:0]	lsu_addr;
+output reg [`UPARC_DATA_WIDTH-1:0]	lsu_wdata;
+input wire [`UPARC_DATA_WIDTH-1:0]	lsu_rdata;
 output reg [1:0]			lsu_cmd;
 output reg				lsu_rnw;
 input wire				lsu_busy;
 input wire				lsu_err_align;
 input wire				lsu_err_bus;
 /* Input from execute stage */
-input wire [`CPU_REGNO_WIDTH-1:0]	i_rd_no;
-input wire [`CPU_REG_WIDTH-1:0]		i_alu_result;
-input wire [`CPU_LSUOP_WIDTH-1:0]	i_lsu_op;
+input wire [`UPARC_REGNO_WIDTH-1:0]	i_rd_no;
+input wire [`UPARC_REG_WIDTH-1:0]	i_alu_result;
+input wire [`UPARC_LSUOP_WIDTH-1:0]	i_lsu_op;
 input wire				i_lsu_lns;
 input wire				i_lsu_ext;
-input wire [`CPU_DATA_WIDTH-1:0]	i_mem_data;
+input wire [`UPARC_DATA_WIDTH-1:0]	i_mem_data;
 /* Output for writeback */
-output reg [`CPU_REGNO_WIDTH-1:0]	o_rd_no;
-output reg [`CPU_REG_WIDTH-1:0]		o_rd_val;
+output reg [`UPARC_REGNO_WIDTH-1:0]	o_rd_no;
+output reg [`UPARC_REG_WIDTH-1:0]	o_rd_val;
 
 
 wire core_stall = i_exec_stall || o_mem_stall || i_fetch_stall;
@@ -113,7 +113,7 @@ assign o_addr_error = lsu_err_align | lsu_err_align_r;
 reg				lsu_err_bus_r;
 reg				lsu_err_align_r;
 reg [3:0]			lsu_mux;	/* Destination result MUX */
-reg [`CPU_REG_WIDTH-1:0]	alu_result;
+reg [`UPARC_REG_WIDTH-1:0]	alu_result;
 
 
 /* LSU operation */
@@ -121,25 +121,25 @@ always @(posedge clk or negedge nrst)
 begin
 	if(!nrst)
 	begin
-		lsu_addr <= {(`CPU_ADDR_WIDTH){1'b0}};
-		lsu_wdata <= {(`CPU_DATA_WIDTH){1'b0}};
-		lsu_cmd <= `CPU_LSU_IDLE;
+		lsu_addr <= {(`UPARC_ADDR_WIDTH){1'b0}};
+		lsu_wdata <= {(`UPARC_DATA_WIDTH){1'b0}};
+		lsu_cmd <= `UPARC_LSU_IDLE;
 		lsu_rnw <= 1'b0;
 		lsu_mux <= MUX_RD_ALU;
-		alu_result <= {(`CPU_REG_WIDTH){1'b0}};
-		o_rd_no <= {(`CPU_REGNO_WIDTH){1'b0}};
+		alu_result <= {(`UPARC_REG_WIDTH){1'b0}};
+		o_rd_no <= {(`UPARC_REGNO_WIDTH){1'b0}};
 		lsu_err_align_r <= 1'b0;
 		lsu_err_bus_r <= 1'b0;
 	end
 	else
 	begin
-		lsu_cmd <= `CPU_LSU_IDLE;
+		lsu_cmd <= `UPARC_LSU_IDLE;
 		lsu_err_bus_r <= lsu_err_bus_r | lsu_err_bus;
 		lsu_err_align_r <= lsu_err_align_r | lsu_err_align;
 
 		if(!core_stall)
 		begin
-			o_rd_no <= !i_nullify ? i_rd_no : {(`CPU_REGNO_WIDTH){1'b0}};
+			o_rd_no <= !i_nullify ? i_rd_no : {(`UPARC_REGNO_WIDTH){1'b0}};
 
 			lsu_err_bus_r <= 1'b0;
 			lsu_err_align_r <= 1'b0;
@@ -148,18 +148,18 @@ begin
 
 			lsu_addr <= i_alu_result;
 			lsu_wdata <= i_mem_data;
-			lsu_cmd <= !i_nullify ? i_lsu_op : `CPU_LSU_IDLE;
+			lsu_cmd <= !i_nullify ? i_lsu_op : `UPARC_LSU_IDLE;
 			lsu_rnw <= i_lsu_lns;
 
-			if(i_lsu_op == `CPU_LSU_BYTE && i_lsu_ext == 1'b1)
+			if(i_lsu_op == `UPARC_LSU_BYTE && i_lsu_ext == 1'b1)
 				lsu_mux <= MUX_RD_BYTE_SE;
-			else if(i_lsu_op == `CPU_LSU_BYTE && i_lsu_ext == 1'b0)
+			else if(i_lsu_op == `UPARC_LSU_BYTE && i_lsu_ext == 1'b0)
 				lsu_mux <= MUX_RD_BYTE_ZE;
-			else if(i_lsu_op == `CPU_LSU_HWORD && i_lsu_ext == 1'b1)
+			else if(i_lsu_op == `UPARC_LSU_HWORD && i_lsu_ext == 1'b1)
 				lsu_mux <= MUX_RD_HWORD_SE;
-			else if(i_lsu_op == `CPU_LSU_HWORD && i_lsu_ext == 1'b0)
+			else if(i_lsu_op == `UPARC_LSU_HWORD && i_lsu_ext == 1'b0)
 				lsu_mux <= MUX_RD_HWORD_ZE;
-			else if(i_lsu_op == `CPU_LSU_WORD)
+			else if(i_lsu_op == `UPARC_LSU_WORD)
 				lsu_mux <= MUX_RD_WORD;
 			else
 				lsu_mux <= MUX_RD_ALU;
@@ -182,4 +182,4 @@ begin
 end
 
 
-endmodule /* memory_access */
+endmodule /* uparc_memory_access */

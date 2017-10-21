@@ -27,12 +27,12 @@
  * Load-store unit
  */
 
-`include "cpu_common.vh"
-`include "cpu_const.vh"
+`include "uparc_cpu_common.vh"
+`include "uparc_cpu_const.vh"
 
 
 /* LSU */
-module lsu(
+module uparc_lsu(
 	clk,
 	nrst,
 	/* Internal signals */
@@ -62,30 +62,30 @@ localparam WAIT = 1'b1;		/* Waiting for response */
 input wire				clk;
 input wire				nrst;
 /* Internal CPU interface */
-input wire [`CPU_ADDR_WIDTH-1:0]	addr;
-input wire [`CPU_DATA_WIDTH-1:0]	wdata;
-output reg [`CPU_DATA_WIDTH-1:0]	rdata;
+input wire [`UPARC_ADDR_WIDTH-1:0]	addr;
+input wire [`UPARC_DATA_WIDTH-1:0]	wdata;
+output reg [`UPARC_DATA_WIDTH-1:0]	rdata;
 input wire [1:0]			cmd;
 input wire				rnw;
 output wire				busy;
 output wire				err_align;
 output wire				err_bus;
 /* D-Bus interface */
-output reg [`CPU_ADDR_WIDTH-1:0]	o_DAddr;
+output reg [`UPARC_ADDR_WIDTH-1:0]	o_DAddr;
 output reg				o_DCmd;
 output reg				o_DRnW;
-output reg [`CPU_BEN_WIDTH-1:0]		o_DBen;
-output reg [`CPU_DATA_WIDTH-1:0]	o_DData;
-input wire [`CPU_DATA_WIDTH-1:0]	i_DData;
+output reg [`UPARC_BEN_WIDTH-1:0]	o_DBen;
+output reg [`UPARC_DATA_WIDTH-1:0]	o_DData;
+input wire [`UPARC_DATA_WIDTH-1:0]	i_DData;
 input wire				i_DRdy;
 input wire				i_DErr;
 
 
 /* Address alignment error */
-assign err_align = (cmd == `CPU_LSU_HWORD && addr[0] != 1'b0) ||
-	(cmd == `CPU_LSU_WORD && addr[1:0] != 2'b0);
+assign err_align = (cmd == `UPARC_LSU_HWORD && addr[0] != 1'b0) ||
+	(cmd == `UPARC_LSU_WORD && addr[1:0] != 2'b0);
 /* Active LSU transfer */
-wire active = (!err_align && !i_DErr && cmd != `CPU_LSU_IDLE);
+wire active = (!err_align && !i_DErr && cmd != `UPARC_LSU_IDLE);
 /* Busy LSU state */
 assign busy = ((active || (state == WAIT)) && !i_DRdy);
 
@@ -95,16 +95,16 @@ assign err_bus = i_DErr;	/* Bus error occurred */
 /* Transfer start logic */
 always @(*)
 begin
-	o_DAddr = {(`CPU_ADDR_WIDTH){1'b0}};
+	o_DAddr = {(`UPARC_ADDR_WIDTH){1'b0}};
 	o_DCmd = 1'b0;
 	o_DRnW = 1'b0;
-	o_DBen = {(`CPU_BEN_WIDTH){1'b0}};
-	o_DData = {(`CPU_DATA_WIDTH){1'b0}};
+	o_DBen = {(`UPARC_BEN_WIDTH){1'b0}};
+	o_DData = {(`UPARC_DATA_WIDTH){1'b0}};
 
 
-	if(!err_align && cmd == `CPU_LSU_BYTE)
+	if(!err_align && cmd == `UPARC_LSU_BYTE)
 	begin
-		o_DAddr = { addr[`CPU_ADDR_WIDTH-1:2], 2'b00 };
+		o_DAddr = { addr[`UPARC_ADDR_WIDTH-1:2], 2'b00 };
 		case(addr[1:0])
 		2'b00: begin
 			o_DBen = 4'b0001;
@@ -126,9 +126,9 @@ begin
 		o_DRnW = rnw;
 		o_DCmd = 1'b1;
 	end
-	else if(!err_align && cmd == `CPU_LSU_HWORD)
+	else if(!err_align && cmd == `UPARC_LSU_HWORD)
 	begin
-		o_DAddr = { addr[`CPU_ADDR_WIDTH-1:2], 2'b00 };
+		o_DAddr = { addr[`UPARC_ADDR_WIDTH-1:2], 2'b00 };
 		if(addr[1])
 		begin
 			o_DBen = 4'b1100;
@@ -142,9 +142,9 @@ begin
 		o_DRnW = rnw;
 		o_DCmd = 1'b1;
 	end
-	else if(!err_align && cmd == `CPU_LSU_WORD)
+	else if(!err_align && cmd == `UPARC_LSU_WORD)
 	begin
-		o_DAddr = { addr[`CPU_ADDR_WIDTH-1:2], 2'b00 };
+		o_DAddr = { addr[`UPARC_ADDR_WIDTH-1:2], 2'b00 };
 		o_DBen = 4'hf;
 		o_DData = wdata;
 		o_DRnW = rnw;
@@ -154,9 +154,9 @@ end
 
 
 /* Shift data after load according to byte enable mask */
-function [`CPU_DATA_WIDTH-1:0] shift_sdata;
-input [`CPU_DATA_WIDTH-1:0] sdata;
-input [`CPU_BEN_WIDTH-1:0] ben;
+function [`UPARC_DATA_WIDTH-1:0] shift_sdata;
+input [`UPARC_DATA_WIDTH-1:0] sdata;
+input [`UPARC_BEN_WIDTH-1:0] ben;
 begin
 	if(ben == 4'b1111 || ben == 4'b0011 || ben == 4'b0001)
 	begin
@@ -184,8 +184,8 @@ end
 endfunction
 
 
-reg [`CPU_BEN_WIDTH-1:0]	lch_ben; 	/* Latched byte enable mask */
-reg [`CPU_DATA_WIDTH-1:0]	lch_rddata;	/* Latched received data */
+reg [`UPARC_BEN_WIDTH-1:0]	lch_ben; 	/* Latched byte enable mask */
+reg [`UPARC_DATA_WIDTH-1:0]	lch_rddata;	/* Latched received data */
 reg 				state;		/* Load-store FSM state */
 
 
@@ -195,8 +195,8 @@ begin
 	if(!nrst)
 	begin
 		state <= IDLE;
-		lch_ben <= {(`CPU_BEN_WIDTH){1'b0}};
-		lch_rddata <= {(`CPU_DATA_WIDTH){1'b0}};
+		lch_ben <= {(`UPARC_BEN_WIDTH){1'b0}};
+		lch_rddata <= {(`UPARC_DATA_WIDTH){1'b0}};
 	end
 	else
 	begin
@@ -231,4 +231,4 @@ begin
 end
 
 
-endmodule /* lsu */
+endmodule /* uparc_lsu */

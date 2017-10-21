@@ -27,12 +27,12 @@
  * Integer multiplication and division unit
  */
 
-`include "cpu_common.vh"
-`include "cpu_const.vh"
+`include "uparc_cpu_common.vh"
+`include "uparc_cpu_const.vh"
 
 
 /* IMulDivU */
-module imuldivu(
+module uparc_imuldivu(
 	clk,
 	nrst,
 	/* CU signals */
@@ -62,12 +62,12 @@ input wire				i_nullify_execute;
 input wire				i_nullify_mem;
 input wire				i_nullify_wb;
 /* Decoded operation */
-input wire [`CPU_IMDOP_WIDTH-1:0]	i_imuldiv_op;
+input wire [`UPARC_IMDOP_WIDTH-1:0]	i_imuldiv_op;
 /* Operands */
-input wire [`CPU_REG_WIDTH-1:0]		i_rs_val;
-input wire [`CPU_REG_WIDTH-1:0]		i_rt_val;
+input wire [`UPARC_REG_WIDTH-1:0]	i_rs_val;
+input wire [`UPARC_REG_WIDTH-1:0]	i_rt_val;
 /* Result */
-output reg [`CPU_REG_WIDTH-1:0]		o_imuldiv_rd_val;
+output reg [`UPARC_REG_WIDTH-1:0]	o_imuldiv_rd_val;
 output reg				o_imuldiv_rd_valid;
 
 
@@ -76,13 +76,13 @@ wire core_stall = o_exec_stall || i_mem_stall || i_fetch_stall;
 assign o_exec_stall = !i_mem_stall && !i_fetch_stall && !muldiv_ready && interlock_instr;
 
 
-reg [2*`CPU_REG_WIDTH-1:0] hilor;	/* HI and LO registers */
+reg [2*`UPARC_REG_WIDTH-1:0] hilor;	/* HI and LO registers */
 
 
 /* Interlocked instruction arrived */
-wire interlock_instr = (i_imuldiv_op == `CPU_IMDOP_MFLO) || (i_imuldiv_op == `CPU_IMDOP_MFHI) ||
-			(i_imuldiv_op == `CPU_IMDOP_MUL) || (i_imuldiv_op == `CPU_IMDOP_MULU) ||
-			(i_imuldiv_op == `CPU_IMDOP_DIV) || (i_imuldiv_op == `CPU_IMDOP_DIVU);
+wire interlock_instr = (i_imuldiv_op == `UPARC_IMDOP_MFLO) || (i_imuldiv_op == `UPARC_IMDOP_MFHI) ||
+			(i_imuldiv_op == `UPARC_IMDOP_MUL) || (i_imuldiv_op == `UPARC_IMDOP_MULU) ||
+			(i_imuldiv_op == `UPARC_IMDOP_DIV) || (i_imuldiv_op == `UPARC_IMDOP_DIVU);
 
 
 /* Multiplication and division units are ready */
@@ -96,22 +96,22 @@ reg div_running;
 
 
 /* Operand values */
-reg [`CPU_REG_WIDTH-1:0]	rs_reg;
-reg [`CPU_REG_WIDTH-1:0]	rt_reg;
+reg [`UPARC_REG_WIDTH-1:0]	rs_reg;
+reg [`UPARC_REG_WIDTH-1:0]	rt_reg;
 
 
 /* Division unit control signals */
 reg				div_start;
 reg				div_signd;
 wire				div_ready;
-wire [2*`CPU_REG_WIDTH-1:0]	div_remquot;
+wire [2*`UPARC_REG_WIDTH-1:0]	div_remquot;
 
 
 /* Multiplication unit control signals */
 reg				mul_start;
 reg				mul_signd;
 wire				mul_ready;
-wire [2*`CPU_REG_WIDTH-1:0]	mul_product;
+wire [2*`UPARC_REG_WIDTH-1:0]	mul_product;
 
 
 
@@ -120,7 +120,7 @@ wire [2*`CPU_REG_WIDTH-1:0]	mul_product;
 
 reg				imd_mthi_p2;
 reg				imd_mtlo_p2;
-reg [`CPU_REG_WIDTH-1:0]	imd_rval_p2;
+reg [`UPARC_REG_WIDTH-1:0]	imd_rval_p2;
 
 
 /* Execute stage */
@@ -130,9 +130,9 @@ begin
 	begin
 		imd_mthi_p2 <= 1'b0;
 		imd_mtlo_p2 <= 1'b0;
-		imd_rval_p2 <= {(`CPU_REG_WIDTH){1'b0}};
-		rs_reg <= {(`CPU_REG_WIDTH){1'b0}};
-		rt_reg <= {(`CPU_REG_WIDTH){1'b0}};
+		imd_rval_p2 <= {(`UPARC_REG_WIDTH){1'b0}};
+		rs_reg <= {(`UPARC_REG_WIDTH){1'b0}};
+		rt_reg <= {(`UPARC_REG_WIDTH){1'b0}};
 		div_running <= 1'b0;
 		div_start <= 1'b0;
 		div_signd <= 1'b0;
@@ -140,7 +140,7 @@ begin
 		mul_start <= 1'b0;
 		mul_signd <= 1'b0;
 		o_imuldiv_rd_valid <= 1'b0;
-		o_imuldiv_rd_val <= {(`CPU_REG_WIDTH){1'b0}};
+		o_imuldiv_rd_val <= {(`UPARC_REG_WIDTH){1'b0}};
 	end
 	else
 	begin
@@ -155,27 +155,27 @@ begin
 			imd_mtlo_p2 <= 1'b0;
 			o_imuldiv_rd_valid <= 1'b0;
 
-			if(i_imuldiv_op == `CPU_IMDOP_MFLO)
+			if(i_imuldiv_op == `UPARC_IMDOP_MFLO)
 			begin
 				o_imuldiv_rd_valid <= 1'b1;
-				o_imuldiv_rd_val <= hilor[`CPU_REG_WIDTH-1:0];
+				o_imuldiv_rd_val <= hilor[`UPARC_REG_WIDTH-1:0];
 			end
-			else if(i_imuldiv_op == `CPU_IMDOP_MFHI)
+			else if(i_imuldiv_op == `UPARC_IMDOP_MFHI)
 			begin
 				o_imuldiv_rd_valid <= 1'b1;
-				o_imuldiv_rd_val <= hilor[2*`CPU_REG_WIDTH-1:`CPU_REG_WIDTH];
+				o_imuldiv_rd_val <= hilor[2*`UPARC_REG_WIDTH-1:`UPARC_REG_WIDTH];
 			end
-			else if(i_imuldiv_op == `CPU_IMDOP_MTLO)
+			else if(i_imuldiv_op == `UPARC_IMDOP_MTLO)
 			begin
 				imd_mtlo_p2 <= 1'b1;
 				imd_rval_p2 <= i_rs_val;
 			end
-			else if(i_imuldiv_op == `CPU_IMDOP_MTHI)
+			else if(i_imuldiv_op == `UPARC_IMDOP_MTHI)
 			begin
 				imd_mthi_p2 <= 1'b1;
 				imd_rval_p2 <= i_rs_val;
 			end
-			else if(i_imuldiv_op == `CPU_IMDOP_MUL)
+			else if(i_imuldiv_op == `UPARC_IMDOP_MUL)
 			begin
 				rs_reg <= i_rs_val;
 				rt_reg <= i_rt_val;
@@ -183,7 +183,7 @@ begin
 				mul_start <= 1'b1;
 				mul_running <= 1'b1;
 			end
-			else if(i_imuldiv_op == `CPU_IMDOP_MULU)
+			else if(i_imuldiv_op == `UPARC_IMDOP_MULU)
 			begin
 				rs_reg <= i_rs_val;
 				rt_reg <= i_rt_val;
@@ -191,7 +191,7 @@ begin
 				mul_start <= 1'b1;
 				mul_running <= 1'b1;
 			end
-			else if(i_imuldiv_op == `CPU_IMDOP_DIV)
+			else if(i_imuldiv_op == `UPARC_IMDOP_DIV)
 			begin
 				rs_reg <= i_rs_val;
 				rt_reg <= i_rt_val;
@@ -199,7 +199,7 @@ begin
 				div_start <= 1'b1;
 				div_running <= 1'b1;
 			end
-			else if(i_imuldiv_op == `CPU_IMDOP_DIVU)
+			else if(i_imuldiv_op == `UPARC_IMDOP_DIVU)
 			begin
 				rs_reg <= i_rs_val;
 				rt_reg <= i_rt_val;
@@ -223,7 +223,7 @@ end
 
 reg				imd_mthi_p3;
 reg				imd_mtlo_p3;
-reg [`CPU_REG_WIDTH-1:0]	imd_rval_p3;
+reg [`UPARC_REG_WIDTH-1:0]	imd_rval_p3;
 
 
 /* Memory stage */
@@ -233,7 +233,7 @@ begin
 	begin
 		imd_mthi_p3 <= 1'b0;
 		imd_mtlo_p3 <= 1'b0;
-		imd_rval_p3 <= {(`CPU_REG_WIDTH){1'b0}};
+		imd_rval_p3 <= {(`UPARC_REG_WIDTH){1'b0}};
 	end
 	else if(!core_stall && !i_nullify_mem)
 	begin
@@ -245,7 +245,7 @@ begin
 	begin
 		imd_mthi_p3 <= 1'b0;
 		imd_mtlo_p3 <= 1'b0;
-		imd_rval_p3 <= {(`CPU_REG_WIDTH){1'b0}};
+		imd_rval_p3 <= {(`UPARC_REG_WIDTH){1'b0}};
 	end
 end
 
@@ -258,7 +258,7 @@ always @(posedge clk or negedge nrst)
 begin
 	if(!nrst)
 	begin
-		hilor <= {(2*`CPU_REG_WIDTH){1'b0}};
+		hilor <= {(2*`UPARC_REG_WIDTH){1'b0}};
 	end
 	else if(mul_running && mul_ready && (!imd_mthi_p3 || !imd_mtlo_p3))
 	begin
@@ -270,8 +270,8 @@ begin
 	end
 	else if(!core_stall && !i_nullify_wb)
 	begin
-		if(imd_mthi_p3) hilor[2*`CPU_REG_WIDTH-1:`CPU_REG_WIDTH] <= imd_rval_p3;
-		if(imd_mtlo_p3) hilor[`CPU_REG_WIDTH-1:0] <= imd_rval_p3;
+		if(imd_mthi_p3) hilor[2*`UPARC_REG_WIDTH-1:`UPARC_REG_WIDTH] <= imd_rval_p3;
+		if(imd_mtlo_p3) hilor[`UPARC_REG_WIDTH-1:0] <= imd_rval_p3;
 	end
 end
 
@@ -280,7 +280,7 @@ end
 /**************** DIVISION AND MULTIPLICATION UNITS INSTANCES *****************/
 
 
-long_idiv idiv(
+uparc_long_idiv idiv(
 	.clk(clk),
 	.nrst(nrst),
 	.dividend(rs_reg),
@@ -292,7 +292,7 @@ long_idiv idiv(
 );
 
 
-long_imul imul(
+uparc_long_imul imul(
 	.clk(clk),
 	.nrst(nrst),
 	.multiplicand(rs_reg),
@@ -304,4 +304,4 @@ long_imul imul(
 );
 
 
-endmodule /* imuldivu */
+endmodule /* uparc_imuldivu */

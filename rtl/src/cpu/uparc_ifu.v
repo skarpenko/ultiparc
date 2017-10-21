@@ -27,12 +27,12 @@
  * Instruction fetch unit
  */
 
-`include "cpu_common.vh"
-`include "cpu_const.vh"
+`include "uparc_cpu_common.vh"
+`include "uparc_cpu_const.vh"
 
 
 /* IFU */
-module ifu(
+module uparc_ifu(
 	clk,
 	nrst,
 	/* Internal signals */
@@ -57,16 +57,16 @@ localparam WAIT = 1'b1;		/* Wait for response */
 input wire				clk;
 input wire				nrst;
 /* Internal CPU interface */
-input wire [`CPU_ADDR_WIDTH-1:0]	addr;
-output wire [`CPU_INSTR_WIDTH-1:0]	instr_dat;
+input wire [`UPARC_ADDR_WIDTH-1:0]	addr;
+output wire [`UPARC_INSTR_WIDTH-1:0]	instr_dat;
 input wire				rd_cmd;
 output wire				busy;
 output wire				err_align;
 output wire				err_bus;
 /* I-Bus interface */
-output reg [`CPU_ADDR_WIDTH-1:0]	o_IAddr;
+output reg [`UPARC_ADDR_WIDTH-1:0]	o_IAddr;
 output reg				o_IRdC;
-input wire [`CPU_INSTR_WIDTH-1:0]	i_IData;
+input wire [`UPARC_INSTR_WIDTH-1:0]	i_IData;
 input wire				i_IRdy;
 input wire				i_IErr;
 
@@ -96,7 +96,7 @@ begin
 end
 
 
-reg [`CPU_INSTR_WIDTH-1:0]	lch_idata;	/* Latched instruction data */
+reg [`UPARC_INSTR_WIDTH-1:0]	lch_idata;	/* Latched instruction data */
 reg				state;		/* Instruction fetch FSM state */
 
 
@@ -106,7 +106,7 @@ begin
 	if(!nrst)
 	begin
 		state <= IDLE;
-		lch_idata <= {(`CPU_INSTR_WIDTH){1'b0}};
+		lch_idata <= {(`UPARC_INSTR_WIDTH){1'b0}};
 	end
 	else
 	begin
@@ -131,4 +131,4 @@ end
 assign instr_dat = (active || state == WAIT) ? i_IData : lch_idata;
 
 
-endmodule /* ifu */
+endmodule /* uparc_ifu */

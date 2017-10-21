@@ -24,60 +24,39 @@
  */
 
 /*
- * Writeback pipeline stage
+ * CPU common defines
  */
 
-`include "cpu_common.vh"
-`include "cpu_const.vh"
+`ifndef _UPARC_CPU_COMMON_VH_
+`define _UPARC_CPU_COMMON_VH_
 
 
-/* Writeback stage */
-module writeback(
-	clk,
-	nrst,
-	/* CU signals */
-	i_exec_stall,
-	i_mem_stall,
-	i_fetch_stall,
-	i_nullify,
-	/* Data for writeback */
-	i_rd_no,
-	i_rd_val,
-	o_rd_no,
-	o_rd_val
-);
-/* Inputs */
-input wire				clk;
-input wire				nrst;
-/* CU signals */
-input wire				i_exec_stall;
-input wire				i_mem_stall;
-input wire				i_fetch_stall;
-input wire				i_nullify;
-/* Input from memory access stage */
-input wire [`CPU_REGNO_WIDTH-1:0]	i_rd_no;
-input wire [`CPU_REG_WIDTH-1:0]		i_rd_val;
-/* Output for write to register file */
-output reg [`CPU_REGNO_WIDTH-1:0]	o_rd_no;
-output reg [`CPU_REG_WIDTH-1:0]		o_rd_val;
+`define UPARC_ADDR_WIDTH	32			/* Address width */
+`define UPARC_DATA_WIDTH	32			/* Data width */
+`define UPARC_BEN_WIDTH		(`UPARC_DATA_WIDTH/8)	/* Byte enable width */
+`define UPARC_INSTR_WIDTH	32			/* Instruction width */
+`define UPARC_REG_WIDTH		32			/* Registers width */
+`define UPARC_REGNO_WIDTH	5			/* Register number width (0-31) */
+`define UPARC_ADDR_SIZE		(`UPARC_ADDR_WIDTH/8)	/* Address size */
+`define UPARC_INSTR_SIZE	(`UPARC_INSTR_WIDTH/8)	/* Instruction size */
+`define UPARC_LSUOP_WIDTH	2			/* LSU operation width */
+`define UPARC_ALUOP_WIDTH	4			/* ALU operation width */
+`define UPARC_IMDOP_WIDTH	4			/* Multiplication and division unit operation width */
+`define UPARC_SWTRP_WIDTH	2			/* Software trap type width */
+
+`define UPARC_RESET_ADDR	32'h0000_0000		/* Reset vector address */
+`define UPARC_PROCID_CODE	32'h001A_8100		/* CPU Identification */
+/*
+ * PROCID fields
+ *
+ * 0xSSCCPPRR
+ *
+ * SS - Company options;
+ * CC - Company ID;
+ * PP - CPU ID;
+ * RR - Revision.
+ *
+ */
 
 
-wire core_stall = i_exec_stall || i_mem_stall || i_fetch_stall;
-
-
-always @(posedge clk or negedge nrst)
-begin
-	if(!nrst)
-	begin
-		o_rd_no <= {(`CPU_REGNO_WIDTH){1'b0}};
-		o_rd_val <= {(`CPU_REG_WIDTH){1'b0}};
-	end
-	else if(!core_stall)
-	begin
-		o_rd_no <= !i_nullify ? i_rd_no : {(`CPU_REGNO_WIDTH){1'b0}};
-		o_rd_val <= i_rd_val;
-	end
-end
-
-
-endmodule /* writeback */
+`endif /* _UPARC_CPU_COMMON_VH_ */

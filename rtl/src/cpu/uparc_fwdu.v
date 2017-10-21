@@ -27,12 +27,12 @@
  * Forwarding unit
  */
 
-`include "cpu_common.vh"
-`include "cpu_const.vh"
+`include "uparc_cpu_common.vh"
+`include "uparc_cpu_const.vh"
 
 
 /* Forwarding unit */
-module fwdu(
+module uparc_fwdu(
 	rs,
 	rs_data,
 	rt,
@@ -46,21 +46,21 @@ module fwdu(
 	rt_data_p1
 );
 /* rs and rt read at decode stage */
-input wire [`CPU_REGNO_WIDTH-1:0]	rs;
-input wire [`CPU_REG_WIDTH-1:0]		rs_data;
-input wire [`CPU_REGNO_WIDTH-1:0]	rt;
-input wire [`CPU_REG_WIDTH-1:0]		rt_data;
+input wire [`UPARC_REGNO_WIDTH-1:0]	rs;
+input wire [`UPARC_REG_WIDTH-1:0]	rs_data;
+input wire [`UPARC_REGNO_WIDTH-1:0]	rt;
+input wire [`UPARC_REG_WIDTH-1:0]	rt_data;
 /* Destination at execute stage */
-input wire [`CPU_REGNO_WIDTH-1:0]	rd_p2;
-input wire [`CPU_REG_WIDTH-1:0]		rd_data_p2;
+input wire [`UPARC_REGNO_WIDTH-1:0]	rd_p2;
+input wire [`UPARC_REG_WIDTH-1:0]	rd_data_p2;
 /* Pending memory load */
 input wire				pend_mem_load_p2;
 /* Destination at memory stage */
-input wire [`CPU_REGNO_WIDTH-1:0]	rd_p3;
-input wire [`CPU_REG_WIDTH-1:0]		rd_data_p3;
+input wire [`UPARC_REGNO_WIDTH-1:0]	rd_p3;
+input wire [`UPARC_REG_WIDTH-1:0]	rd_data_p3;
 /* Forwarded values of rs and rt */
-output reg [`CPU_REG_WIDTH-1:0]		rs_data_p1;
-output reg [`CPU_REG_WIDTH-1:0]		rt_data_p1;
+output reg [`UPARC_REG_WIDTH-1:0]	rs_data_p1;
+output reg [`UPARC_REG_WIDTH-1:0]	rt_data_p1;
 
 
 always @(*)
@@ -90,4 +90,4 @@ end
  * (Load delay slot)
  */
 
-endmodule /* fwdu */
+endmodule /* uparc_fwdu */

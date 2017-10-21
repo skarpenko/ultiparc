@@ -27,12 +27,12 @@
  * Coprocessor 0
  */
 
-`include "cpu_common.vh"
-`include "cpu_const.vh"
+`include "uparc_cpu_common.vh"
+`include "uparc_cpu_const.vh"
 
 
 /* Coprocessor 0 */
-module coproc0(
+module uparc_coproc0(
 	clk,
 	nrst,
 	/* CU signals */
@@ -62,18 +62,18 @@ module coproc0(
 	/* Execute stage signals */
 	i_cop0_alu_result_p2
 );
-`include "reg_names.vh"
-`include "decode_const.vh"
-localparam [`CPU_INSTR_WIDTH-1:0] NOP = 32'h0000_0000;
+`include "uparc_reg_names.vh"
+`include "uparc_decode_const.vh"
+localparam [`UPARC_INSTR_WIDTH-1:0] NOP		= 32'h0000_0000;
 /* Coprocessor 0 register numbers */
-localparam [`CPU_REGNO_WIDTH-1:0] TSCLO	= 5'h08;
-localparam [`CPU_REGNO_WIDTH-1:0] TSCHI	= 5'h09;
-localparam [`CPU_REGNO_WIDTH-1:0] IVT	= 5'h0A;
-localparam [`CPU_REGNO_WIDTH-1:0] PSR	= 5'h0B;
-localparam [`CPU_REGNO_WIDTH-1:0] SR	= 5'h0C;
-localparam [`CPU_REGNO_WIDTH-1:0] CAUSE	= 5'h0D;
-localparam [`CPU_REGNO_WIDTH-1:0] EPC	= 5'h0E;
-localparam [`CPU_REGNO_WIDTH-1:0] PRID	= 5'h0F;
+localparam [`UPARC_REGNO_WIDTH-1:0] TSCLO	= 5'h08;
+localparam [`UPARC_REGNO_WIDTH-1:0] TSCHI	= 5'h09;
+localparam [`UPARC_REGNO_WIDTH-1:0] IVT		= 5'h0A;
+localparam [`UPARC_REGNO_WIDTH-1:0] PSR		= 5'h0B;
+localparam [`UPARC_REGNO_WIDTH-1:0] SR		= 5'h0C;
+localparam [`UPARC_REGNO_WIDTH-1:0] CAUSE	= 5'h0D;
+localparam [`UPARC_REGNO_WIDTH-1:0] EPC		= 5'h0E;
+localparam [`UPARC_REGNO_WIDTH-1:0] PRID	= 5'h0F;
 /* Inputs */
 input wire				clk;
 input wire				nrst;
@@ -84,25 +84,25 @@ input wire				i_fetch_stall;
 output reg				o_decode_error;
 input wire				i_except_start;
 input wire				i_except_dly_slt;
-input wire [`CPU_ADDR_WIDTH-1:0]	i_except_raddr;
-input wire [`CPU_ADDR_WIDTH-1:0]	i_except_raddr_dly;
+input wire [`UPARC_ADDR_WIDTH-1:0]	i_except_raddr;
+input wire [`UPARC_ADDR_WIDTH-1:0]	i_except_raddr_dly;
 input wire				i_nullify_decode;
 input wire				i_nullify_execute;
 input wire				i_nullify_mem;
 input wire				i_nullify_wb;
 /* COP0 signals */
-output wire [`CPU_ADDR_WIDTH-11:0]	o_cop0_ivtbase;
+output wire [`UPARC_ADDR_WIDTH-11:0]	o_cop0_ivtbase;
 output wire				o_cop0_ie;
 /* Fetched instruction */
-input wire [`CPU_INSTR_WIDTH-1:0]	i_instr;
+input wire [`UPARC_INSTR_WIDTH-1:0]	i_instr;
 /* Decoded instr */
 output wire				o_cop0_op_p1;
-output wire [`CPU_REGNO_WIDTH-1:0]	o_cop0_cop_p1;
-output wire [`CPU_REGNO_WIDTH-1:0]	o_cop0_reg_no_p1;
-output reg [`CPU_REG_WIDTH-1:0]		o_cop0_reg_val_p1;
-output wire [`CPU_REGNO_WIDTH-1:0]	o_cop0_rt_no_p1;
+output wire [`UPARC_REGNO_WIDTH-1:0]	o_cop0_cop_p1;
+output wire [`UPARC_REGNO_WIDTH-1:0]	o_cop0_reg_no_p1;
+output reg [`UPARC_REG_WIDTH-1:0]	o_cop0_reg_val_p1;
+output wire [`UPARC_REGNO_WIDTH-1:0]	o_cop0_rt_no_p1;
 /* Execute stage signals */
-input wire [`CPU_REG_WIDTH-1:0]		i_cop0_alu_result_p2;
+input wire [`UPARC_REG_WIDTH-1:0]	i_cop0_alu_result_p2;
 
 
 wire core_stall = i_exec_stall || i_mem_stall || i_fetch_stall;
@@ -113,25 +113,25 @@ assign o_cop0_ie = reg_sr_ie;
 
 
 /* Coprocessor 0 registers */
-reg [`CPU_ADDR_WIDTH-11:0]	reg_ivt;	/* High 22 bits of IVT base (reg 0xA) */
+reg [`UPARC_ADDR_WIDTH-11:0]	reg_ivt;	/* High 22 bits of IVT base (reg 0xA) */
 reg				reg_psr_ie;	/* Copy of IE flag from Status register (reg 0xB) */
 reg				reg_sr_ie;	/* IE flag from Status register (reg 0xC) */
 reg				reg_cause_bd;	/* BD flag from Cause register (reg 0xD) */
-reg [`CPU_ADDR_WIDTH-1:0]	reg_epc;	/* Program counter on exception entrance (reg 0xE) */
-wire [`CPU_DATA_WIDTH-1:0]	reg_prid;	/* Processor ID R/O register (reg 0xF) */
-assign reg_prid = `CPU_PROCID_CODE;
+reg [`UPARC_ADDR_WIDTH-1:0]	reg_epc;	/* Program counter on exception entrance (reg 0xE) */
+wire [`UPARC_DATA_WIDTH-1:0]	reg_prid;	/* Processor ID R/O register (reg 0xF) */
+assign reg_prid = `UPARC_PROCID_CODE;
 
 
-reg [`CPU_INSTR_WIDTH-1:0] instr;	/* Instruction word */
+reg [`UPARC_INSTR_WIDTH-1:0] instr;	/* Instruction word */
 
 
 /******************************* DECODE STAGE *********************************/
 
 /* Instruction fields */
 wire [5:0]			op;	/* Opcode */
-wire [`CPU_REGNO_WIDTH-1:0]	cop;	/* Coprocessor opcode */
-wire [`CPU_REGNO_WIDTH-1:0]	rt;	/* Source register 2 */
-wire [`CPU_REGNO_WIDTH-1:0]	rd;	/* Destination register */
+wire [`UPARC_REGNO_WIDTH-1:0]	cop;	/* Coprocessor opcode */
+wire [`UPARC_REGNO_WIDTH-1:0]	rt;	/* Source register 2 */
+wire [`UPARC_REGNO_WIDTH-1:0]	rd;	/* Destination register */
 wire [4:0]			rsvd;	/* Reserved field */
 wire [5:0]			func;	/* Function */
 
@@ -145,42 +145,42 @@ assign func	= instr[5:0];
 
 /* Decoded fields */
 wire				cop_instr_p1;
-wire [`CPU_REGNO_WIDTH-1:0]	cop_p1;
-wire [`CPU_REGNO_WIDTH-1:0]	cop_rt_no_p1;
-wire [`CPU_REGNO_WIDTH-1:0]	cop_reg_no_p1;
+wire [`UPARC_REGNO_WIDTH-1:0]	cop_p1;
+wire [`UPARC_REGNO_WIDTH-1:0]	cop_rt_no_p1;
+wire [`UPARC_REGNO_WIDTH-1:0]	cop_reg_no_p1;
 wire [5:0]			cop_func_p1;
 
-assign cop_instr_p1 = op == `CPU_OP_COP0 ? 1'b1 : 1'b0;
-assign cop_p1 = op == `CPU_OP_COP0 ? cop : {(`CPU_REGNO_WIDTH){1'b0}};
-assign cop_rt_no_p1 = op == `CPU_OP_COP0 ? rt : {(`CPU_REGNO_WIDTH){1'b0}};
-assign cop_reg_no_p1 = op == `CPU_OP_COP0 ? rd : {(`CPU_REGNO_WIDTH){1'b0}};
-assign cop_func_p1 = op == `CPU_OP_COP0 ? func : 6'b0;
+assign cop_instr_p1 = op == `UPARC_OP_COP0 ? 1'b1 : 1'b0;
+assign cop_p1 = op == `UPARC_OP_COP0 ? cop : {(`UPARC_REGNO_WIDTH){1'b0}};
+assign cop_rt_no_p1 = op == `UPARC_OP_COP0 ? rt : {(`UPARC_REGNO_WIDTH){1'b0}};
+assign cop_reg_no_p1 = op == `UPARC_OP_COP0 ? rd : {(`UPARC_REGNO_WIDTH){1'b0}};
+assign cop_func_p1 = op == `UPARC_OP_COP0 ? func : 6'b0;
 
 
 /* Decode stage outputs */
 assign o_cop0_op_p1 = cop_instr_p1;
-assign o_cop0_cop_p1 = cop_p1 == `CPU_COP0_MF || cop_p1 == `CPU_COP0_MT ? cop_p1 :
-	{(`CPU_REGNO_WIDTH){1'b0}};
+assign o_cop0_cop_p1 = cop_p1 == `UPARC_COP0_MF || cop_p1 == `UPARC_COP0_MT ? cop_p1 :
+	{(`UPARC_REGNO_WIDTH){1'b0}};
 assign o_cop0_rt_no_p1 = cop_rt_no_p1;
 assign o_cop0_reg_no_p1 = cop_reg_no_p1;
 
 /* Coprocessor 0 register value */
 always @(*)
 begin
-	o_cop0_reg_val_p1 = {(`CPU_REG_WIDTH){1'b0}};
+	o_cop0_reg_val_p1 = {(`UPARC_REG_WIDTH){1'b0}};
 
-	if(cop_instr_p1 && cop_p1 == `CPU_COP0_MF)
+	if(cop_instr_p1 && cop_p1 == `UPARC_COP0_MF)
 	begin
 		case(cop_reg_no_p1)
 		TSCLO: o_cop0_reg_val_p1 = tsc_latched_lo;
 		TSCHI: o_cop0_reg_val_p1 = tsc_latched_hi;
 		IVT: o_cop0_reg_val_p1 = { reg_ivt, 10'b0 };
-		PSR: o_cop0_reg_val_p1 = { {(`CPU_REG_WIDTH-1){1'b0}}, reg_psr_ie };
-		SR: o_cop0_reg_val_p1 = { {(`CPU_REG_WIDTH-1){1'b0}}, reg_sr_ie };
-		CAUSE: o_cop0_reg_val_p1 = { reg_cause_bd, {(`CPU_REG_WIDTH-1){1'b0}} };
+		PSR: o_cop0_reg_val_p1 = { {(`UPARC_REG_WIDTH-1){1'b0}}, reg_psr_ie };
+		SR: o_cop0_reg_val_p1 = { {(`UPARC_REG_WIDTH-1){1'b0}}, reg_sr_ie };
+		CAUSE: o_cop0_reg_val_p1 = { reg_cause_bd, {(`UPARC_REG_WIDTH-1){1'b0}} };
 		EPC: o_cop0_reg_val_p1 = reg_epc;
 		PRID: o_cop0_reg_val_p1 = reg_prid;
-		default: o_cop0_reg_val_p1 = {(`CPU_REG_WIDTH){1'b0}};
+		default: o_cop0_reg_val_p1 = {(`UPARC_REG_WIDTH){1'b0}};
 		endcase
 	end
 end
@@ -194,10 +194,10 @@ begin
 	if(cop_instr_p1)
 	begin
 		case(cop_p1)
-		`CPU_COP0_MF,
-		`CPU_COP0_MT: o_decode_error = |{ rsvd, func } ? 1'b1 : 1'b0;
-		`CPU_COP0_CO: o_decode_error =
-			|{ rt, rd, rsvd } || func != `CPU_COP0_FUNC_RFE ? 1'b1 : 1'b0;
+		`UPARC_COP0_MF,
+		`UPARC_COP0_MT: o_decode_error = |{ rsvd, func } ? 1'b1 : 1'b0;
+		`UPARC_COP0_CO: o_decode_error =
+			|{ rt, rd, rsvd } || func != `UPARC_COP0_FUNC_RFE ? 1'b1 : 1'b0;
 		default: o_decode_error = 1'b1;
 		endcase
 	end
@@ -222,8 +222,8 @@ end
 
 
 reg				cop_instr_p2;
-reg [`CPU_REGNO_WIDTH-1:0]	cop_p2;
-reg [`CPU_REGNO_WIDTH-1:0]	cop_reg_no_p2;
+reg [`UPARC_REGNO_WIDTH-1:0]	cop_p2;
+reg [`UPARC_REGNO_WIDTH-1:0]	cop_reg_no_p2;
 reg [5:0]			cop_func_p2;
 
 
@@ -233,8 +233,8 @@ begin
 	if(!nrst)
 	begin
 		cop_instr_p2 <= 1'b0;
-		cop_p2 <= {(`CPU_REGNO_WIDTH){1'b0}};
-		cop_reg_no_p2 <= {(`CPU_REGNO_WIDTH){1'b0}};
+		cop_p2 <= {(`UPARC_REGNO_WIDTH){1'b0}};
+		cop_reg_no_p2 <= {(`UPARC_REGNO_WIDTH){1'b0}};
 		cop_func_p2 <= 6'b0;
 	end
 	else if(!core_stall && !i_nullify_execute)
@@ -247,8 +247,8 @@ begin
 	else if(!core_stall)
 	begin
 		cop_instr_p2 <= 1'b0;
-		cop_p2 <= {(`CPU_REGNO_WIDTH){1'b0}};
-		cop_reg_no_p2 <= {(`CPU_REGNO_WIDTH){1'b0}};
+		cop_p2 <= {(`UPARC_REGNO_WIDTH){1'b0}};
+		cop_reg_no_p2 <= {(`UPARC_REGNO_WIDTH){1'b0}};
 		cop_func_p2 <= 6'b0;
 	end
 end
@@ -258,9 +258,9 @@ end
 
 
 reg				cop_instr_p3;
-reg [`CPU_REGNO_WIDTH-1:0]	cop_p3;
-reg [`CPU_REGNO_WIDTH-1:0]	cop_reg_no_p3;
-reg [`CPU_REG_WIDTH-1:0]	cop_reg_val_p3;
+reg [`UPARC_REGNO_WIDTH-1:0]	cop_p3;
+reg [`UPARC_REGNO_WIDTH-1:0]	cop_reg_no_p3;
+reg [`UPARC_REG_WIDTH-1:0]	cop_reg_val_p3;
 reg [5:0]			cop_func_p3;
 
 
@@ -270,9 +270,9 @@ begin
 	if(!nrst)
 	begin
 		cop_instr_p3 <= 1'b0;
-		cop_p3 <= {(`CPU_REGNO_WIDTH){1'b0}};
-		cop_reg_no_p3 <= {(`CPU_REGNO_WIDTH){1'b0}};
-		cop_reg_val_p3 <= {(`CPU_REG_WIDTH){1'b0}};
+		cop_p3 <= {(`UPARC_REGNO_WIDTH){1'b0}};
+		cop_reg_no_p3 <= {(`UPARC_REGNO_WIDTH){1'b0}};
+		cop_reg_val_p3 <= {(`UPARC_REG_WIDTH){1'b0}};
 		cop_func_p3 <= 6'b0;
 	end
 	else if(!core_stall && !i_nullify_mem)
@@ -286,9 +286,9 @@ begin
 	else if(!core_stall)
 	begin
 		cop_instr_p3 <= 1'b0;
-		cop_p3 <= {(`CPU_REGNO_WIDTH){1'b0}};
-		cop_reg_no_p3 <= {(`CPU_REGNO_WIDTH){1'b0}};
-		cop_reg_val_p3 <= {(`CPU_REG_WIDTH){1'b0}};
+		cop_p3 <= {(`UPARC_REGNO_WIDTH){1'b0}};
+		cop_reg_no_p3 <= {(`UPARC_REGNO_WIDTH){1'b0}};
+		cop_reg_val_p3 <= {(`UPARC_REG_WIDTH){1'b0}};
 		cop_func_p3 <= 6'b0;
 	end
 end
@@ -302,27 +302,27 @@ always @(posedge clk or negedge nrst)
 begin
 	if(!nrst)
 	begin
-		reg_ivt <= {(`CPU_ADDR_WIDTH-10){1'b0}};
+		reg_ivt <= {(`UPARC_ADDR_WIDTH-10){1'b0}};
 		reg_psr_ie <= 1'b0;
 		reg_sr_ie <= 1'b0;
 		reg_cause_bd <= 1'b0;
-		reg_epc <= {(`CPU_ADDR_WIDTH){1'b0}};
+		reg_epc <= {(`UPARC_ADDR_WIDTH){1'b0}};
 	end
 	else if(!core_stall && !i_nullify_wb)
 	begin
-		if(cop_instr_p3 && cop_p3 == `CPU_COP0_CO)
+		if(cop_instr_p3 && cop_p3 == `UPARC_COP0_CO)
 		begin
 			case(cop_func_p3)
-			`CPU_COP0_FUNC_RFE: begin
+			`UPARC_COP0_FUNC_RFE: begin
 				reg_sr_ie <= reg_psr_ie;
 				reg_psr_ie <= 1'b0;
 			end
 			endcase
 		end
-		else if(cop_instr_p3 && cop_p3 == `CPU_COP0_MT)
+		else if(cop_instr_p3 && cop_p3 == `UPARC_COP0_MT)
 		begin
 			case(cop_reg_no_p3)
-			IVT: reg_ivt <= cop_reg_val_p3[`CPU_REG_WIDTH-1:10];
+			IVT: reg_ivt <= cop_reg_val_p3[`UPARC_REG_WIDTH-1:10];
 			PSR: reg_psr_ie <= cop_reg_val_p3[0];
 			SR: reg_sr_ie <= cop_reg_val_p3[0];
 			CAUSE: reg_cause_bd <= cop_reg_val_p3[31];
@@ -343,13 +343,13 @@ end
 /*************************** TIME STAMP COUNTER *******************************/
 
 
-reg [2*`CPU_REG_WIDTH-1:0] tsc_reg;		/* Counter register */
-reg [`CPU_REG_WIDTH-1:0] tsc_latched_lo;	/* Latched lower half */
-reg [`CPU_REG_WIDTH-1:0] tsc_latched_hi;	/* Latched upper half */
+reg [2*`UPARC_REG_WIDTH-1:0] tsc_reg;		/* Counter register */
+reg [`UPARC_REG_WIDTH-1:0] tsc_latched_lo;	/* Latched lower half */
+reg [`UPARC_REG_WIDTH-1:0] tsc_latched_hi;	/* Latched upper half */
 
 /* Latch counter on read of lower half */
-wire tsc_latch = (i_instr[31:26] == `CPU_OP_COP0) &&
-			(i_instr[25:21] == `CPU_COP0_MF) &&
+wire tsc_latch = (i_instr[31:26] == `UPARC_OP_COP0) &&
+			(i_instr[25:21] == `UPARC_COP0_MF) &&
 			(i_instr[15:11] == TSCLO) ? 1'b1 : 1'b0;
 
 
@@ -358,7 +358,7 @@ always @(posedge clk or negedge nrst)
 begin
 	if(!nrst)
 	begin
-		tsc_reg <= {(2*`CPU_ADDR_WIDTH){1'b0}};
+		tsc_reg <= {(2*`UPARC_ADDR_WIDTH){1'b0}};
 	end
 	else
 	begin
@@ -372,15 +372,15 @@ always @(posedge clk or negedge nrst)
 begin
 	if(!nrst)
 	begin
-		tsc_latched_lo <= {(`CPU_ADDR_WIDTH){1'b0}};
-		tsc_latched_hi <= {(`CPU_ADDR_WIDTH){1'b0}};
+		tsc_latched_lo <= {(`UPARC_ADDR_WIDTH){1'b0}};
+		tsc_latched_hi <= {(`UPARC_ADDR_WIDTH){1'b0}};
 	end
 	else if(!core_stall && !i_nullify_decode && tsc_latch)
 	begin
-		tsc_latched_lo <= tsc_reg[`CPU_REG_WIDTH-1:0];
-		tsc_latched_hi <= tsc_reg[2*`CPU_REG_WIDTH-1:`CPU_REG_WIDTH];
+		tsc_latched_lo <= tsc_reg[`UPARC_REG_WIDTH-1:0];
+		tsc_latched_hi <= tsc_reg[2*`UPARC_REG_WIDTH-1:`UPARC_REG_WIDTH];
 	end
 end
 
 
-endmodule /* coproc0 */
+endmodule /* uparc_coproc0 */
