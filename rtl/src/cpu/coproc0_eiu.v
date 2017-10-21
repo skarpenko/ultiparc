@@ -292,16 +292,14 @@ begin
 		intr_valid <= 1'b0;
 		intr_latch <= 1'b0;
 	end
-	else
+	else if(!core_stall)
 	begin
-		intr_latch <= intr_latch | ((i_intr && i_cop0_ie && !intr_valid) ? 1'b1 : 1'b0);
-
-		if(!core_stall)
-		begin
-			intr_valid <= intr_latch & ~intr_reg;
-			intr_latch <= 1'b0;
-		end
+		intr_valid <= (intr_latch | ((i_intr && i_cop0_ie && !intr_valid) ? 1'b1 : 1'b0)) &
+			~intr_reg;
+		intr_latch <= 1'b0;
 	end
+	else
+		intr_latch <= intr_latch | ((i_intr && i_cop0_ie && !intr_valid) ? 1'b1 : 1'b0);
 end
 
 
