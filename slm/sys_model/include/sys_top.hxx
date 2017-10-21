@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,11 +37,7 @@
 #include "ocp_intimer.hxx"
 #include "ibus_adapt.hxx"
 #include "dbus_adapt.hxx"
-#ifdef LTM_CPU_MODEL
-#  include "cpu_ltm/cpu_top.hxx"
-#else
-#  include "cpu/cpu_top.hxx"
-#endif
+#include "cpu_ltm/cpu_top.hxx"
 #pragma once
 
 

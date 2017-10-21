@@ -6,8 +6,7 @@ O_FILES   := $(CXX_FILES:.cxx=.o)
 D_FILES   := $(CXX_FILES:.cxx=.d)
 TARGET    := sys_model.elf
 
-CFLAGS  := -O0 -g -Wall -Iinclude -I$(SYSTEMC_HOME)/include
-CFLAGS  += -DLTM_CPU_MODEL
+CFLAGS  := -O2 -g -Wall -Iinclude -I$(SYSTEMC_HOME)/include
 LDFLAGS := -static -L$(SYSTEMC_HOME)/lib
 
 

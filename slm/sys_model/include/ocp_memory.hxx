@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -111,7 +111,7 @@ private:
 			if(cmd == OCP_CMD_IDLE)
 				continue;
 
-			bool addr_err;
+			bool addr_err = false;
 
 			// Check address range
 			if(addr > (m_size - 4) && addr < m_size) {
@@ -120,8 +120,7 @@ private:
 					addr_err = true;
 			} else if(addr >= m_size) {
 				addr_err = true;
-			} else
-				addr_err = false;
+			}
 
 			// Only read and write OCP commands supported
 			if(addr_err || (cmd != OCP_CMD_READ && cmd != OCP_CMD_WRITE)) {
