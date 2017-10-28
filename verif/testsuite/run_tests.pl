@@ -12,6 +12,7 @@ if(grep(/^help$/, @ARGV)) {
 	print "==================\n";
 	print "  slm - Run tests on system-level model (SystemC);\n";
 	print "  rtl - Run tests on RTL;\n";
+	print "  vlr - Run tests on Verilated system-level model (cycle accurate);\n";
 	print "  xt  - Include extensive tests.\n";
 	print "\n";
 	exit 0;
@@ -21,6 +22,7 @@ if(grep(/^help$/, @ARGV)) {
 # Config vars
 my $sys_model_bin = "$ENV{'ULTIPARC_HOME'}/slm/sys_model/sys_model.elf";
 my $sys_model_rtl = "vvp -n $ENV{'ULTIPARC_HOME'}/rtl/tb_sys_top +NOTRACE";
+my $sys_model_vlr = "$ENV{'ULTIPARC_HOME'}/slm/verilated/vlsys_model.elf";
 my $max_name = 40;
 
 
@@ -187,7 +189,7 @@ if (not defined $model) {
 	$model = lc $model;
 }
 
-if ($model ne "slm" && $model ne "rtl") {
+if ($model ne "slm" && $model ne "rtl" && $model ne "vlr") {
 	$model = "slm";
 }
 
@@ -213,8 +215,10 @@ foreach $test (@tests) {
 		}
 		if($model eq "slm") {
 			$err = run_slm_test("$test->{'bin_path'}");
-		} else {
+		} elsif($model eq "rtl") {
 			$err = run_rtl_test("$test->{'hex_path'}");
+		} else {
+			$err = run_vlr_test("$test->{'hex_path'}");
 		}
 		if ($err == 0) {
 			print GREEN, "PASSED\n", RESET;
@@ -243,6 +247,34 @@ sub run_rtl_test {
 	my ($path) = @_;
 	my $log = "sim_result_$$.log";
 	my $cmd = "$sys_model_rtl +MEMORY_FILE=$path 1>$log 2>/dev/null";
+	my $err = system($cmd);
+	if ($err != 0) {
+		system("rm $log 1>/dev/null 2>/dev/null");
+		return $err;
+	}
+
+	open IN, "<$log" or die;
+	$err = -1;
+	while(my $line = <IN>) {
+		chomp $line;
+		if($line eq "SIMULATION SUCCESSFULLY TERMINATED!") {
+			$err = 0;
+			last;
+		}
+	}
+	close IN;
+
+	system("rm $log 1>/dev/null 2>/dev/null");
+
+	return $err;
+}
+
+
+# run Verilated model tests
+sub run_vlr_test {
+	my ($path) = @_;
+	my $log = "sim_result_$$.log";
+	my $cmd = "$sys_model_vlr -fw_image $path 1>$log 2>/dev/null";
 	my $err = system($cmd);
 	if ($err != 0) {
 		system("rm $log 1>/dev/null 2>/dev/null");

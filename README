@@ -24,13 +24,17 @@ PREREQUISITES
   * Icarus Verilog v10.0 (http://iverilog.icarus.com/). Verilog simulation
     tool which is used for running Ultiparc RTL simulation.
 
+  * Verilator v3.874 (https://www.veripool.org/projects/verilator/). Verilator
+    converts synthesizable Verilog code into C++ or SystemC code. It is required
+    for building cycle accurate Ultiparc system model.
+
 
 DIRECTORY STRUCTURE:
 
   /
   |- slm        - system level modeling related sources.
   |- rtl        - Verilog sources.
-  |- verif      - Verification firmware.
+  |- verif      - verification firmware.
   -- setenv.sh  - environment configuration script.
 
 

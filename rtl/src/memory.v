@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -68,7 +68,12 @@ integer i;
 /* Preinit memory */
 initial
 begin : memory_init
+`ifndef VERILATOR
 	reg [65536*8-1:0] filepath;
+`else
+	reg [256*8-1:0] filepath;
+	/** Verilator limits string length to 64 words (256*8/32 = 64) **/
+`endif
 
 	for(i=0; i<MEMWORDS; i=i+1) begin
 		mem[i] = 0;

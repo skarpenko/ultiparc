@@ -6,7 +6,7 @@ O_FILES   := $(CXX_FILES:.cxx=.o)
 D_FILES   := $(CXX_FILES:.cxx=.d)
 TARGET    := sys_model.elf
 
-CFLAGS  := -O2 -g -Wall -Iinclude -I$(SYSTEMC_HOME)/include
+CFLAGS  := -O3 -g -Wall -Iinclude -I$(SYSTEMC_HOME)/include
 LDFLAGS := -static -L$(SYSTEMC_HOME)/lib
 
 
@@ -23,6 +23,7 @@ endef
 
 
 # Main goal
+.PHONY: all
 all: $(TARGET)
 	@echo "Done."
 

@@ -1,0 +1,35 @@
+// System top files and options
+
++incdir+${ULTIPARC_HOME}/rtl/src/cpu
++incdir+${ULTIPARC_HOME}/rtl/include
+-clk clk
+--top-module sys_top
+-cc
+${ULTIPARC_HOME}/rtl/src/sys_top.v
+${ULTIPARC_HOME}/rtl/src/fabric.v
+${ULTIPARC_HOME}/rtl/src/fabric_port.v
+${ULTIPARC_HOME}/rtl/src/fabric_port_demux.v
+${ULTIPARC_HOME}/rtl/src/memory.v
+${ULTIPARC_HOME}/rtl/src/interval_timer.v
+${ULTIPARC_HOME}/rtl/src/intr_controller.v
+${ULTIPARC_HOME}/rtl/src/micro_uart.v
+${ULTIPARC_HOME}/rtl/src/sim_control.v
+${ULTIPARC_HOME}/rtl/src/ibus2ocp.v
+${ULTIPARC_HOME}/rtl/src/dbus2ocp.v
+${ULTIPARC_HOME}/rtl/src/cpu/uparc_cpu_top.v
+${ULTIPARC_HOME}/rtl/src/cpu/uparc_alu.v
+${ULTIPARC_HOME}/rtl/src/cpu/uparc_ifu.v
+${ULTIPARC_HOME}/rtl/src/cpu/uparc_lsu.v
+${ULTIPARC_HOME}/rtl/src/cpu/uparc_reg_file.v
+${ULTIPARC_HOME}/rtl/src/cpu/uparc_fwdu.v
+${ULTIPARC_HOME}/rtl/src/cpu/uparc_coproc0.v
+${ULTIPARC_HOME}/rtl/src/cpu/uparc_coproc0_eiu.v
+${ULTIPARC_HOME}/rtl/src/cpu/uparc_imuldivu.v
+${ULTIPARC_HOME}/rtl/src/cpu/uparc_long_imul.v
+${ULTIPARC_HOME}/rtl/src/cpu/uparc_long_idiv.v
+${ULTIPARC_HOME}/rtl/src/cpu/uparc_fetch.v
+${ULTIPARC_HOME}/rtl/src/cpu/uparc_decode.v
+${ULTIPARC_HOME}/rtl/src/cpu/uparc_execute.v
+${ULTIPARC_HOME}/rtl/src/cpu/uparc_memory_access.v
+${ULTIPARC_HOME}/rtl/src/cpu/uparc_writeback.v
+main.cxx

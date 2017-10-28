@@ -1,6 +1,6 @@
+#!/bin/sh
 # The Ultiparc Project.
 # Environment configuration.
-#!/bin/sh
 
 echo ""
 echo "Setting environment for Ultiparc."
