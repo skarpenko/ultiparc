@@ -27,6 +27,7 @@ ${ULTIPARC_HOME}/rtl/src/cpu/uparc_coproc0_eiu.v
 ${ULTIPARC_HOME}/rtl/src/cpu/uparc_imuldivu.v
 ${ULTIPARC_HOME}/rtl/src/cpu/uparc_long_imul.v
 ${ULTIPARC_HOME}/rtl/src/cpu/uparc_long_idiv.v
+${ULTIPARC_HOME}/rtl/src/cpu/uparc_fast_imul.v
 ${ULTIPARC_HOME}/rtl/src/cpu/uparc_fetch.v
 ${ULTIPARC_HOME}/rtl/src/cpu/uparc_decode.v
 ${ULTIPARC_HOME}/rtl/src/cpu/uparc_execute.v

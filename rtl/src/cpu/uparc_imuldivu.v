@@ -293,6 +293,18 @@ uparc_long_idiv idiv(
 );
 
 
+`ifdef UPARC_FAST_IMUL
+uparc_fast_imul imul(
+	.clk(clk),
+	.nrst(nrst),
+	.multiplicand(rs_reg),
+	.multiplier(rt_reg),
+	.start(mul_start),
+	.signd(mul_signd),
+	.ready(mul_ready),
+	.product(mul_product)
+);
+`else /* !UPARC_FAST_IMUL */
 uparc_long_imul imul(
 	.clk(clk),
 	.nrst(nrst),
@@ -303,6 +315,7 @@ uparc_long_imul imul(
 	.ready(mul_ready),
 	.product(mul_product)
 );
+`endif /* UPARC_FAST_IMUL */
 
 
 endmodule /* uparc_imuldivu */

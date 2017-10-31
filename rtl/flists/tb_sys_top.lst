@@ -26,6 +26,7 @@ src/cpu/uparc_coproc0_eiu.v
 src/cpu/uparc_imuldivu.v
 src/cpu/uparc_long_imul.v
 src/cpu/uparc_long_idiv.v
+src/cpu/uparc_fast_imul.v
 src/cpu/uparc_fetch.v
 src/cpu/uparc_decode.v
 src/cpu/uparc_execute.v
