@@ -27,6 +27,7 @@
  * Instruction fetch pipeline stage
  */
 
+`include "uparc_cpu_config.vh"
 `include "uparc_cpu_common.vh"
 `include "uparc_cpu_const.vh"
 
