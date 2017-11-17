@@ -1,15 +1,38 @@
+#
 # Normal rules
-*.o
+#
+.*
 *.a
+*.bin
+*.bz2
 *.d
-*.so
+*.dump
 *.elf
+*.gz
+*.hex
+*.lz4
+*.lzma
+*.lzo
+*.o
+*.patch
+*.so
+*.tar
 *.vcd
+*.xz
 
+#
+# git files that shouldn't be ignored
+#
+!.gitignore
+
+#
 # Backup files
+#
 *.orig
 *~
 \#*#
 
+#
 # Netbeans projects
+#
 nbproject
