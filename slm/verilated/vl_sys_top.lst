@@ -9,6 +9,11 @@ ${ULTIPARC_HOME}/rtl/src/sys_top.v
 ${ULTIPARC_HOME}/rtl/src/fabric.v
 ${ULTIPARC_HOME}/rtl/src/fabric_port.v
 ${ULTIPARC_HOME}/rtl/src/fabric_port_demux.v
+${ULTIPARC_HOME}/rtl/src/fabric2.v
+${ULTIPARC_HOME}/rtl/src/fabric2_control.v
+${ULTIPARC_HOME}/rtl/src/fabric2_decoder.v
+${ULTIPARC_HOME}/rtl/src/fabric2_mswitch.v
+${ULTIPARC_HOME}/rtl/src/fabric2_sswitch.v
 ${ULTIPARC_HOME}/rtl/src/memory.v
 ${ULTIPARC_HOME}/rtl/src/interval_timer.v
 ${ULTIPARC_HOME}/rtl/src/intr_controller.v
@@ -16,6 +21,8 @@ ${ULTIPARC_HOME}/rtl/src/micro_uart.v
 ${ULTIPARC_HOME}/rtl/src/sim_control.v
 ${ULTIPARC_HOME}/rtl/src/ibus2ocp.v
 ${ULTIPARC_HOME}/rtl/src/dbus2ocp.v
+${ULTIPARC_HOME}/rtl/src/ibus2ocp2.v
+${ULTIPARC_HOME}/rtl/src/dbus2ocp2.v
 ${ULTIPARC_HOME}/rtl/src/cpu/uparc_cpu_top.v
 ${ULTIPARC_HOME}/rtl/src/cpu/uparc_alu.v
 ${ULTIPARC_HOME}/rtl/src/cpu/uparc_ifu.v

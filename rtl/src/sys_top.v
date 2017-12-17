@@ -27,6 +27,7 @@
  * System top level
  */
 
+`include "config.vh"
 `include "common.vh"
 `include "ocp_const.vh"
 
@@ -95,7 +96,13 @@ wire timer_intr;
 
 
 /* IBus-to-OCP */
+`ifdef CONFIG_FABRIC2
+ibus2ocp2 ibus_ocp(
+	.clk(clk),
+	.nrst(nrst),
+`else
 ibus2ocp ibus_ocp(
+`endif
 	.i_IAddr(C_IAddr),
 	.i_IRdC(C_IRdC),
 	.o_IData(C_IData),
@@ -112,7 +119,13 @@ ibus2ocp ibus_ocp(
 
 
 /* DBus-to-OCP */
+`ifdef CONFIG_FABRIC2
+dbus2ocp2 dbus_ocp(
+	.clk(clk),
+	.nrst(nrst),
+`else
 dbus2ocp dbus_ocp(
+`endif
 	.i_DAddr(C_DAddr),
 	.i_DCmd(C_DCmd),
 	.i_DRnW(C_DRnW),
@@ -226,7 +239,11 @@ interval_timer timer(
 
 
 /* Fabric */
+`ifdef CONFIG_FABRIC2
+fabric2 fab(
+`else
 fabric fab(
+`endif
 	.clk(clk),
 	.nrst(nrst),
 	/* OCP interface: instructions (master) */

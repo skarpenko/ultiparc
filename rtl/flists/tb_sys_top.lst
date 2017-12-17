@@ -7,6 +7,11 @@
 src/fabric.v
 src/fabric_port.v
 src/fabric_port_demux.v
+src/fabric2.v
+src/fabric2_control.v
+src/fabric2_decoder.v
+src/fabric2_mswitch.v
+src/fabric2_sswitch.v
 src/memory.v
 src/interval_timer.v
 src/intr_controller.v
@@ -14,6 +19,8 @@ src/micro_uart.v
 src/sim_control.v
 src/ibus2ocp.v
 src/dbus2ocp.v
+src/ibus2ocp2.v
+src/dbus2ocp2.v
 src/sys_top.v
 src/cpu/uparc_cpu_top.v
 src/cpu/uparc_alu.v
