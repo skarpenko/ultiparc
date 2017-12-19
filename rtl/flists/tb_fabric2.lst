@@ -1,0 +1,16 @@
+# Fabric (version 2) testbench
+
++define+TRACE_FILE="tb_fabric2.vcd"
++timescale+1us/100ns
+src/fabric2.v
+src/fabric2_control.v
+src/fabric2_decoder.v
+src/fabric2_mswitch.v
+src/fabric2_sswitch.v
+src/dbus2ocp2.v
+src/memory.v
+src/interval_timer.v
+src/intr_controller.v
+src/micro_uart.v
+src/sim_control.v
+tb/tb_fabric2.v

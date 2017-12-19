@@ -38,7 +38,7 @@ module fabric2_control #(
 (
 	clk,
 	nrst,
-	/* Active transactions */
+	/* Active and completed transactions */
 	i_I_act,
 	i_I_done,
 	i_D_act,
@@ -118,11 +118,22 @@ wire confl = (i_portno == d_portno && instr_act && data_act);
 
 
 /* Slave ports switch control logic */
-assign o_p0_sswitch = (confl || (instr_act && i_portno == 'd0) ? 1'b0 : 1'b1);
-assign o_p1_sswitch = (confl || (instr_act && i_portno == 'd1) ? 1'b0 : 1'b1);
-assign o_p2_sswitch = (confl || (instr_act && i_portno == 'd2) ? 1'b0 : 1'b1);
-assign o_p3_sswitch = (confl || (instr_act && i_portno == 'd3) ? 1'b0 : 1'b1);
-assign o_p4_sswitch = (confl || (instr_act && i_portno == 'd4) ? 1'b0 : 1'b1);
+
+assign o_p0_sswitch = (!data_act_r && (confl || (instr_act && i_portno == 'd0)) ? 1'b0 : 1'b1);
+assign o_p1_sswitch = (!data_act_r && (confl || (instr_act && i_portno == 'd1)) ? 1'b0 : 1'b1);
+assign o_p2_sswitch = (!data_act_r && (confl || (instr_act && i_portno == 'd2)) ? 1'b0 : 1'b1);
+assign o_p3_sswitch = (!data_act_r && (confl || (instr_act && i_portno == 'd3)) ? 1'b0 : 1'b1);
+assign o_p4_sswitch = (!data_act_r && (confl || (instr_act && i_portno == 'd4)) ? 1'b0 : 1'b1);
+
+
+//TODO: instr is higher priority if there is no on-going data port transaction
+/*
+assign o_p0_sswitch = ((confl || (instr_act && i_portno == 'd0)) ? 1'b0 : 1'b1);
+assign o_p1_sswitch = ((confl || (instr_act && i_portno == 'd1)) ? 1'b0 : 1'b1);
+assign o_p2_sswitch = ((confl || (instr_act && i_portno == 'd2)) ? 1'b0 : 1'b1);
+assign o_p3_sswitch = ((confl || (instr_act && i_portno == 'd3)) ? 1'b0 : 1'b1);
+assign o_p4_sswitch = ((confl || (instr_act && i_portno == 'd4)) ? 1'b0 : 1'b1);
+*/
 
 
 /* Master ports switch control logic */

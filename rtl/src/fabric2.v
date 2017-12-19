@@ -123,6 +123,7 @@ wire			P_SCmdAccept[0:NPORTS-1];
 wire [`DATA_WIDTH-1:0]	P_SData[0:NPORTS-1];
 wire [1:0]		P_SResp[0:NPORTS-1];
 
+/* Port 0 (slave) */
 assign o_P0_MAddr = P_MAddr[0];
 assign o_P0_MCmd = P_MCmd[0];
 assign o_P0_MData = P_MData[0];
@@ -130,7 +131,7 @@ assign o_P0_MByteEn = P_MByteEn[0];
 assign P_SCmdAccept[0] = i_P0_SCmdAccept;
 assign P_SData[0] = i_P0_SData;
 assign P_SResp[0] = i_P0_SResp;
-
+/* Port 1 (slave) */
 assign o_P1_MAddr = P_MAddr[1];
 assign o_P1_MCmd = P_MCmd[1];
 assign o_P1_MData = P_MData[1];
@@ -138,7 +139,7 @@ assign o_P1_MByteEn = P_MByteEn[1];
 assign P_SCmdAccept[1] = i_P1_SCmdAccept;
 assign P_SData[1] = i_P1_SData;
 assign P_SResp[1] = i_P1_SResp;
-
+/* Port 2 (slave) */
 assign o_P2_MAddr = P_MAddr[2];
 assign o_P2_MCmd = P_MCmd[2];
 assign o_P2_MData = P_MData[2];
@@ -146,7 +147,7 @@ assign o_P2_MByteEn = P_MByteEn[2];
 assign P_SCmdAccept[2] = i_P2_SCmdAccept;
 assign P_SData[2] = i_P2_SData;
 assign P_SResp[2] = i_P2_SResp;
-
+/* Port 3 (slave) */
 assign o_P3_MAddr = P_MAddr[3];
 assign o_P3_MCmd = P_MCmd[3];
 assign o_P3_MData = P_MData[3];
@@ -154,7 +155,7 @@ assign o_P3_MByteEn = P_MByteEn[3];
 assign P_SCmdAccept[3] = i_P3_SCmdAccept;
 assign P_SData[3] = i_P3_SData;
 assign P_SResp[3] = i_P3_SResp;
-
+/* Port 4 (slave) */
 assign o_P4_MAddr = P_MAddr[4];
 assign o_P4_MCmd = P_MCmd[4];
 assign o_P4_MData = P_MData[4];
@@ -163,32 +164,7 @@ assign P_SCmdAccept[4] = i_P4_SCmdAccept;
 assign P_SData[4] = i_P4_SData;
 assign P_SResp[4] = i_P4_SResp;
 
-
-wire [`ADDR_WIDTH-1:0]	instr_decoded_addr;
-wire [PORTNO_WIDTH-1:0]	instr_portno;
-wire [`ADDR_WIDTH-1:0]	data_decoded_addr;
-wire [PORTNO_WIDTH-1:0]	data_portno;
-
-
-fabric2_decoder #(.PORTNO_WIDTH(PORTNO_WIDTH)) instr_addr_decoder(
-	.i_addr(i_I_MAddr),
-	.o_addr(instr_decoded_addr),
-	.o_portno(instr_portno)
-);
-
-fabric2_decoder #(.PORTNO_WIDTH(PORTNO_WIDTH)) data_addr_decoder(
-	.i_addr(i_D_MAddr),
-	.o_addr(data_decoded_addr),
-	.o_portno(data_portno)
-);
-
-
-wire instr_act = (i_I_MCmd != `OCP_CMD_IDLE ? 1'b1 : 1'b0);
-wire instr_done = (o_I_SResp != `OCP_RESP_NULL ? 1'b1 : 1'b0);
-wire data_act = (i_D_MCmd != `OCP_CMD_IDLE ? 1'b1 : 1'b0);
-wire data_done = (o_D_SResp != `OCP_RESP_NULL ? 1'b1 : 1'b0);
-
-
+/* Instructions master port destinations */
 wire [`ADDR_WIDTH-1:0]	instr_P_MAddr[0:NPORTS-1];
 wire [2:0]		instr_P_MCmd[0:NPORTS-1];
 wire [`DATA_WIDTH-1:0]	instr_P_MData[0:NPORTS-1];
@@ -197,6 +173,7 @@ wire			instr_P_SCmdAccept[0:NPORTS-1];
 wire [`DATA_WIDTH-1:0]	instr_P_SData[0:NPORTS-1];
 wire [1:0]		instr_P_SResp[0:NPORTS-1];
 
+/* Data master port destinations */
 wire [`ADDR_WIDTH-1:0]	data_P_MAddr[0:NPORTS-1];
 wire [2:0]		data_P_MCmd[0:NPORTS-1];
 wire [`DATA_WIDTH-1:0]	data_P_MData[0:NPORTS-1];
@@ -205,12 +182,41 @@ wire			data_P_SCmdAccept[0:NPORTS-1];
 wire [`DATA_WIDTH-1:0]	data_P_SData[0:NPORTS-1];
 wire [1:0]		data_P_SResp[0:NPORTS-1];
 
+/* Decoded addresses and port numbers */
+wire [`ADDR_WIDTH-1:0]	instr_decoded_addr;
+wire [PORTNO_WIDTH-1:0]	instr_portno;
+wire [`ADDR_WIDTH-1:0]	data_decoded_addr;
+wire [PORTNO_WIDTH-1:0]	data_portno;
+
+/* Master port switches control */
+wire [PORTNO_WIDTH-1:0]	i_mswitch;
+wire [PORTNO_WIDTH-1:0]	d_mswitch;
+/* Slave port switches control */
 wire			p_sswitch[0:NPORTS-1];
 
-wire [PORTNO_WIDTH-1:0]	i_mswitch;
-wire [PORTNO_WIDTH-1:0]	d_mswitch;	//XXX: better name?
+/* Active and completed transactions */
+wire instr_act = (i_I_MCmd != `OCP_CMD_IDLE ? 1'b1 : 1'b0);
+wire instr_done = (o_I_SResp != `OCP_RESP_NULL ? 1'b1 : 1'b0);
+wire data_act = (i_D_MCmd != `OCP_CMD_IDLE ? 1'b1 : 1'b0);
+wire data_done = (o_D_SResp != `OCP_RESP_NULL ? 1'b1 : 1'b0);
 
 
+/* Instructions master port address decoder */
+fabric2_decoder #(.PORTNO_WIDTH(PORTNO_WIDTH)) instr_addr_decoder(
+	.i_addr(i_I_MAddr),
+	.o_addr(instr_decoded_addr),
+	.o_portno(instr_portno)
+);
+
+/* Data master port address decoder */
+fabric2_decoder #(.PORTNO_WIDTH(PORTNO_WIDTH)) data_addr_decoder(
+	.i_addr(i_D_MAddr),
+	.o_addr(data_decoded_addr),
+	.o_portno(data_portno)
+);
+
+
+/* Instructions master port switch */
 fabric2_mswitch #(.PORTNO_WIDTH(PORTNO_WIDTH)) instr_mswitch(
 	.i_portno(i_mswitch),
 	/* OCP interface: instructions/data (master) */
@@ -263,9 +269,7 @@ fabric2_mswitch #(.PORTNO_WIDTH(PORTNO_WIDTH)) instr_mswitch(
 	.i_P4_SResp(instr_P_SResp[4])
 );
 
-
-
-
+/* Data master port switch */
 fabric2_mswitch #(.PORTNO_WIDTH(PORTNO_WIDTH)) data_mswitch(
 	.i_portno(d_mswitch),
 	/* OCP interface: instructions/data (master) */
@@ -319,6 +323,7 @@ fabric2_mswitch #(.PORTNO_WIDTH(PORTNO_WIDTH)) data_mswitch(
 );
 
 
+/* Generate slave port switches */
 genvar i;
 generate
 for (i=0; i<NPORTS; i=i+1)
@@ -354,23 +359,22 @@ end
 endgenerate
 
 
-
-
+/* Control and arbitration */
 fabric2_control #(.PORTNO_WIDTH(PORTNO_WIDTH)) control(
 	.clk(clk),
 	.nrst(nrst),
-	/**/
+	/* Active and completed transactions */
 	.i_I_act(instr_act),
-	.i_D_act(data_act),
 	.i_I_done(instr_done),
+	.i_D_act(data_act),
 	.i_D_done(data_done),
-	/**/
+	/* Port numbers */
 	.i_I_portno(instr_portno),
 	.i_D_portno(data_portno),
-	/**/
+	/* Master port switches control */
 	.o_I_mswitch(i_mswitch),
 	.o_D_mswitch(d_mswitch),
-	/**/
+	/* Slave port switches control */
 	.o_p0_sswitch(p_sswitch[0]),
 	.o_p1_sswitch(p_sswitch[1]),
 	.o_p2_sswitch(p_sswitch[2]),

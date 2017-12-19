@@ -10,6 +10,7 @@ TESTBENCHES := \
 	tb_micro_uart \
 	tb_memory \
 	tb_fabric \
+	tb_fabric2 \
 	tb_sys_top
 
 

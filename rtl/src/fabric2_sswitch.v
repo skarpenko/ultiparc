@@ -73,19 +73,6 @@ input wire [1:0]		i_P_SResp;
 
 always @(*)
 begin
-/*
-	o_I_SCmdAccept = 1'b0;
-	o_I_SData = { (`DATA_WIDTH){1'b0} };
-	o_I_SResp = 2'b00;
-	o_D_SCmdAccept = 1'b0;
-	o_D_SData = { (`DATA_WIDTH){1'b0} };
-	o_D_SResp = 2'b00;
-	o_P_MAddr = { (`ADDR_WIDTH){1'b0} };
-	o_P_MCmd = 3'b000;
-	o_P_MData = { (`DATA_WIDTH){1'b0} };
-	o_P_MByteEn = { (`BEN_WIDTH){1'b0} };
-*/
-
 	if(!i_port_sel)
 	begin
 		o_P_MAddr = i_I_MAddr;
@@ -95,9 +82,9 @@ begin
 		o_I_SCmdAccept = i_P_SCmdAccept;
 		o_I_SData = i_P_SData;
 		o_I_SResp = i_P_SResp;
-			o_D_SCmdAccept = 1'b0;
-			o_D_SData = { (`DATA_WIDTH){1'b0} };
-			o_D_SResp = 2'b00;
+		o_D_SCmdAccept = 1'b0;
+		o_D_SData = { (`DATA_WIDTH){1'b0} };
+		o_D_SResp = 2'b00;
 	end
 	else
 	begin
@@ -105,9 +92,9 @@ begin
 		o_P_MCmd = i_D_MCmd;
 		o_P_MData = i_D_MData;
 		o_P_MByteEn = i_D_MByteEn;
-			o_I_SCmdAccept = 1'b0;
-			o_I_SData = { (`DATA_WIDTH){1'b0} };
-			o_I_SResp = 2'b00;
+		o_I_SCmdAccept = 1'b0;
+		o_I_SData = { (`DATA_WIDTH){1'b0} };
+		o_I_SResp = 2'b00;
 		o_D_SCmdAccept = i_P_SCmdAccept;
 		o_D_SData = i_P_SData;
 		o_D_SResp = i_P_SResp;
