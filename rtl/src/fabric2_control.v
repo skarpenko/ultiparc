@@ -88,6 +88,7 @@ wire			data_act = i_D_act || data_act_r;
 wire [PORTNO_WIDTH-1:0]	i_portno = i_I_act ? i_I_portno : i_portno_r;
 wire [PORTNO_WIDTH-1:0]	d_portno = i_D_act ? i_D_portno : d_portno_r;
 
+reg sw;
 
 
 always @(posedge clk or negedge nrst)
@@ -98,6 +99,7 @@ begin
 		data_act_r <= 1'b0;
 		i_portno_r <= { (PORTNO_WIDTH){1'b0} };
 		d_portno_r <= { (PORTNO_WIDTH){1'b0} };
+		sw <= 1'b0;
 	end
 	else
 	begin
@@ -109,6 +111,12 @@ begin
 
 		if(i_D_act)
 			d_portno_r <= i_D_portno;
+
+		if(instr_act && !confl)
+			sw <= 1'b0;
+
+		if(data_act && !confl)
+			sw <= 1'b1;
 	end
 end
 
@@ -119,14 +127,20 @@ wire confl = (i_portno == d_portno && instr_act && data_act);
 
 /* Slave ports switch control logic */
 
+assign o_p0_sswitch = !confl ? ((instr_act && i_portno == 'd0) ? 1'b0 : 1'b1) : sw;
+assign o_p1_sswitch = !confl ? ((instr_act && i_portno == 'd1) ? 1'b0 : 1'b1) : sw;
+assign o_p2_sswitch = !confl ? ((instr_act && i_portno == 'd2) ? 1'b0 : 1'b1) : sw;
+assign o_p3_sswitch = !confl ? ((instr_act && i_portno == 'd3) ? 1'b0 : 1'b1) : sw;
+assign o_p4_sswitch = !confl ? ((instr_act && i_portno == 'd4) ? 1'b0 : 1'b1) : sw;
+
+/*
 assign o_p0_sswitch = (!data_act_r && (confl || (instr_act && i_portno == 'd0)) ? 1'b0 : 1'b1);
 assign o_p1_sswitch = (!data_act_r && (confl || (instr_act && i_portno == 'd1)) ? 1'b0 : 1'b1);
 assign o_p2_sswitch = (!data_act_r && (confl || (instr_act && i_portno == 'd2)) ? 1'b0 : 1'b1);
 assign o_p3_sswitch = (!data_act_r && (confl || (instr_act && i_portno == 'd3)) ? 1'b0 : 1'b1);
 assign o_p4_sswitch = (!data_act_r && (confl || (instr_act && i_portno == 'd4)) ? 1'b0 : 1'b1);
+*/
 
-
-//TODO: instr is higher priority if there is no on-going data port transaction
 /*
 assign o_p0_sswitch = ((confl || (instr_act && i_portno == 'd0)) ? 1'b0 : 1'b1);
 assign o_p1_sswitch = ((confl || (instr_act && i_portno == 'd1)) ? 1'b0 : 1'b1);
