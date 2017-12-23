@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -124,7 +124,7 @@ begin
 end
 
 
-/* State/configurtion update */
+/* State/configuration update */
 always @(posedge clk or negedge nrst)
 begin
 	if(!nrst)
@@ -135,7 +135,7 @@ begin
 	end
 	else if(i_MCmd == `OCP_CMD_WRITE)
 	begin
-		/* Interrut acknowledge happens on write to interrupt status  */
+		/* Interrupt acknowledge happens on write to interrupt status  */
 		iack <= i_MAddr == ISTATREG ? 1'b1 : 1'b0;
 
 		if(i_MAddr == ISTATREG)

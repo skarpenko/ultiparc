@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,7 +46,7 @@ typedef signed long long __extended_t;
 /* Fixed-point 0.0 value */
 #define FXP_ZERO	(fixed_t)(0)
 
-/* Convertion to fixed-point for integer values */
+/* Conversion to fixed-point for integer values */
 #define FXP_INTEGER(a)	(fixed_t)((a)<<FXP_FRAC_BITS)
 
 /* Addition */
