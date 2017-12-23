@@ -203,7 +203,7 @@ module tb_fabric2();
 	end
 	endtask
 
-	/* Issue instructions and data port read/write */
+	/* Issue instruction and data ports read/write */
 	task id_bus_rdwr;
 	input i_rnw;
 	input [`ADDR_WIDTH-1:0] i_addr;
@@ -244,7 +244,7 @@ module tb_fabric2();
 	end
 	endtask
 
-	/* Issue instructions and data port read/write (data 1 clock delay) */
+	/* Issue instruction and data ports read/write (data 1 clock delay) */
 	task id_bus_rdwr_d1;
 	input i_rnw;
 	input [`ADDR_WIDTH-1:0] i_addr;
@@ -289,7 +289,7 @@ module tb_fabric2();
 	end
 	endtask
 
-	/* Issue instructions and data port read/write (instructions 1 clock delay) */
+	/* Issue instruction and data ports read/write (instructions 1 clock delay) */
 	task id_bus_rdwr_i1;
 	input i_rnw;
 	input [`ADDR_WIDTH-1:0] i_addr;
@@ -364,21 +364,47 @@ module tb_fabric2();
 		#(2*PCLK)
 
 
-		/* Non overlapped access */
+		/* Non-overlapped memory access */
 		i_bus_write(32'h0000_0004, 32'hf1f2_f3f4, 4'hf);
 
-//		wait_pos_clk();
-//		wait_pos_clk();
+		wait_pos_clk();
+		wait_pos_clk();
+		wait_pos_clk();
 
 		d_bus_write(32'h0000_0008, 32'hf5f6_f7f8, 4'hf);
 
 		wait_pos_clk();
 		wait_pos_clk();
+		wait_pos_clk();
 
-		/* Overlapped access (conflict) */
+		/* Simultaneous memory access (conflict #1) */
+		id_bus_rdwr(1'b1, 32'h0000_0004, 32'hf1f2_f3f4, 4'hf,
+			1'b1, 32'h0000_0008, 32'hf5f6_f7f8, 4'hf);
+
+		wait_pos_clk();
+		wait_pos_clk();
+		wait_pos_clk();
+
+		/* Non-overlapped memory access */
+		i_bus_write(32'h0000_0004, 32'hf1f2_f3f4, 4'hf);
+
+		wait_pos_clk();
+		wait_pos_clk();
+		wait_pos_clk();
+
+		/* Simultaneous memory access (conflict #2) */
+		id_bus_rdwr(1'b1, 32'h0000_0004, 32'hf1f2_f3f4, 4'hf,
+			1'b1, 32'h0000_0008, 32'hf5f6_f7f8, 4'hf);
+
+		wait_pos_clk();
+		wait_pos_clk();
+		wait_pos_clk();
+
+		/* Overlapped memory access (conflict) */
 		id_bus_rdwr_d1(1'b0, 32'h0000_0004, 32'hf1f2_f3f4, 4'hf,
 			1'b0, 32'h0000_0008, 32'hf5f6_f7f8, 4'hf);
 
+		wait_pos_clk();
 		wait_pos_clk();
 		wait_pos_clk();
 
@@ -387,18 +413,21 @@ module tb_fabric2();
 
 		wait_pos_clk();
 		wait_pos_clk();
+		wait_pos_clk();
 
-		/* Simultaneous access (conflict) */
+		/* Simultaneous peripheral access (conflict) */
 		id_bus_rdwr(1'b0, UART_CHARREG, "!", 4'hf,
 			1'b0, UART_CHARREG, "\n", 4'hf);
 
 		wait_pos_clk();
 		wait_pos_clk();
+		wait_pos_clk();
 
-		/* Simultaneous access */
+		/* Simultaneous peripheral access (no conflict) */
 		id_bus_rdwr(1'b1, IC_IMASKREG, 32'h0, 4'hf,
 			1'b1, TMR_CURRREG, 32'h0, 4'hf);
 
+		wait_pos_clk();
 		wait_pos_clk();
 		wait_pos_clk();
 
