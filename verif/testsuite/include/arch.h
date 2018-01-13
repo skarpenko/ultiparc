@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2018 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -194,7 +194,9 @@ static inline u32 rdtsc_hi(void)
 /* Read timestamp counter */
 static inline u64 rdtsc(void)
 {
-	return ((u64)rdtsc_hi() << 32) | rdtsc_lo();
+	u32 lo = rdtsc_lo();	/* Read lower half first to latch upper half */
+	u32 hi = rdtsc_hi();
+	return ((u64)hi << 32) | lo;
 }
 
 
