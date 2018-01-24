@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2018 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -27,6 +27,7 @@
  * Verilated cycle accurate system model.
  */
 
+#include <stdio.h>		// For fflush(stdout)
 #include <iostream>
 #include <iomanip>
 #include <string>
@@ -158,6 +159,11 @@ int main(int argc, char **argv)
 #if VM_TRACE
 		if (tfp) tfp->dump (main_time);			// Dump waveforms
 #endif
+
+#if !defined(_NO_FFLUSH)
+		fflush(stdout);					// Flush stdout
+#endif
+
 		++main_time;					// Time passes...
 	}
 

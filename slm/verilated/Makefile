@@ -12,6 +12,12 @@ VL_FLAGS += --trace
 endif
 
 
+# Disable stdout flushing
+ifneq (,$(filter $(NFLUSH),1 y yes))
+VL_FLAGS += -CFLAGS "-D_NO_FFLUSH"
+endif
+
+
 # Main goal
 .PHONY: all
 all: $(TARGET)
@@ -23,7 +29,8 @@ help:
 	@echo "Ultiparc Verilated system model"
 	@echo "==============================="
 	@echo "Options:"
-	@echo "  TRACE=1  - enable tracing support."
+	@echo "  TRACE=1   - enable tracing support;"
+	@echo "  NFLUSH=1  - disable stdout flushing on each cycle."
 
 
 $(TARGET): $(TARGET_DEP)
