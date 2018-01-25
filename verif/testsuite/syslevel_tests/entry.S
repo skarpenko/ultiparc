@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2018 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -115,6 +115,7 @@ __zero_sbss2_end:
 	mfc0 $t1, $SR
 	and $t1, $t1, $t0
 	mtc0 $t1, $SR	/* Disable interrupts */
+	nop
 __hang:
 	j __hang
 	nop
@@ -198,6 +199,7 @@ __exception_entry:
 	mfc0 $t1, $SR
 	and $t1, $t1, $t0
 	mtc0 $t1, $SR
+	nop
 
 	/* Restore general purpose registers */
 	lw $at, 35*CPU_REG_SIZE($sp)

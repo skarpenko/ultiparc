@@ -113,17 +113,30 @@ static inline void writel(u32 v, addr_t addr)
 }
 
 
+/*
+ * NOTE: According to current microarchitecture on interrupts enable first
+ * interrupt may happen on third instruction following write of "1" to SR.IE and
+ * two "nop" instructions might need to be inserted after write, on interrupts
+ * disable instruction following write of "0" to SR.IE can be interrupted and
+ * one "nop" instruction must be inserted after write to avoid races.
+ */
+
+
 /* Enable interrupts */
 static inline void interrupts_enable(void)
 {
 	__asm__ __volatile__ (
-		"li $t0, 1        ;"
-		"mfc0 $t1, $12    ;"
-		"or $t1, $t1, $t0 ;"
-		"mtc0 $t1, $12    ;"
+		".set push        ;"
+		".set noreorder   ;"
+		"mfc0 $t0, $12    ;"
+		"ori $t0, $t0, 1  ;"
+		"mtc0 $t0, $12    ;"
+		"nop              ;"
+		"nop              ;"
+		".set pop         ;"
 		:
 		:
-		: "$t0", "$t1"
+		: "$t0"
 	);
 }
 
@@ -133,14 +146,17 @@ static inline unsigned long interrupts_disable(void)
 {
 	u32 v;
 	__asm__ __volatile__ (
+		".set push         ;"
+		".set noreorder    ;"
+		"mfc0 %0, $12      ;"
 		"li $t0, ~1        ;"
-		"mfc0 $t1, $12     ;"
-		"and $t0, $t1, $t0 ;"
-		"mtc0 $t1, $12     ;"
-		"move %0, $t1      ;"
+		"and $t0, %0, $t0  ;"
+		"mtc0 $t0, $12     ;"
+		"nop               ;"
+		".set pop          ;"
 		: "=r" (v)
 		:
-		: "$t0", "$t1"
+		: "$t0"
 	);
 
 	return v & 0x01;
@@ -151,12 +167,19 @@ static inline unsigned long interrupts_disable(void)
 static inline void interrupts_restore(unsigned long state)
 {
 	__asm__ __volatile__ (
-		"mfc0 $t0, $12   ;"
-		"or $t0, $t0, %0 ;"
-		"mtc0 $t1, $12   ;"
+		".set push             ;"
+		".set noreorder        ;"
+		"mfc0 $t0, $12         ;"
+		"li $t1, ~1            ;"
+		"and $t0, $t0, $t1     ;"
+		"or $t0, $t0, %0       ;"
+		"mtc0 $t0, $12         ;"
+		"nop                   ;"
+		"nop                   ;"
+		".set pop              ;"
 		:
 		: "r" (state)
-		: "$t0"
+		: "$t0", "$t1"
 	);
 }
 
@@ -166,7 +189,10 @@ static inline u32 rdtsc_lo(void)
 {
 	u32 v;
 	__asm__ __volatile__ (
+		".set push       ;"
+		".set noreorder  ;"
 		"mfc0 %0, $8     ;"
+		".set pop        ;"
 		: "=r" (v)
 		:
 		:
@@ -181,7 +207,10 @@ static inline u32 rdtsc_hi(void)
 {
 	u32 v;
 	__asm__ __volatile__ (
+		".set push       ;"
+		".set noreorder  ;"
 		"mfc0 %0, $9     ;"
+		".set pop        ;"
 		: "=r" (v)
 		:
 		:
@@ -196,6 +225,17 @@ static inline u64 rdtsc(void)
 {
 	u32 lo = rdtsc_lo();	/* Read lower half first to latch upper half */
 	u32 hi = rdtsc_hi();
+	return ((u64)hi << 32) | lo;
+}
+
+
+/* Read timestamp counter (interrupt safe) */
+static inline u64 rdtsc_safe(void)
+{
+	unsigned long intstate = interrupts_disable();
+	u32 lo = rdtsc_lo();
+	u32 hi = rdtsc_hi();
+	interrupts_restore(intstate);
 	return ((u64)hi << 32) | lo;
 }
 
