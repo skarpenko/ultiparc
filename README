@@ -10,7 +10,7 @@ PREREQUISITES
 
   Here is the list of prerequisites required to play with current sources:
 
-  * SystemC v2.3.1 (http://accelera.org/). Hardware simulation language
+  * SystemC v2.3.1 (http://accellera.org/). Hardware simulation language
     based on C++. Ultiparc system model is developed using this tool.
     SystemC must be properly installed in the system and SYSTEMC_HOME
     environment variable should be set to SystemC installation path.
