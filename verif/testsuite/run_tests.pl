@@ -141,6 +141,12 @@ my @tests = (
 		hex_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/syslevel_tests/timer.hex"
 	},
 	{
+		name => "Counting Interrupts",
+		type => TEST_SYSLVL,
+		bin_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/syslevel_tests/count_intr.bin",
+		hex_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/syslevel_tests/count_intr.hex"
+	},
+	{
 		name => "Memory Block Copy",
 		type => TEST_SYSLVL,
 		bin_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/syslevel_tests/memcopy.bin",

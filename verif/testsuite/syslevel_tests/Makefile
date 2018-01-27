@@ -4,6 +4,7 @@
 # Test programs list
 TESTS := \
 	timer.elf \
+	count_intr.elf \
 	memcopy.elf \
 	matrix_mul.elf \
 	fxp_fft.elf \
@@ -14,6 +15,7 @@ TESTS := \
 
 # Lists of object files
 timer.elf := entry.o timer.o
+count_intr.elf := entry.o count_intr.o
 memcopy.elf := entry.o memcopy.o common.o
 matrix_mul.elf := entry.o matrix_mul.o
 fxp_fft.elf := entry.o fxp_fft.o
@@ -39,6 +41,10 @@ all: $(TARGETS)
 
 timer.elf: $(timer.elf)
 	$(GCC_PREFIX)ld -T $(ULTIPARC_HOME)/verif/testsuite/common/hw.ld -o $@ $(timer.elf) $(LDFLAGS)
+
+
+count_intr.elf: $(count_intr.elf)
+	$(GCC_PREFIX)ld -T $(ULTIPARC_HOME)/verif/testsuite/common/hw.ld -o $@ $(count_intr.elf) $(LDFLAGS)
 
 
 memcopy.elf: $(memcopy.elf)
