@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2018 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -229,6 +229,7 @@ private:
 	// Check exception state
 	bool check_except(bool delay_slot = false);
 	// Check external interrupt active state
+	bool intr_valid(void);
 	bool check_intr(void);
 
 	//// INSTRUCTIONS
@@ -298,6 +299,30 @@ private:
 	//	None
 	//
 	void instr_rfe(uint32_t instr);
+
+	//
+	// WAIT  Wait for Event
+	//
+	// 31          26 25       21 20       16 15       11 10        6 5            0
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	// |     COP0    |     CO    |           |           |           |    WAIT     |
+	// | 0 1 0 0 0 0 | 1 0 0 0 0 | 0 0 0 0 0 | 0 0 0 0 0 | 0 0 0 0 0 | 1 0 0 0 0 0 |
+	// |             |           |           |           |           |             |
+	// +-------------+-----------+-----------+-----------+-----------+-------------+
+	//         6            5          5           5            5           6
+	//
+	// Format:
+	//	WAIT
+	// Description:
+	//	The WAIT instruction is typically implemented by stalling the
+	//	pipeline at the completion of the instruction and entering a lower
+	//	power mode. The pipeline is restarted when an external event, such
+	//	as an interrupt or external request occurs, and execution continues
+	//	with the instruction following the WAIT instruction.
+	// Exceptions:
+	//	None
+	//
+	void instr_wait(uint32_t instr);
 
 	//
 	// SLL  Shift Word Left Logical
@@ -1972,9 +1997,15 @@ inline bool cpu_top::check_except(bool delay_slot)
 }
 
 
+inline bool cpu_top::intr_valid(void)
+{
+	return (m_interrupt && (m_sr & 0x1)) ? true : false;
+}
+
+
 inline bool cpu_top::check_intr(void)
 {
-	if(m_interrupt && (m_sr & 0x1)) {
+	if(intr_valid()) {
 		m_epc = m_next_pc;
 		m_psr = m_sr;
 		m_sr = 0;
@@ -2073,6 +2104,22 @@ inline void cpu_top::instr_rfe(uint32_t instr)
 
 	if(iw.r.func == 16 && !iw.r.rd && !iw.r.rt && !iw.r.shamt) {
 		m_sr = m_psr;
+	} else {
+		m_except = EX_RSVD_INSTR;
+	}
+}
+
+
+inline void cpu_top::instr_wait(uint32_t instr)
+{
+	instruction iw;
+	iw.word = instr;
+
+	if(iw.r.func == 32 && !iw.r.rd && !iw.r.rt && !iw.r.shamt) {
+		if(!intr_valid()) {
+			m_next_pc = m_pc; // stay on WAIT instruction
+			m_tsc += 3; // simulate running timestamp counter
+		}
 	} else {
 		m_except = EX_RSVD_INSTR;
 	}
@@ -3026,7 +3073,12 @@ inline void cpu_top::exec_cop0(uint32_t instr, bool dslot)
 			instr_mtc0(instr);
 			break;
 		case 16:
-			instr_rfe(instr);
+			if(iw.r.func == 16)
+				instr_rfe(instr);
+			else if (iw.r.func == 32)
+				instr_wait(instr);
+			else
+				m_except = EX_RSVD_INSTR;
 			break;
 		default:
 			m_except = EX_RSVD_INSTR;
