@@ -49,7 +49,7 @@
 #define PRID	15	/* Processor Id */
 
 
-#ifndef __ASSEMBLY__
+#if !defined(__ASSEMBLY__)
 
 /* Interrupt stack frame */
 struct interrupt_frame {
@@ -184,6 +184,43 @@ static inline void interrupts_restore(unsigned long state)
 }
 
 
+/* Wait for interrupt */
+static inline void waiti(void)
+{
+	__asm__ __volatile__ (
+		".set push        ;"
+		".set noreorder   ;"
+		".long 0x42000020 ;"
+		"nop              ;"
+		"nop              ;"
+		".set pop         ;"
+		:
+		:
+		:
+	);
+}
+
+
+/* Enable interrupts and wait for interrupt */
+static inline void waiti_safe(void)
+{
+	__asm__ __volatile__ (
+		".set push        ;"
+		".set noreorder   ;"
+		"mfc0 $t0, $12    ;"
+		"ori $t0, $t0, 1  ;"
+		"mtc0 $t0, $12    ;"
+		".long 0x42000020 ;"
+		"nop              ;"
+		"nop              ;"
+		".set pop         ;"
+		:
+		:
+		: "$t0"
+	);
+}
+
+
 /* Read lower half of timestamp counter */
 static inline u32 rdtsc_lo(void)
 {
@@ -264,6 +301,13 @@ static inline u32* init_task_stack(u32 *stack, u32 entry)
 	iframe->gp = (u32)&_gp;
 	return stack;
 }
+
+
+#elif defined(__ASSEMBLY__)
+
+
+/* WAIT instruction code */
+#define WAITI	.long 0x42000020
 
 
 #endif /* __ASSEMBLY__ */
