@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2018 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,6 +40,7 @@ module uparc_memory_access(
 	i_exec_stall,
 	o_mem_stall,
 	i_fetch_stall,
+	i_wait_stall,
 	o_bus_error,
 	o_addr_error,
 	i_nullify,
@@ -78,6 +79,7 @@ input wire				nrst;
 input wire				i_exec_stall;
 output wire				o_mem_stall;
 input wire				i_fetch_stall;
+input wire				i_wait_stall;
 output wire				o_bus_error;
 output wire				o_addr_error;
 input wire				i_nullify;
@@ -102,7 +104,7 @@ output reg [`UPARC_REGNO_WIDTH-1:0]	o_rd_no;
 output reg [`UPARC_REG_WIDTH-1:0]	o_rd_val;
 
 
-wire core_stall = i_exec_stall || o_mem_stall || i_fetch_stall;
+wire core_stall = i_exec_stall || o_mem_stall || i_fetch_stall || i_wait_stall;
 
 
 assign o_mem_stall = lsu_busy;

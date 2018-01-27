@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2018 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,6 +40,7 @@ module uparc_coproc0(
 	i_exec_stall,
 	i_mem_stall,
 	i_fetch_stall,
+	i_wait_stall,
 	o_decode_error,
 	i_except_start,
 	i_except_dly_slt,
@@ -52,6 +53,7 @@ module uparc_coproc0(
 	/* COP0 signals */
 	o_cop0_ivtbase,
 	o_cop0_ie,
+	o_cop0_intr_wait,
 	/* Fetched instruction */
 	i_instr,
 	/* Decoded instr */
@@ -82,6 +84,7 @@ input wire				nrst;
 input wire				i_exec_stall;
 input wire				i_mem_stall;
 input wire				i_fetch_stall;
+input wire				i_wait_stall;
 output reg				o_decode_error;
 input wire				i_except_start;
 input wire				i_except_dly_slt;
@@ -94,6 +97,7 @@ input wire				i_nullify_wb;
 /* COP0 signals */
 output wire [`UPARC_ADDR_WIDTH-11:0]	o_cop0_ivtbase;
 output wire				o_cop0_ie;
+output wire				o_cop0_intr_wait;
 /* Fetched instruction */
 input wire [`UPARC_INSTR_WIDTH-1:0]	i_instr;
 /* Decoded instr */
@@ -106,11 +110,12 @@ output wire [`UPARC_REGNO_WIDTH-1:0]	o_cop0_rt_no_p1;
 input wire [`UPARC_REG_WIDTH-1:0]	i_cop0_alu_result_p2;
 
 
-wire core_stall = i_exec_stall || i_mem_stall || i_fetch_stall;
+wire core_stall = i_exec_stall || i_mem_stall || i_fetch_stall || i_wait_stall;
 
 
 assign o_cop0_ivtbase = reg_ivt;
 assign o_cop0_ie = reg_sr_ie;
+assign o_cop0_intr_wait = intr_wait;
 
 
 /* Coprocessor 0 registers */
@@ -123,7 +128,9 @@ wire [`UPARC_DATA_WIDTH-1:0]	reg_prid;	/* Processor ID R/O register (reg 0xF) */
 assign reg_prid = `UPARC_PROCID_CODE;
 
 
-reg [`UPARC_INSTR_WIDTH-1:0] instr;	/* Instruction word */
+reg [`UPARC_INSTR_WIDTH-1:0]	instr;		/* Instruction word */
+reg				intr_wait;	/* Interrupt wait state */
+
 
 
 /******************************* DECODE STAGE *********************************/
@@ -198,7 +205,9 @@ begin
 		`UPARC_COP0_MF,
 		`UPARC_COP0_MT: o_decode_error = |{ rsvd, func } ? 1'b1 : 1'b0;
 		`UPARC_COP0_CO: o_decode_error =
-			|{ rt, rd, rsvd } || func != `UPARC_COP0_FUNC_RFE ? 1'b1 : 1'b0;
+			|{ rt, rd, rsvd } ||
+				(func != `UPARC_COP0_FUNC_RFE && func != `UPARC_COP0_FUNC_WAIT) ?
+					1'b1 : 1'b0;
 		default: o_decode_error = 1'b1;
 		endcase
 	end
@@ -308,6 +317,7 @@ begin
 		reg_sr_ie <= 1'b0;
 		reg_cause_bd <= 1'b0;
 		reg_epc <= {(`UPARC_ADDR_WIDTH){1'b0}};
+		intr_wait <= 1'b0;
 	end
 	else if(!core_stall && !i_nullify_wb)
 	begin
@@ -318,6 +328,10 @@ begin
 				reg_sr_ie <= reg_psr_ie;
 				reg_psr_ie <= 1'b0;
 			end
+			`UPARC_COP0_FUNC_WAIT: begin
+				intr_wait <= 1'b1;
+			end
+			default: ;
 			endcase
 		end
 		else if(cop_instr_p3 && cop_p3 == `UPARC_COP0_MT)
@@ -328,6 +342,7 @@ begin
 			SR: reg_sr_ie <= cop_reg_val_p3[0];
 			CAUSE: reg_cause_bd <= cop_reg_val_p3[31];
 			EPC: reg_epc <= cop_reg_val_p3;
+			default: ;
 			endcase
 		end
 	end
@@ -337,6 +352,7 @@ begin
 		reg_sr_ie <= 1'b0;
 		reg_cause_bd <= !i_except_dly_slt ? 1'b0 : 1'b1;
 		reg_epc <= !i_except_dly_slt ? i_except_raddr : i_except_raddr_dly;
+		intr_wait <= 1'b0;
 	end
 end
 

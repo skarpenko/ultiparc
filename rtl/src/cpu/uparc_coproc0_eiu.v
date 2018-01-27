@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2018 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,10 +42,12 @@ module uparc_coproc0_eiu(
 	i_exec_stall,
 	i_mem_stall,
 	i_fetch_stall,
+	o_wait_stall,
 	i_jump_valid,
 	/* COP0 signals */
 	i_cop0_ivtbase,
 	i_cop0_ie,
+	i_cop0_intr_wait,
 	/* Exception signals */
 	o_except_start,
 	o_except_dly_slt,
@@ -86,10 +88,12 @@ input wire 				i_intr;
 input wire				i_exec_stall;
 input wire				i_mem_stall;
 input wire				i_fetch_stall;
+output wire				o_wait_stall;
 input wire				i_jump_valid;
 /* COP0 signals */
 input wire [`UPARC_ADDR_WIDTH-11:0]	i_cop0_ivtbase;
 input wire				i_cop0_ie;
+input wire				i_cop0_intr_wait;
 /* Exception signals */
 output wire				o_except_start;
 output wire				o_except_dly_slt;
@@ -113,7 +117,7 @@ output wire				o_nullify_mem;
 output wire				o_nullify_wb;
 
 
-wire core_stall = i_exec_stall || i_mem_stall || i_fetch_stall;
+wire core_stall = i_exec_stall || i_mem_stall || i_fetch_stall || o_wait_stall;
 
 
 assign o_nullify_fetch = ex_state_p0 || ex_state_p1 || ex_state_p2 || ex_state_p3;
@@ -285,6 +289,11 @@ end
 
 reg intr_valid;
 reg intr_latch;
+
+
+/* Interrupt wait stall condition */
+assign o_wait_stall = i_cop0_intr_wait && !intr_latch && !intr_valid && !intr_reg;
+
 
 always @(posedge clk or negedge nrst)
 begin

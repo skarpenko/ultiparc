@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2018 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -149,6 +149,7 @@
 
 /* Coprocessor 0 function codes */
 `define UPARC_COP0_FUNC_RFE	6'b010000
+`define UPARC_COP0_FUNC_WAIT	6'b100000
 
 
 /* Exception vectors */

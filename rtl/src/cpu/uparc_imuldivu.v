@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2018 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,6 +40,7 @@ module uparc_imuldivu(
 	o_exec_stall,
 	i_mem_stall,
 	i_fetch_stall,
+	i_wait_stall,
 	i_nullify_execute,
 	i_nullify_mem,
 	i_nullify_wb,
@@ -59,6 +60,7 @@ input wire				nrst;
 output wire				o_exec_stall;
 input wire				i_mem_stall;
 input wire				i_fetch_stall;
+input wire				i_wait_stall;
 input wire				i_nullify_execute;
 input wire				i_nullify_mem;
 input wire				i_nullify_wb;
@@ -73,7 +75,7 @@ output reg				o_imuldiv_rd_valid;
 
 
 /* Stall logic */
-wire core_stall = o_exec_stall || i_mem_stall || i_fetch_stall;
+wire core_stall = o_exec_stall || i_mem_stall || i_fetch_stall || i_wait_stall;
 assign o_exec_stall = !i_mem_stall && !i_fetch_stall && !muldiv_ready && interlock_instr;
 
 

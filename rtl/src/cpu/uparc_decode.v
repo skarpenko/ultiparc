@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2018 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,6 +41,7 @@ module uparc_decode(
 	i_exec_stall,
 	i_mem_stall,
 	i_fetch_stall,
+	i_wait_stall,
 	o_decode_error,
 	i_nullify,
 	/* Coprocessor 0 */
@@ -76,6 +77,7 @@ input wire [`UPARC_ADDR_WIDTH-1:0]	i_pc;
 input wire				i_exec_stall;
 input wire				i_mem_stall;
 input wire				i_fetch_stall;
+input wire				i_wait_stall;
 output reg				o_decode_error;
 input wire				i_nullify;
 /* Coprocessor 0 */
@@ -101,7 +103,7 @@ output reg				o_lsu_lns;
 output reg				o_lsu_ext;
 
 
-wire core_stall = i_exec_stall || i_mem_stall || i_fetch_stall;
+wire core_stall = i_exec_stall || i_mem_stall || i_fetch_stall || i_wait_stall;
 
 
 reg [`UPARC_INSTR_WIDTH-1:0] instr;	/* Instruction word */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2018 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,6 +42,7 @@ module uparc_execute(
 	i_exec_stall,
 	i_mem_stall,
 	i_fetch_stall,
+	i_wait_stall,
 	o_overfl_error,
 	o_addr_error,
 	o_syscall_trap,
@@ -89,6 +90,7 @@ input wire [`UPARC_ADDR_WIDTH-1:0]	i_pc_p1;
 input wire				i_exec_stall;
 input wire				i_mem_stall;
 input wire				i_fetch_stall;
+input wire				i_wait_stall;
 output wire				o_overfl_error;
 output wire				o_addr_error;
 output reg				o_syscall_trap;
@@ -126,7 +128,7 @@ output reg				o_lsu_ext;
 output reg [`UPARC_DATA_WIDTH-1:0]	o_mem_data;
 
 
-wire core_stall = i_exec_stall || i_mem_stall || i_fetch_stall;
+wire core_stall = i_exec_stall || i_mem_stall || i_fetch_stall || i_wait_stall;
 
 
 assign o_jump_addr = alu_result;

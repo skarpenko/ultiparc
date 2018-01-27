@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2018 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -119,7 +119,8 @@ wire				lsu_err_bus;
 wire				exec_stall;
 wire				mem_stall;
 wire				fetch_stall;
-wire				core_stall = fetch_stall || exec_stall || mem_stall;
+wire				wait_stall;
+wire				core_stall = fetch_stall || exec_stall || mem_stall || wait_stall;
 wire				bus_error_p0;
 wire				addr_error_p0;
 wire				base_decode_error_p1;
@@ -153,6 +154,7 @@ wire [`UPARC_REG_WIDTH-1:0]	cop0_reg_val_p1;
 wire [`UPARC_REGNO_WIDTH-1:0]	cop0_rt_no_p1;
 wire [`UPARC_ADDR_WIDTH-11:0]	cop0_ivtbase;		/* IVT base */
 wire				cop0_ie;		/* IE status */
+wire				cop0_intr_wait;		/* Interrupt wait state */
 
 
 /* Integer multiplication and division unit wires */
@@ -286,6 +288,7 @@ uparc_coproc0 coproc0(
 	.i_exec_stall(exec_stall),
 	.i_mem_stall(mem_stall),
 	.i_fetch_stall(fetch_stall),
+	.i_wait_stall(wait_stall),
 	.o_decode_error(cop0_decode_error_p1),
 	.i_except_start(except_start_p3),
 	.i_except_dly_slt(except_dly_slt_p3),
@@ -298,6 +301,7 @@ uparc_coproc0 coproc0(
 	/* COP0 signals */
 	.o_cop0_ivtbase(cop0_ivtbase),
 	.o_cop0_ie(cop0_ie),
+	.o_cop0_intr_wait(cop0_intr_wait),
 	/* Fetched instruction */
 	.i_instr(instr_p0),
 	/* Decoded coprocessor instruction */
@@ -321,10 +325,12 @@ uparc_coproc0_eiu coproc0_eiu(
 	.i_exec_stall(exec_stall),
 	.i_mem_stall(mem_stall),
 	.i_fetch_stall(fetch_stall),
+	.o_wait_stall(wait_stall),
 	.i_jump_valid(jump_valid_p2),
 	/* COP0 signals */
 	.i_cop0_ivtbase(cop0_ivtbase),
 	.i_cop0_ie(cop0_ie),
+	.i_cop0_intr_wait(cop0_intr_wait),
 	/* Exception signals */
 	.o_except_start(except_start_p3),
 	.o_except_dly_slt(except_dly_slt_p3),
@@ -357,6 +363,7 @@ uparc_imuldivu imuldivu(
 	.o_exec_stall(exec_stall),
 	.i_mem_stall(mem_stall),
 	.i_fetch_stall(fetch_stall),
+	.i_wait_stall(wait_stall),
 	.i_nullify_execute(nullify_execute),
 	.i_nullify_mem(nullify_mem),
 	.i_nullify_wb(nullify_wb),
@@ -388,6 +395,7 @@ uparc_fetch fetch(
 	.i_exec_stall(exec_stall),
 	.i_mem_stall(mem_stall),
 	.o_fetch_stall(fetch_stall),
+	.i_wait_stall(wait_stall),
 	.o_bus_error(bus_error_p0),
 	.o_addr_error(addr_error_p0),
 	.i_nullify(nullify_fetch),
@@ -413,6 +421,7 @@ uparc_decode decode(
 	.i_exec_stall(exec_stall),
 	.i_mem_stall(mem_stall),
 	.i_fetch_stall(fetch_stall),
+	.i_wait_stall(wait_stall),
 	.o_decode_error(base_decode_error_p1),
 	.i_nullify(nullify_decode),
 	/* Coprocessor 0 */
@@ -449,6 +458,7 @@ uparc_execute execute(
 	.i_exec_stall(exec_stall),
 	.i_mem_stall(mem_stall),
 	.i_fetch_stall(fetch_stall),
+	.i_wait_stall(wait_stall),
 	.o_overfl_error(overfl_error_p2),
 	.o_addr_error(addr_error_p2),
 	.o_syscall_trap(syscall_trap_p2),
@@ -495,6 +505,7 @@ uparc_memory_access memory_access(
 	.i_exec_stall(exec_stall),
 	.o_mem_stall(mem_stall),
 	.i_fetch_stall(fetch_stall),
+	.i_wait_stall(wait_stall),
 	.o_bus_error(bus_error_p3),
 	.o_addr_error(addr_error_p3),
 	.i_nullify(nullify_mem),
@@ -528,6 +539,7 @@ uparc_writeback writeback(
 	.i_exec_stall(exec_stall),
 	.i_mem_stall(mem_stall),
 	.i_fetch_stall(fetch_stall),
+	.i_wait_stall(wait_stall),
 	.i_nullify(nullify_wb),
 	/* Data for writeback */
 	.i_rd_no(rd_no_p3),

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2018 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,6 +45,7 @@ module uparc_fetch(
 	i_exec_stall,
 	i_mem_stall,
 	o_fetch_stall,
+	i_wait_stall,
 	o_bus_error,
 	o_addr_error,
 	i_nullify,
@@ -72,6 +73,7 @@ input wire [`UPARC_ADDR_WIDTH-1:0]	i_except_haddr;
 input wire				i_exec_stall;
 input wire				i_mem_stall;
 output wire				o_fetch_stall;
+input wire				i_wait_stall;
 output wire				o_bus_error;
 output wire				o_addr_error;
 input wire				i_nullify;
@@ -87,7 +89,7 @@ output wire [`UPARC_INSTR_WIDTH-1:0]	o_instr;
 output reg [`UPARC_ADDR_WIDTH-1:0]	o_pc;
 
 
-wire core_stall = i_exec_stall || i_mem_stall || o_fetch_stall;
+wire core_stall = i_exec_stall || i_mem_stall || o_fetch_stall || i_wait_stall;
 
 
 assign o_fetch_stall = i_busy;
