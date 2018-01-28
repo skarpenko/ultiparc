@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2018 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -146,7 +146,7 @@ test_entry:
 	nop
 
 check_result:
-	/* Shoud get 12 Address Error exceptions */
+	/* Should get 12 Address Error exceptions */
 	li $t0, 12
 	bne $t0, $k0, test_failed
 	nop
