@@ -19,7 +19,8 @@ TESTS := \
 	rsvd_instr.elf \
 	mul_div.elf \
 	hazards.elf \
-	tsc_read.elf
+	tsc_read.elf \
+	wait.elf
 
 
 # List of final targets

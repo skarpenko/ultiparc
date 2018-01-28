@@ -135,6 +135,12 @@ my @tests = (
 		hex_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/basic_tests/tsc_read.hex"
 	},
 	{
+		name => "WAIT instruction",
+		type => TEST_BASIC,
+		bin_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/basic_tests/wait.bin",
+		hex_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/basic_tests/wait.hex"
+	},
+	{
 		name => "Timer Interrupt",
 		type => TEST_SYSLVL,
 		bin_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/syslevel_tests/timer.bin",
