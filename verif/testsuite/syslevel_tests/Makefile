@@ -9,6 +9,7 @@ TESTS := \
 	matrix_mul.elf \
 	fxp_fft.elf \
 	fxp_taylor.elf \
+	fibonacci.elf \
 	flt_fft_tmr.elf \
 	multitask.elf
 
@@ -20,6 +21,7 @@ memcopy.elf := entry.o memcopy.o common.o
 matrix_mul.elf := entry.o matrix_mul.o
 fxp_fft.elf := entry.o fxp_fft.o
 fxp_taylor.elf := entry.o fxp_taylor.o
+fibonacci.elf := entry.o fibonacci.o common.o
 flt_fft_tmr.elf := entry.o flt_fft_tmr.o common.o
 multitask.elf := entry.o multitask.o common.o context.o
 
@@ -61,6 +63,10 @@ fxp_fft.elf: $(fxp_fft.elf)
 
 fxp_taylor.elf: $(fxp_taylor.elf)
 	$(GCC_PREFIX)ld -T $(ULTIPARC_HOME)/verif/testsuite/common/hw.ld -o $@ $(fxp_taylor.elf) $(LDFLAGS)
+
+
+fibonacci.elf: $(fibonacci.elf)
+	$(GCC_PREFIX)ld -T $(ULTIPARC_HOME)/verif/testsuite/common/hw.ld -o $@ $(fibonacci.elf) $(LDFLAGS)
 
 
 flt_fft_tmr.elf: $(flt_fft_tmr.elf)

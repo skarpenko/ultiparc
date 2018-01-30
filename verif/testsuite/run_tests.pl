@@ -177,6 +177,12 @@ my @tests = (
 		hex_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/syslevel_tests/fxp_taylor.hex"
 	},
 	{
+		name => "Fibonacci numbers",
+		type => TEST_SYSLVL,
+		bin_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/syslevel_tests/fibonacci.bin",
+		hex_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/syslevel_tests/fibonacci.hex"
+	},
+	{
 		name => "Floating-Point FFT with timer",
 		type => TEST_XTENSIVE,
 		bin_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/syslevel_tests/flt_fft_tmr.bin",
