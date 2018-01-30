@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2018 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -167,7 +167,7 @@ void print_integer64(long long v)
 void print_unsigned64(unsigned long long v)
 {
 	unsigned long long d;
-	unsigned long long o = 1000000000000000000;
+	unsigned long long o = 10000000000000000000;
 	unsigned long long f = 0;
 
 	while(o != 1) {
