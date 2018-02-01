@@ -145,7 +145,7 @@ void print_unsigned(unsigned v)
 void print_integer64(long long v)
 {
 	long long d;
-	long long o = 1000000000000000000;
+	long long o = 1000000000000000000LL;
 	long long f = 0;
 
 	if(v<0)
@@ -167,7 +167,7 @@ void print_integer64(long long v)
 void print_unsigned64(unsigned long long v)
 {
 	unsigned long long d;
-	unsigned long long o = 10000000000000000000;
+	unsigned long long o = 10000000000000000000ULL;
 	unsigned long long f = 0;
 
 	while(o != 1) {
