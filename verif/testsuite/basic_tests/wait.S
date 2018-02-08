@@ -114,6 +114,17 @@ test_entry:
 	beq $t2, $zero, test_failed
 	nop
 
+#if 0
+	/* This code should hang the system */
+	li $t0, ~1
+	mfc0 $t1, $SR
+	and $t1, $t1, $t0
+	mtc0 $t1, $SR	/* Disable interrupts */
+	WAITI		/* Hang the system */
+	nop
+	nop
+#endif
+
 test_passed:
 	/* Report success to simulator */
 	li $t0, SIM_CTRL_CTLREG
