@@ -29,7 +29,7 @@
 
 #include <arch.h>
 #include <test_defines.h>
-#include <math.h>
+#include <compiler.h>
 #include "common.h"
 
 
@@ -208,6 +208,7 @@ void user_entry()
 			interrupts_enable();
 		} else {
 			waiti_safe();	/* Wait if nothing to do */
+			barrier();	/* Memory contents might have changed */
 			continue;
 		}
 
