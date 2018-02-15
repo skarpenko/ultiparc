@@ -27,6 +27,7 @@
  * Fibonacci numbers, simple workqueue test
  */
 
+#include <stddef.h>
 #include <arch.h>
 #include <test_defines.h>
 #include <compiler.h>
