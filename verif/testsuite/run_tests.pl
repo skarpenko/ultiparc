@@ -183,6 +183,12 @@ my @tests = (
 		hex_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/syslevel_tests/fibonacci.hex"
 	},
 	{
+		name => "Fixed-Point Wavelet Transform",
+		type => TEST_SYSLVL,
+		bin_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/syslevel_tests/fxp_wavelet.bin",
+		hex_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/syslevel_tests/fxp_wavelet.hex"
+	},
+	{
 		name => "Floating-Point FFT with timer",
 		type => TEST_XTENSIVE,
 		bin_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/syslevel_tests/flt_fft_tmr.bin",
@@ -193,6 +199,12 @@ my @tests = (
 		type => TEST_XTENSIVE,
 		bin_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/syslevel_tests/multitask.bin",
 		hex_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/syslevel_tests/multitask.hex"
+	},
+	{
+		name => "Multitasking Wavelet Transform",
+		type => TEST_XTENSIVE,
+		bin_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/syslevel_tests/wavelet_mt.bin",
+		hex_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/syslevel_tests/wavelet_mt.hex"
 	},
 );
 
