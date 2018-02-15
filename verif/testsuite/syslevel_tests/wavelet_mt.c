@@ -332,6 +332,8 @@ void user_entry()
 		barrier();	/* Compiler optimization barrier */
 	}
 
+	PRINTS("All done!\n");
+
 	/* Successful termination */
 	test_passed();
 }
