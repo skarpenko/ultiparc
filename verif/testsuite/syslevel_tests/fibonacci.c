@@ -124,7 +124,7 @@ void put_running(struct work *w)
 }
 
 
-/* Interrupt entry point  */
+/* Interrupt entry point */
 void interrupt_entry(struct interrupt_frame *p)
 {
 	u32 status;
