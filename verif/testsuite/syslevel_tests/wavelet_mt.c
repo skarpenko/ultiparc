@@ -225,7 +225,7 @@ void create_new_task(struct task *t, unsigned ttr, u8 *stack, unsigned stack_sz,
 
 /******************* Timer interrupt handler and scheduler ********************/
 
-/* Interrupt entry point  */
+/* Interrupt entry point */
 void interrupt_entry(struct interrupt_frame *p)
 {
 	u32 status;
@@ -341,8 +341,8 @@ void user_entry()
 
 /********************** Wavelet transform routines ****************************/
 
-void flp_dwt_fwd(const float *__restrict__ in, float *__restrict__ out, size_t n,
-	const float *__restrict__ h, const float *__restrict__ g, size_t ncoef)
+void flp_dwt_fwd(const float *restrict in, float *restrict out, size_t n,
+	const float *restrict h, const float *restrict g, size_t ncoef)
 {
 	size_t i, ii;
 	size_t jf;
@@ -368,8 +368,8 @@ void flp_dwt_fwd(const float *__restrict__ in, float *__restrict__ out, size_t n
 }
 
 
-void flp_dwt_inv(const float *__restrict__ in, float *__restrict__ out, size_t n,
-	const float *__restrict__ h, const float *__restrict__ g, size_t ncoef)
+void flp_dwt_inv(const float *restrict in, float *restrict out, size_t n,
+	const float *restrict h, const float *restrict g, size_t ncoef)
 {
 	size_t i, ii;
 	size_t jf;
@@ -397,8 +397,8 @@ void flp_dwt_inv(const float *__restrict__ in, float *__restrict__ out, size_t n
 }
 
 
-void fxp_dwt_fwd(const fixed_t *__restrict__ in, fixed_t *__restrict__ out, size_t n,
-	const fixed_t *__restrict__ h, const fixed_t *__restrict__ g, size_t ncoef)
+void fxp_dwt_fwd(const fixed_t *restrict in, fixed_t *restrict out, size_t n,
+	const fixed_t *restrict h, const fixed_t *restrict g, size_t ncoef)
 {
 	size_t i, ii;
 	size_t jf;
@@ -424,8 +424,8 @@ void fxp_dwt_fwd(const fixed_t *__restrict__ in, fixed_t *__restrict__ out, size
 }
 
 
-void fxp_dwt_inv(const fixed_t *__restrict__ in, fixed_t *__restrict__ out, size_t n,
-	const fixed_t *__restrict__ h, const fixed_t *__restrict__ g, size_t ncoef)
+void fxp_dwt_inv(const fixed_t *restrict in, fixed_t *restrict out, size_t n,
+	const fixed_t *restrict h, const fixed_t *restrict g, size_t ncoef)
 {
 	size_t i, ii;
 	size_t jf;

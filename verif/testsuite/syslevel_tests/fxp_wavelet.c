@@ -67,11 +67,10 @@
 #endif
 
 
-
 /********************** Wavelet transform routines ****************************/
 
-void fxp_dwt_fwd(const fixed_t *__restrict__ in, fixed_t *__restrict__ out, size_t n,
-	const fixed_t *__restrict__ h, const fixed_t *__restrict__ g, size_t ncoef)
+void fxp_dwt_fwd(const fixed_t *restrict in, fixed_t *restrict out, size_t n,
+	const fixed_t *restrict h, const fixed_t *restrict g, size_t ncoef)
 {
 	size_t i, ii;
 	size_t jf;
@@ -97,8 +96,8 @@ void fxp_dwt_fwd(const fixed_t *__restrict__ in, fixed_t *__restrict__ out, size
 }
 
 
-void fxp_dwt_inv(const fixed_t *__restrict__ in, fixed_t *__restrict__ out, size_t n,
-	const fixed_t *__restrict__ h, const fixed_t *__restrict__ g, size_t ncoef)
+void fxp_dwt_inv(const fixed_t *restrict in, fixed_t *restrict out, size_t n,
+	const fixed_t *restrict h, const fixed_t *restrict g, size_t ncoef)
 {
 	size_t i, ii;
 	size_t jf;
