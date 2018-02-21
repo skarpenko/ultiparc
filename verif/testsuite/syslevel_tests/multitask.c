@@ -204,6 +204,10 @@ void user_entry()
 			break;
 	}
 
+#if MAKE_NOISE == 1
+	print_str("All done!\n");
+#endif
+
 	/* Successful termination */
 	test_passed();
 }
