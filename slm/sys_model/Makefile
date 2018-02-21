@@ -10,7 +10,7 @@ CFLAGS  := -O3 -g -Wall -Iinclude -I$(SYSTEMC_HOME)/include
 LDFLAGS := -static -L$(SYSTEMC_HOME)/lib
 
 
-# Generete dependency information
+# Generate dependency information
 # $(call make-depend,source-file,object-file,depend-file)
 define make-depend
 	gcc -MM \

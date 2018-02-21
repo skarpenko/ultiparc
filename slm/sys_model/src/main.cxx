@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2018 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,7 +35,7 @@
 #include <trace.hxx>
 
 
-sc_trace_file *sys_trace = 0;  // trace file
+sc_trace_file *sys_trace = 0;	// trace file
 
 // MAIN
 int sc_main(int argc, char *argv[])
@@ -69,7 +69,7 @@ int sc_main(int argc, char *argv[])
 	sc_clock sys_clk("sys_clk", 10, SC_NS);
 	sc_signal<bool> nrst;
 
-	// To-level
+	// Top-level
 	sys_top top("sys_top");
 
 	// Load memory
