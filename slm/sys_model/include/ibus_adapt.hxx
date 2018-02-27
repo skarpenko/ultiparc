@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2018 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -47,7 +47,7 @@ SC_MODULE(ibus_adapt) {
 	sc_out<bool>          rdy_o;
 	sc_out<bool>          err_o;
 
-        // Fabric port
+	// Fabric port
 	sc_out<sc_uint<32> >  o_MAddr;
 	sc_out<sc_uint<3> >   o_MCmd;
 	sc_out<sc_uint<32> >  o_MData;

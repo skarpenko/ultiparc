@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2018 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -99,7 +99,7 @@ private:
 #endif
 //////
 			if(cmd == OCP_CMD_READ) {
-	                        // Always return zero on read
+				// Always return zero on read
 				wait(clk.posedge_event());
 				o_SData = 0;
 				o_SResp = OCP_RESP_DVA;
