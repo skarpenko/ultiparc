@@ -35,7 +35,7 @@ TARGETS := \
 include $(ULTIPARC_HOME)/verif/testsuite/common/common.mk
 
 
-# Tell Make to keep obejct files
+# Tell Make to keep object files
 .SECONDARY: $(TESTS:.elf=.o)
 
 
