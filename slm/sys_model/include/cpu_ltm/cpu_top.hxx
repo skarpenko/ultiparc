@@ -234,6 +234,9 @@ private:
 
 	//// INSTRUCTIONS
 
+	//// For more information about the architecture, refer to
+	//// IDT R30xx Family Software Reference Manual. Revision 1.0.
+
 	//
 	// MFC0  Move From Coprocessor 0
 	//
