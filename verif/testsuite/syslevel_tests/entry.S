@@ -30,7 +30,7 @@
 #include <arch.h>
 
 
-.text
+.section .startup, "ax"
 .set noreorder
 .globl __reset
 /********************************* Reset Vector *******************************/

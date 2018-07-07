@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2018 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,7 +42,8 @@ MEMORY
 
 SECTIONS
 {
-	.text		0x00000000 : { *(.text .text.*) } > ram
+	.startup	0x00000000 : { *(.startup .startup.*) } > ram
+	.text		ALIGN(0x4) : { *(.text .text.*) } > ram
 	.rodata		ALIGN(0x4) : { *(.rodata .rodata.*) } > ram
 	.rodata1	ALIGN(0x4) : { *(.rodata1) } > ram
 	.sdata2		ALIGN(0x4) : { *(.sdata2 .sdata2.*) } > ram
