@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2018 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,9 +38,7 @@ module uparc_alu(
 	a,
 	b,
 	result,
-	ovflow,
-	zero,
-	neg
+	ovflow
 );
 /* Inputs */
 input wire [`UPARC_ALUOP_WIDTH-1:0] alu_op;
@@ -49,8 +47,6 @@ input wire [`UPARC_REG_WIDTH-1:0] b;
 /* Outputs */
 output reg [`UPARC_REG_WIDTH-1:0] result;
 output wire ovflow;	/* Integer overflow */
-output wire zero;	/* Result is zero */
-output wire neg;	/* Result is negative */
 
 
 /** Internal wires **/
@@ -64,10 +60,6 @@ assign a_plus_b = a + b_mux;
 assign a_or_b = a | b;
 
 
-/* Result is negative */
-assign neg = result[`UPARC_REG_WIDTH-1];
-/* Result is zero */
-assign zero = (result ? 1'b0 : 1'b1);
 /* Integer overflow */
 assign ovflow = ~(a[`UPARC_REG_WIDTH-1] ^ b_mux[`UPARC_REG_WIDTH-1]) &
 	(a[`UPARC_REG_WIDTH-1] ^ result[`UPARC_REG_WIDTH-1]);

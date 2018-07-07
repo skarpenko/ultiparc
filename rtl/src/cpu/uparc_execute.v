@@ -151,8 +151,6 @@ reg [`UPARC_REG_WIDTH-1:0]	b;
 reg				ovflow_en;
 wire [`UPARC_REG_WIDTH-1:0]	alu_result;
 wire				ovflow;
-wire				zero;
-wire				neg;
 
 
 /* Capture destination register */
@@ -294,9 +292,7 @@ uparc_alu alu(
 	.a(a),
 	.b(b),
 	.result(alu_result),
-	.ovflow(ovflow),
-	.zero(zero),
-	.neg(neg)
+	.ovflow(ovflow)
 );
 
 
