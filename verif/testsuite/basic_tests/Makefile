@@ -20,7 +20,9 @@ TESTS := \
 	mul_div.elf \
 	hazards.elf \
 	tsc_read.elf \
-	wait.elf
+	wait.elf \
+	rfe.elf \
+	except_ie.elf
 
 
 # List of final targets

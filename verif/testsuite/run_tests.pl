@@ -141,6 +141,18 @@ my @tests = (
 		hex_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/basic_tests/wait.hex"
 	},
 	{
+		name => "RFE instruction",
+		type => TEST_BASIC,
+		bin_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/basic_tests/rfe.bin",
+		hex_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/basic_tests/rfe.hex"
+	},
+	{
+		name => "Exception entry",
+		type => TEST_BASIC,
+		bin_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/basic_tests/except_ie.bin",
+		hex_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/basic_tests/except_ie.hex"
+	},
+	{
 		name => "Timer Interrupt",
 		type => TEST_SYSLVL,
 		bin_path => "$ENV{'ULTIPARC_HOME'}/verif/testsuite/syslevel_tests/timer.bin",
