@@ -132,6 +132,11 @@ reg [`UPARC_INSTR_WIDTH-1:0]	instr;		/* Instruction word */
 reg				intr_wait;	/* Interrupt wait state */
 
 
+/* Restore from exception state */
+wire rfe = (cop_p2 == `UPARC_COP0_CO && cop_func_p2 == `UPARC_COP0_FUNC_RFE) ||
+	(cop_p3 == `UPARC_COP0_CO && cop_func_p3 == `UPARC_COP0_FUNC_RFE) ? 1'b1 : 1'b0;
+
+
 
 /******************************* DECODE STAGE *********************************/
 
@@ -184,7 +189,7 @@ begin
 		TSCHI: o_cop0_reg_val_p1 = tsc_latched_hi;
 		IVT: o_cop0_reg_val_p1 = { reg_ivt, 10'b0 };
 		PSR: o_cop0_reg_val_p1 = { {(`UPARC_REG_WIDTH-1){1'b0}}, reg_psr_ie };
-		SR: o_cop0_reg_val_p1 = { {(`UPARC_REG_WIDTH-1){1'b0}}, reg_sr_ie };
+		SR: o_cop0_reg_val_p1 = { {(`UPARC_REG_WIDTH-1){1'b0}}, rfe ? reg_psr_ie : reg_sr_ie };
 		CAUSE: o_cop0_reg_val_p1 = { reg_cause_bd, {(`UPARC_REG_WIDTH-1){1'b0}} };
 		EPC: o_cop0_reg_val_p1 = reg_epc;
 		PRID: o_cop0_reg_val_p1 = reg_prid;
