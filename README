@@ -29,7 +29,7 @@ PREREQUISITES
     for building cycle accurate Ultiparc system model.
 
 
-DIRECTORY STRUCTURE:
+DIRECTORY STRUCTURE
 
   /
   |- slm        - system level modeling related sources.
