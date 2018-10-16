@@ -2034,28 +2034,28 @@ inline void cpu_top::instr_mfc0(uint32_t instr)
 	switch(iw.r.rd) {
 		case 8:  // TSCLO register
 			m_tschi_latched = (uint32_t)(m_tsc >> 32);
-			m_gp_regs[iw.r.rt] = (uint32_t)(m_tsc & 0xFFFFFFFF);
+			wr_gpreg(iw.r.rt, (uint32_t)(m_tsc & 0xFFFFFFFF));
 			break;
 		case 9:  // TSCHI register
-			m_gp_regs[iw.r.rt] = m_tschi_latched;
+			wr_gpreg(iw.r.rt, m_tschi_latched);
 			break;
 		case 10: // IVTB register
-			m_gp_regs[iw.r.rt] = m_ivtb;
+			wr_gpreg(iw.r.rt, m_ivtb);
 			break;
 		case 11: // PSR Register
-			m_gp_regs[iw.r.rt] = m_psr;
+			wr_gpreg(iw.r.rt, m_psr);
 			break;
 		case 12: // SR Register
-			m_gp_regs[iw.r.rt] = m_sr;
+			wr_gpreg(iw.r.rt, m_sr);
 			break;
 		case 13: // CAUSE Register
-			m_gp_regs[iw.r.rt] = m_cause;
+			wr_gpreg(iw.r.rt, m_cause);
 			break;
 		case 14: // EPC Register
-			m_gp_regs[iw.r.rt] = m_epc;
+			wr_gpreg(iw.r.rt, m_epc);
 			break;
 		case 15: // PRId Register
-			m_gp_regs[iw.r.rt] = m_prid;
+			wr_gpreg(iw.r.rt, m_prid);
 			break;
 		default:
 			break;
@@ -2079,19 +2079,19 @@ inline void cpu_top::instr_mtc0(uint32_t instr)
 		case 9:  // TSCHI register
 			break;
 		case 10: // IVTB register
-			m_ivtb = m_gp_regs[iw.r.rt] & (~0x3FF);
+			m_ivtb = rd_gpreg(iw.r.rt) & (~0x3FF);
 			break;
 		case 11: // PSR Register
-			m_psr = m_gp_regs[iw.r.rt] & (0x1);
+			m_psr = rd_gpreg(iw.r.rt) & (0x1);
 			break;
 		case 12: // SR Register
-			m_sr = m_gp_regs[iw.r.rt] & (0x1);
+			m_sr = rd_gpreg(iw.r.rt) & (0x1);
 			break;
 		case 13: // CAUSE Register
-			m_cause = m_gp_regs[iw.r.rt] & (0x80000000);
+			m_cause = rd_gpreg(iw.r.rt) & (0x80000000);
 			break;
 		case 14: // EPC Register
-			m_epc = m_gp_regs[iw.r.rt];
+			m_epc = rd_gpreg(iw.r.rt);
 			break;
 		case 15: // PRId Register
 		default:
@@ -3131,8 +3131,6 @@ inline void cpu_top::exec_load_store(uint32_t instr, bool dslot)
 
 inline void cpu_top::exec_regimm(uint32_t instr, bool dslot)
 {
-	(void)dslot;
-
 	instruction iw;
 	iw.word = instr;
 
@@ -3163,22 +3161,22 @@ inline void cpu_top::exec_other(uint32_t instr, bool dslot)
 
 	switch(iw.r.op) {
 		case 2:
-			instr_j(instr);
+			if(!dslot) instr_j(instr);
 			break;
 		case 3:
-			instr_jal(instr);
+			if(!dslot) instr_jal(instr);
 			break;
 		case 4:
-			instr_beq(instr);
+			if(!dslot) instr_beq(instr);
 			break;
 		case 5:
-			instr_bne(instr);
+			if(!dslot) instr_bne(instr);
 			break;
 		case 6:
-			instr_blez(instr);
+			if(!dslot) instr_blez(instr);
 			break;
 		case 7:
-			instr_bgtz(instr);
+			if(!dslot) instr_bgtz(instr);
 			break;
 		case 8:
 			instr_addi(instr);
