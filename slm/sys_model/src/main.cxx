@@ -43,9 +43,20 @@ int sc_main(int argc, char *argv[])
 	bool do_trace = false;
 	const char *firmware_image = 0;
 
+	// Hint for help
+	if(argc < 2)
+		std::cout << std::endl << "Use -h for help." << std::endl;
+
 	// Parse command-line arguments
 	for(int i=1; i<argc; ++i) {
-		if(!strcmp(argv[i], "-trace")) {
+		if(!strcmp(argv[i], "-h")) {
+			std::cout << std::endl << "Command line arguments:" << std::endl
+				<< "\t-h                   - this help screen;" << std::endl
+				<< "\t-trace               - dump trace;" << std::endl
+				<< "\t-fw_image <file.bin> - firmware image." << std::endl
+				<< std::endl;
+			return 0;
+		} else if(!strcmp(argv[i], "-trace")) {
 			do_trace = true;
 		} else if(!strcmp(argv[i], "-fw_image")) {
 			++i;
