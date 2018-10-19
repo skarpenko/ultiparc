@@ -85,6 +85,7 @@ SC_MODULE(cpu_top) {
 		m_ld_delay_slot = false;
 		m_ld_dst_reg = 0;
 		m_ld_data = 0;
+		m_last_dst_reg = 0;
 	}
 
 public:
@@ -1740,6 +1741,8 @@ private:
 	bool m_ld_delay_slot;		// Load delay slot (data isn't available for next instruction)
 	uint32_t m_ld_dst_reg;		// Load destination register
 	uint32_t m_ld_data;		// Loaded data
+
+	uint32_t m_last_dst_reg;	// Last updated general purpose register
 };
 
 
@@ -1776,6 +1779,7 @@ inline uint32_t cpu_top::rd_gpreg(uint32_t r)
 inline void cpu_top::wr_gpreg(uint32_t r, uint32_t v)
 {
 	r &= 0x1F;
+	m_last_dst_reg = r;
 	m_gp_regs[r] = (r ? v : m_gp_regs[r]);
 }
 
@@ -2579,7 +2583,7 @@ inline void cpu_top::instr_bltzal(uint32_t instr)
 	uint32_t target = sign_extend16(iw.i.imm) << 2;
 	uint32_t rs = rd_gpreg(iw.i.rs);
 	bool cond = ((rs & (1<<31)) != 0);
-	m_gp_regs[31] = m_pc + 8;
+	wr_gpreg(31, m_pc + 8);
 	if(cond) {
 		m_next_pc = m_pc + 4 + target;
 	} else {
@@ -2597,7 +2601,7 @@ inline void cpu_top::instr_bgezal(uint32_t instr)
 	uint32_t target = sign_extend16(iw.i.imm) << 2;
 	uint32_t rs = rd_gpreg(iw.i.rs);
 	bool cond = ((rs & (1<<31)) == 0);
-	m_gp_regs[31] = m_pc + 8;
+	wr_gpreg(31, m_pc + 8);
 	if(cond) {
 		m_next_pc = m_pc + 4 + target;
 	} else {
@@ -2625,7 +2629,7 @@ inline void cpu_top::instr_jal(uint32_t instr)
 
 	uint32_t target = iw.j.target;
 	m_next_pc = ((m_pc+4) & 0xF0000000) | target << 2;
-	m_gp_regs[31] = m_pc + 4 + 4;
+	wr_gpreg(31, m_pc + 4 + 4);
 	m_delay_slot = true;
 }
 
@@ -3219,6 +3223,7 @@ inline void cpu_top::execute(uint32_t instr, bool dslot)
 	uint32_t ld_dst_reg = m_ld_dst_reg;
 	uint32_t ld_data = m_ld_data;
 	m_ld_delay_slot = false; // clear
+	m_last_dst_reg = 0;
 
 	switch(iw.r.op) {
 		case 0:
@@ -3262,7 +3267,7 @@ inline void cpu_top::execute(uint32_t instr, bool dslot)
 	}
 
 	// Write register if there is pending update
-	if(ld_delay_slot) {
+	if(ld_delay_slot && (ld_dst_reg != m_last_dst_reg)) {
 		wr_gpreg(ld_dst_reg, ld_data);
 	}
 }
