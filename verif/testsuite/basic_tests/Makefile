@@ -22,7 +22,8 @@ TESTS := \
 	tsc_read.elf \
 	wait.elf \
 	rfe.elf \
-	except_ie.elf
+	except_ie.elf \
+	nor.elf
 
 
 # List of final targets
