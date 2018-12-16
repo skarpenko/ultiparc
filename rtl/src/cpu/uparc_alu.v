@@ -76,7 +76,7 @@ begin
 	`UPARC_ALUOP_AND:  result = a & b;
 	`UPARC_ALUOP_OR:   result = a_or_b;
 	`UPARC_ALUOP_XOR:  result = a ^ b;
-	`UPARC_ALUOP_NOR:  result = !a_or_b;
+	`UPARC_ALUOP_NOR:  result = ~a_or_b;
 	`UPARC_ALUOP_SLT:  result = ($signed(a) < $signed(b) ?
 		{{(`UPARC_REG_WIDTH-1){1'b0}}, 1'b1} : {(`UPARC_REG_WIDTH){1'b0}});
 	`UPARC_ALUOP_SLTU: result = ($unsigned(a) < $unsigned(b) ?

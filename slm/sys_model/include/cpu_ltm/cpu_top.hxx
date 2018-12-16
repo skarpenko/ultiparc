@@ -965,7 +965,7 @@ private:
 	//
 	// Format:
 	//	NOR rd, rs, rt
-	// Description: rd <- !(rs | rt)
+	// Description: rd <- ~(rs | rt)
 	//	The contents of general register rs are combined with the contents
 	//	of general register rt in a bit-wise logical NOR operation. The result
 	//	is placed into general register rd.
@@ -2509,7 +2509,7 @@ inline void cpu_top::instr_nor(uint32_t instr)
 
 	uint32_t rs = rd_gpreg(iw.r.rs);
 	uint32_t rt = rd_gpreg(iw.r.rt);
-	uint32_t rd = !(rs | rt);
+	uint32_t rd = ~(rs | rt);
 
 	wr_gpreg(iw.r.rd, rd);
 }
