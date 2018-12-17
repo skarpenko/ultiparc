@@ -134,7 +134,7 @@ wire core_stall = i_exec_stall || i_mem_stall || i_fetch_stall || i_wait_stall;
 assign o_jump_addr = alu_result;
 
 assign o_overfl_error = ovflow_en && ovflow;
-assign o_addr_error = (branch_taken && alu_result[1:0] ? 1'b1 : 1'b0);
+assign o_addr_error = (branch_taken && |alu_result[1:0] ? 1'b1 : 1'b0);
 
 
 reg jump_instr;				/* Current operation is jump */

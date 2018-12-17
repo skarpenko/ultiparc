@@ -263,7 +263,7 @@ begin
 			o_except_valid <= 1'b1;
 			o_except_haddr <= { i_cop0_ivtbase, `UPARC_EXVECT_ADDRERR };
 		end
-		else if(ex_p3)
+		else if(|ex_p3)
 		begin
 			o_except_valid <= 1'b1;
 			case(ex_p3)

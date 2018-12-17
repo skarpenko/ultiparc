@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2017 The Ultiparc Project. All rights reserved.
+ * Copyright (c) 2015-2018 The Ultiparc Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -60,7 +60,7 @@ wire [`UPARC_REG_WIDTH:0]	diff;
 reg [`UPARC_REG_WIDTH-1:0]	abs_divider;
 
 
-assign ready	= !nbit && !start;
+assign ready	= !(|nbit) && !start;
 
 
 /* Result: remainder and quotient */
@@ -87,7 +87,7 @@ begin
 	end
 	else if(start)
 	begin
-		if(!dividend || !divider)
+		if(!(|dividend) || !(|divider))
 		begin
 			qr <= {(2*`UPARC_REG_WIDTH){1'b0}};
 			nbit <= 6'b0;
@@ -100,7 +100,7 @@ begin
 			abs_divider <= signd && divider[`UPARC_REG_WIDTH-1] ? -divider : divider;
 		end
 	end
-	else if(nbit)
+	else if(|nbit)
 	begin
 		nbit <= nbit - 1'b1;
 		if(diff[`UPARC_REG_WIDTH])
