@@ -12,8 +12,8 @@ export ULTIPARC_HOME=`pwd`
 echo "Workspace: $ULTIPARC_HOME"
 
 # Check that SYSTEMC_HOME variable is set.
-if [ -z ${SYSTEMC_HOME+x} ]; then
-   echo "SystemC: Warning! SYSTEMC_HOME variable is not unset.";
+if [ -z ${SYSTEMC_HOME} ]; then
+   echo "SystemC: Warning! SYSTEMC_HOME variable is not set.";
 else
    echo "SystemC: SYSTEMC_HOME = $SYSTEMC_HOME";
 fi
